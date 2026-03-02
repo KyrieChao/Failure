@@ -10,6 +10,7 @@ import lombok.Getter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 验证链核心 - 管理状态（failFast, alive, errors, context）
@@ -19,6 +20,8 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     protected final boolean failFast;
     @Getter
     protected boolean alive = true;
+    // 动态跳过状态 (true=执行, false=跳过)
+    private boolean conditionState = true;
     // OR 状态
     private boolean orMode = false;
     private boolean orHasSuccess = false;
@@ -30,7 +33,17 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         this.context = context;
     }
 
-    protected S or() {
+    /**
+     * 动态控制是否执行后续校验
+     * 当 condition 为 false 时，后续的 check/or 等操作将被跳过，直到再次调用 when(true)
+     */
+    public S when(boolean condition) {
+        this.conditionState = condition;
+        return self();
+    }
+
+    public S or() {
+        if (!conditionState) return self();
         if (context != null && context.isStopped()) return self();
         this.orMode = true;
         this.orHasSuccess = isValid();   // 如果当前已通过，标记成功
@@ -46,7 +59,9 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         return self();
     }
 
-    protected boolean shouldSkip() {
+    public boolean shouldSkip() {
+        // 如果当前被动态跳过，或 context 停止，则跳过
+        if (!conditionState) return true;
         if (context != null && context.isStopped()) return true;
         return (!alive && failFast);
     }
@@ -54,6 +69,14 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     @SuppressWarnings("unchecked")
     protected S self() {
         return (S) this;
+    }
+
+    /**
+     * 延迟计算校验 - 支持 Supplier
+     */
+    protected S check(Supplier<Boolean> conditionSupplier, Consumer<ViolationSpec> configurer) {
+        if (shouldSkip()) return self();
+        return check(conditionSupplier.get(), configurer);
     }
 
     /**

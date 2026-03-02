@@ -1,7 +1,13 @@
 package com.chao.failfast.internal;
 
 import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.chain.*;
+import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.internal.core.ViolationSpec;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 验证链 - 门面类
@@ -40,10 +46,6 @@ public final class Chain extends ChainCore<Chain> implements
         super(failFast, context);
     }
 
-    @Override
-    public Chain or() {
-        return super.or();
-    }
 
     @Override
     public Chain core() {

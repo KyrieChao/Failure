@@ -106,6 +106,33 @@ Failure.begin()
 
 ---
 
+## 🎛️ 流程控制与延迟校验
+
+### 动态跳过 (when)
+
+根据条件动态决定是否执行后续的校验逻辑。
+
+```java
+Failure.begin()
+    .when(isVip)                // 如果不是 VIP
+    .check(vipRule)             // 这一行会被跳过
+    .when(true)                 // 恢复执行
+    .check(commonRule);         // 继续执行
+```
+
+### 延迟校验 (defer)
+
+仅在真正需要时才执行开销较大的校验逻辑（支持 Supplier）。如果前面的校验已经失败（Fail-Fast）或被跳过，则不会执行。
+
+```java
+Failure.begin()
+    .notNull(userId)
+    // 只有 userId 不为 null 时，才会执行数据库查询
+    .defer(() -> dbService.isUserActive(userId), UserCode.USER_INACTIVE);
+```
+
+---
+
 ### 模式二：Fail-Strict（全量收集）
 
 **适用场景**: 表单提交、批量导入等需要一次性返回所有错误的场景。

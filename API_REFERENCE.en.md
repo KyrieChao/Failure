@@ -259,28 +259,22 @@ Supports `Date`, `LocalDate`, `LocalDateTime`, `Instant`, `ZonedDateTime`.
 
 ---
 
-### 2.10 Logical Operations
+### 2.10 Flow Control
 
 | Method | Description |
 | :--- | :--- |
+| `when(boolean)` | Dynamically controls whether subsequent checks are executed. false: skip; true: resume. |
+| `defer(supplier)` | **Lazy Validation**. Executes Supplier only when strictly necessary. Skipped if already failed or skipped by `when(false)`. Suitable for expensive checks. |
 | `or()` | Logical OR, connects the preceding and following conditions. If the former is satisfied, the latter is skipped; otherwise, the latter is attempted. |
 
 **Example**:
 
 ```java
-// Scenario: Mobile or Email, either one is valid
 Failure.begin()
-    .mobile(input)                  // Try mobile validation
-    .or()                           // OR
-    .email(input)                   // Try email validation
-    .failNow(UserCode.INVALID_INPUT); // Throws if neither is valid
+    .when(isVip).check(vipRule)     // Only for VIP
+    .when(true).check(commonRule)   // Resume common rules
+    .defer(() -> checkDb(id));      // Query DB only if previous checks passed
 ```
-
-**Notes**:
-1. `or()` only affects the **immediately following** condition.
-2. Associativity: `A.or().B.C` is parsed as `(A || B) && C`.
-3. If `A` is satisfied, `B` is skipped (short-circuit).
-4. If `A` fails, `B` is executed. If `B` passes, the previous error is cleared.
 
 ---
 

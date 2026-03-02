@@ -96,6 +96,33 @@ Failure.begin()
 
 ---
 
+## 🎛️ Flow Control & Lazy Evaluation
+
+### Dynamic Skip (when)
+
+Control whether to execute subsequent validations dynamically.
+
+```java
+Failure.begin()
+    .when(isVip)                // If not VIP
+    .check(vipRule)             // This line will be skipped
+    .when(true)                 // Resume execution
+    .check(commonRule);         // Continue execution
+```
+
+### Lazy Evaluation (defer)
+
+Execute expensive validation logic (via Supplier) only when strictly necessary. If previous validations failed (Fail-Fast) or were skipped, the supplier will not be executed.
+
+```java
+Failure.begin()
+    .notNull(userId)
+    // Query DB only if userId is not null
+    .defer(() -> dbService.isUserActive(userId), UserCode.USER_INACTIVE);
+```
+
+---
+
 ### Mode 2: Fail-Strict (Collect All)
 
 **Scenario**: Form submission, batch import, etc., where all errors need to be returned at once.
