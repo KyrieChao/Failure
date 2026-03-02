@@ -19,12 +19,31 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     protected final boolean failFast;
     @Getter
     protected boolean alive = true;
+    // OR 状态
+    private boolean orMode = false;
+    private boolean orHasSuccess = false;
     protected final ValidationContext context;
     protected final List<Business> errors = new ArrayList<>();
 
     protected ChainCore(boolean failFast, ValidationContext context) {
         this.failFast = failFast;
         this.context = context;
+    }
+
+    protected S or() {
+        if (context != null && context.isStopped()) return self();
+        this.orMode = true;
+        this.orHasSuccess = isValid();   // 如果当前已通过，标记成功
+
+        // 如果是failFast且已经失败，or给了第二次机会，重置alive
+        if (failFast && !alive) {
+            alive = true;
+        }
+        // 清空当前错误，准备收集or右侧的错误
+        if (!orHasSuccess) {
+            errors.clear();
+        }
+        return self();
     }
 
     protected boolean shouldSkip() {
@@ -42,11 +61,31 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      */
     protected S check(boolean condition, Consumer<ViolationSpec> configurer) {
         if (shouldSkip()) return self();
-        if (!condition) {
-            ViolationSpec spec = new ViolationSpec();
-            configurer.accept(spec);
-            addError(spec);
-            if (failFast) alive = false;
+
+        if (orMode) {
+            // or模式：计算组合结果
+            orMode = false;  // 消费掉or状态
+            boolean finalSuccess = orHasSuccess || condition;
+
+            if (!finalSuccess) {
+                // 左右都失败，报错
+                ViolationSpec spec = new ViolationSpec();
+                configurer.accept(spec);
+                addError(spec);
+                if (failFast) alive = false;
+            } else {
+                // 有一个成功，整个or通过，清除错误
+                alive = true;
+                // errors已经在or()时清空了
+            }
+        } else {
+            // 普通模式
+            if (!condition) {
+                ViolationSpec spec = new ViolationSpec();
+                configurer.accept(spec);
+                addError(spec);
+                if (failFast) alive = false;
+            }
         }
         return self();
     }
@@ -81,11 +120,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         if (spec.getCode() != null) {
             return Business.of(spec.getCode());
         }
-        return Business.of(ResponseCode.of(
-                500,
-                "Validation failed",
-                "链式验证未通过，请使用 ViolationSpec 配置具体错误信息"
-        ));
+        return Business.of(ResponseCode.VALIDATION_ERROR_500_DYNAMIC);
     }
 
     /**

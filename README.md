@@ -174,6 +174,24 @@ public class UserRegisterValidator implements FastValidator<UserRegisterDTO> {
 
 ---
 
+## 🔀 逻辑运算 (OR)
+
+支持 `or()` 逻辑操作符，用于表达 "满足条件A 或 满足条件B" 的场景。
+
+```java
+// 示例：用户或者是管理员，或者是拥有特定权限的普通用户
+Failure.begin()
+    .equals(role, Role.ADMIN)       // 条件A：是管理员
+    .or()                           // 或
+    .hasPermission(user, "READ")    // 条件B：拥有读权限
+    .failNow(UserCode.NO_PERMISSION); // 如果A和B都不满足，则抛出异常
+```
+
+注意：`or()` 仅作用于其紧邻的两个条件。链式调用的默认逻辑为 `AND`。
+`A.or().B.C` 等价于 `(A || B) && C`。
+
+---
+
 ## ⚙️ 配置说明
 
 在 `application.yml` 中配置：

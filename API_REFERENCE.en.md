@@ -259,6 +259,31 @@ Supports `Date`, `LocalDate`, `LocalDateTime`, `Instant`, `ZonedDateTime`.
 
 ---
 
+### 2.10 Logical Operations
+
+| Method | Description |
+| :--- | :--- |
+| `or()` | Logical OR, connects the preceding and following conditions. If the former is satisfied, the latter is skipped; otherwise, the latter is attempted. |
+
+**Example**:
+
+```java
+// Scenario: Mobile or Email, either one is valid
+Failure.begin()
+    .mobile(input)                  // Try mobile validation
+    .or()                           // OR
+    .email(input)                   // Try email validation
+    .failNow(UserCode.INVALID_INPUT); // Throws if neither is valid
+```
+
+**Notes**:
+1. `or()` only affects the **immediately following** condition.
+2. Associativity: `A.or().B.C` is parsed as `(A || B) && C`.
+3. If `A` is satisfied, `B` is skipped (short-circuit).
+4. If `A` fails, `B` is executed. If `B` passes, the previous error is cleared.
+
+---
+
 ## 3. Terminal Operations
 
 | Method | Applicable Mode | Description |

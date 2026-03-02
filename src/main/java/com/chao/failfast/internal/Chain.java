@@ -42,6 +42,11 @@ public final class Chain extends ChainCore<Chain> implements
 
 
     @Override
+    public Chain or() {
+        return super.or();
+    }
+
+    @Override
     public Chain core() {
         return this;
     }

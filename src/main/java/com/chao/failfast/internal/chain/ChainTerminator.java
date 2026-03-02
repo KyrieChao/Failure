@@ -13,6 +13,7 @@ import java.util.function.Supplier;
  */
 public interface ChainTerminator<S extends ChainCore<S>> {
 
+
     /**
      * 这是一个核心方法的声明
      * 该方法名为core，不带任何参数

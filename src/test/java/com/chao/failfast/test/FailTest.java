@@ -121,7 +121,7 @@ class FailTest {
             assertDoesNotThrow(() -> Failure.begin().positive(1).fail());
             assertThat(catchThrowable(() -> Failure.begin().positive(-1).fail())).isInstanceOf(Business.class);
         }
-        
+
         @Test
         @DisplayName("集合校验测试")
         void testCollection() {
@@ -129,7 +129,7 @@ class FailTest {
             assertDoesNotThrow(() -> Failure.begin().notEmpty(list).fail());
             assertThat(catchThrowable(() -> Failure.begin().notEmpty(Collections.emptyList()).fail())).isInstanceOf(Business.class);
         }
-        
+
         @Test
         @DisplayName("日期校验测试")
         void testDate() {

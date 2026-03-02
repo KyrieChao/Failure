@@ -262,6 +262,31 @@ Failure.begin()
 
 ---
 
+### 2.10 逻辑运算 (Logical)
+
+| 方法    | 描述                                     |
+|-------|----------------------------------------|
+| `or()` | 逻辑或，连接前后两个校验条件。若前一个条件满足，则跳过后一个；若前一个不满足，则尝试后一个。 |
+
+**示例**：
+
+```java
+// 场景：手机号或邮箱，满足其一即可
+Failure.begin()
+    .mobile(input)                  // 尝试校验手机号
+    .or()                           // 或
+    .email(input)                   // 尝试校验邮箱
+    .failNow(UserCode.INVALID_INPUT); // 若都不满足，则抛出异常
+```
+
+**注意事项**：
+1. `or()` 仅影响其**紧邻的右侧**一个条件。
+2. 结合性：`A.or().B.C` 解析为 `(A || B) && C`。
+3. 如果 `A` 满足，`B` 的校验逻辑会被跳过（短路）。
+4. 如果 `A` 不满足，`B` 将被执行。如果 `B` 满足，则整体视为通过，之前的错误会被清除。
+
+---
+
 ## 3. 终结操作 (Terminal Operations)
 
 | 方法                       | 适用模式        | 描述                  |
@@ -490,8 +515,10 @@ Result<Integer> result = Result.ok("42")
     .filter(n -> n > 0, UserCode.INVALID)
     .recover(e -> 0);
 
-// 获取值
-Integer value = result.orElse(-1);
+// 获取值 失败时返回默认值 
+Integer value = result.getOrElse(-1);
+// 失败时会报错
+Integer value = result.get();
 ```
 
 ---

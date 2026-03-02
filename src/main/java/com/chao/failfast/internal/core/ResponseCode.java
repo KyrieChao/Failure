@@ -34,8 +34,12 @@ public interface ResponseCode {
      */
     ResponseCode ILLEGAL_ARGUMENT = of(500, "Illegal Argument", "非法参数");
 
-    /** 默认校验失败（500） */
+    /**
+     * 默认校验失败（500）
+     */
     ResponseCode VALIDATION_ERROR_500 = of(500, "Validation failed", "验证失败，缺少具体错误配置");
+    ResponseCode VALIDATION_ERROR_500_DYNAMIC = of(500, "Validation failed", "链式验证未通过，请使用 ViolationSpec 配置具体错误信息");
+
     /**
      * 获取错误码数值
      *

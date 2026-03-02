@@ -164,6 +164,24 @@ public class UserRegisterValidator implements FastValidator<UserRegisterDTO> {
 
 ---
 
+## 🔀 Logical Operations (OR)
+
+The `or()` operator is supported for "Condition A OR Condition B" scenarios.
+
+```java
+// Example: User is either ADMIN OR has READ permission
+Failure.begin()
+    .equals(role, Role.ADMIN)       // Condition A: Is Admin
+    .or()                           // OR
+    .hasPermission(user, "READ")    // Condition B: Has Read Permission
+    .failNow(UserCode.NO_PERMISSION); // Throws if neither A nor B is satisfied
+```
+
+Note: `or()` only applies to the immediately adjacent conditions. The default logic for chain calls is `AND`.
+`A.or().B.C` is equivalent to `(A || B) && C`.
+
+---
+
 ## ⚙️ Configuration
 
 Configure framework behavior in `application.yml`:
