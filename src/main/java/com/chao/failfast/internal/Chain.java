@@ -40,7 +40,6 @@ public final class Chain extends ChainCore<Chain> implements
         super(failFast, context);
     }
 
-
     @Override
     public Chain or() {
         return super.or();
