@@ -221,6 +221,38 @@ Note: `or()` only applies to the immediately adjacent conditions. The default lo
 
 ---
 
+### 4.4 Exception Handling & JSR-303 Compatibility
+
+The framework provides built-in `FailFastExceptionHandler`, which not only handles its own business exceptions but also perfectly integrates with Spring's native JSR-303 (`@Valid` / `@Validated`) validation.
+
+**Features**:
+- **Unified Format**: Whether it is an exception thrown by `Failure` or triggered by `@NotNull`, the final response format is completely consistent.
+- **Mode Adaptation**: The `fast` attribute of the `@Validate` annotation also applies to JSR-303 exceptions.
+  - `fast=true` (Default): Even if Hibernate Validator throws multiple errors, only the first one is returned in the response.
+  - `fast=false`: Returns all errors collected by JSR-303.
+
+To customize, inherit `FailFastExceptionHandler`:
+
+```java
+@RestControllerAdvice
+public class CustomExceptionHandler extends FailFastExceptionHandler {
+    
+    @Override
+    @ExceptionHandler(Business.class)
+    public ResponseEntity<?> handleBusinessException(Business e) {
+        // Custom response format
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", false);
+        body.put("errorCode", e.getResponseCode().getCode());
+        body.put("errorMessage", e.getResponseCode().getMessage());
+        body.put("detail", e.getDetail());
+        return ResponseEntity.badRequest().body(body);
+    }
+}
+```
+
+---
+
 ## ⚙️ Configuration
 
 Configure framework behavior in `application.yml`:

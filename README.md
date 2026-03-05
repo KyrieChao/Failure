@@ -213,6 +213,38 @@ public class UserRegisterValidator implements FastValidator<UserRegisterDTO> {
 
 ---
 
+### 4.4 异常处理与 JSR-303 兼容
+
+框架内置了 `FailFastExceptionHandler`，不仅处理自身的业务异常，还完美兼容 Spring 原生的 JSR-303 (`@Valid` / `@Validated`) 校验。
+
+**特性**:
+- **统一格式**: 无论是 `Failure` 抛出的异常，还是 `@NotNull` 触发的异常，最终响应格式完全一致。
+- **模式适配**: `@Validate` 注解的 `fast` 属性同样适用于 JSR-303 异常。
+  - `fast=true` (默认): 即使 Hibernate Validator 抛出了多个错误，响应中也只返回第一个。
+  - `fast=false`: 完整返回 JSR-303 收集到的所有错误。
+
+如需自定义，可继承 `FailFastExceptionHandler`：
+
+```java
+@RestControllerAdvice
+public class CustomExceptionHandler extends FailFastExceptionHandler {
+
+    @Override
+    @ExceptionHandler(Business.class)
+    public ResponseEntity<?> handleBusinessException(Business e) {
+        // 自定义响应格式
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", false);
+        body.put("errorCode", e.getResponseCode().getCode());
+        body.put("errorMessage", e.getResponseCode().getMessage());
+        body.put("detail", e.getDetail());
+        return ResponseEntity.badRequest().body(body);
+    }
+}
+```
+
+---
+
 ## 🔀 逻辑运算 (OR)
 
 支持 `or()` 逻辑操作符，用于表达 "满足条件A 或 满足条件B" 的场景。
