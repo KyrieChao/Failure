@@ -112,7 +112,6 @@ public class ChainBranchCoverageTest {
         chain.state(false); // alive=false
 
         assertSame(chain, chain.positive(-1)); // 负数本应失败
-        assertSame(chain, chain.positiveNumber(-1)); // 负数本应失败
         assertSame(chain, chain.inRange(0, 5, 10)); // 不在范围内本应失败
         assertSame(chain, chain.inRangeNumber(0, 5, 10)); // 不在范围内本应失败
         assertSame(chain, chain.nonNegative(-1)); // 负数本应失败
@@ -296,7 +295,7 @@ public class ChainBranchCoverageTest {
     void testFailNowConsumerWhenAliveTrue() {
         Chain chain = Chain.begin(true);
 
-        assertSame(chain, chain.failNow(f -> f.responseCode(TEST_CODE)));
+        assertSame(chain, chain.failNow(TEST_CODE));
     }
 
     @Test
@@ -304,7 +303,7 @@ public class ChainBranchCoverageTest {
     void testFailNowSupplierWhenAliveTrue() {
         Chain chain = Chain.begin(true);
 
-        assertSame(chain, chain.failNow(() -> Business.of(TEST_CODE)));
+        assertSame(chain, chain.failNow(TEST_CODE));
     }
 
     // ==================== 混合模式测试 ====================

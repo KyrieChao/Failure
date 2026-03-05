@@ -29,7 +29,6 @@ class ChainCoverageTest {
         chain.notEmpty(map)
                 .notEmpty(map, CODE)
                 .notEmpty(map, CODE, "msg")
-                .notEmpty(map, f -> f.responseCode(CODE))
                 .containsKey(map, "k")
                 .containsValue(map, "v")
                 .notContainsKey(map, "x")
@@ -110,7 +109,6 @@ class ChainCoverageTest {
 
         // Number
         chain.positive(1)
-                .positiveNumber(1)
                 .inRange(5, 1, 10)
                 .inRangeNumber(5, 1, 10)
                 .nonNegative(0)

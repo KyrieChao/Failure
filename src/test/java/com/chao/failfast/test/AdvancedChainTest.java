@@ -79,10 +79,10 @@ class AdvancedChainTest {
         String input = null;
 
         Business ex = assertThrows(Business.class, () ->
-                Failure.begin().notNull(input, error -> error
-                                .responseCode(ResponseCode.of(9001, "动态错误"))
-                                .detail("这里可以放详细的上下文信息，比如输入值为null")
-                        )
+                Failure.begin()
+                        .notNull(input,
+                                ResponseCode.of(9001, "动态错误"),
+                                ("这里可以放详细的上下文信息，比如输入值为null"))
                         .failAll()
         );
 

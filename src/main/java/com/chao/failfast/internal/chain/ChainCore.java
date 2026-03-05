@@ -1,15 +1,13 @@
 package com.chao.failfast.internal.chain;
 
 import com.chao.failfast.annotation.FastValidator.ValidationContext;
-import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.internal.core.ViolationSpec;
 import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -74,15 +72,15 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     /**
      * 延迟计算校验 - 支持 Supplier
      */
-    protected S check(Supplier<Boolean> conditionSupplier, Consumer<ViolationSpec> configurer) {
+    public S check(Supplier<Boolean> conditionSupplier, ResponseCode code, String detail) {
         if (shouldSkip()) return self();
-        return check(conditionSupplier.get(), configurer);
+        return check(conditionSupplier.get(), code, detail);
     }
 
     /**
      * 统一校验入口 - 支持配置
      */
-    protected S check(boolean condition, Consumer<ViolationSpec> configurer) {
+    public S check(boolean condition, ResponseCode code, String detail) {
         if (shouldSkip()) return self();
 
         if (orMode) {
@@ -92,9 +90,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
 
             if (!finalSuccess) {
                 // 左右都失败，报错
-                ViolationSpec spec = new ViolationSpec();
-                configurer.accept(spec);
-                addError(spec);
+                addError(code, detail);
                 if (failFast) alive = false;
             } else {
                 // 有一个成功，整个or通过，清除错误
@@ -104,9 +100,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         } else {
             // 普通模式
             if (!condition) {
-                ViolationSpec spec = new ViolationSpec();
-                configurer.accept(spec);
-                addError(spec);
+                addError(code, detail);
                 if (failFast) alive = false;
             }
         }
@@ -116,12 +110,12 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     /**
      * 无配置校验 - 使用默认错误
      */
-    protected S check(boolean condition) {
-        return check(condition, FailureConst.NO_OP);
+    public S check(boolean condition) {
+        return check(condition, null, null);
     }
 
-    private void addError(ViolationSpec spec) {
-        Business business = buildBusiness(spec);
+    private void addError(ResponseCode code, String detail) {
+        Business business = buildBusiness(code, detail);
 
         if (context != null) {
             context.reportError(business);
@@ -131,25 +125,17 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         }
     }
 
-    private Business buildBusiness(ViolationSpec spec) {
-        if (spec.hasFabricator()) {
-            Business.Fabricator fab = Business.compose();
-            spec.getFabricator().accept(fab);
-            return fab.materialize();
+    private Business buildBusiness(ResponseCode code, String detail) {
+        if (code != null && detail != null) {
+            return Business.of(code, detail);
         }
-        if (spec.getCode() != null && spec.getDetail() != null) {
-            return Business.of(spec.getCode(), spec.getDetail());
-        }
-        if (spec.getCode() != null) {
-            return Business.of(spec.getCode());
-        }
-        return Business.of(ResponseCode.VALIDATION_ERROR_500_DYNAMIC);
+        return Business.of(Objects.requireNonNullElse(code, ResponseCode.VALIDATION_ERROR_500_DYNAMIC));
     }
 
     /**
      * 获取核心实例（供接口默认方法使用）
      */
-    protected S core() {
+    public S core() {
         return self();
     }
 
@@ -169,6 +155,26 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      * @return 如果错误集合为空且对象处于活跃状态则返回true，否则返回false
      */
     public boolean isValid() {
+        if (context != null) {
+            return context.isValid() && alive;
+        }
         return errors.isEmpty() && alive;
+    }
+
+    /**
+     * 如果当前有错误，则停止后续校验（将 conditionState 设为 false）
+     * 用于 strict 模式下防止 NPE（需配合 defer 使用）
+     */
+    public S stopOnFail() {
+        if (!conditionState) return self();
+        if (isValid()) return self();
+        return when(false);
+    }
+
+    /**
+     * 恢复校验（将 conditionState 设为 true）
+     */
+    public S resume() {
+        return when(true);
     }
 }

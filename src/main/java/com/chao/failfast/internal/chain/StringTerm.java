@@ -3,411 +3,272 @@ package com.chao.failfast.internal.chain;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.check.StringChecks;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.internal.core.ViolationSpec;
 
-import java.util.function.Consumer;
-
-/**
- * 字符串校验接口
- */
 public interface StringTerm<S extends ChainCore<S>> {
 
     S core();
 
-    default S notBlank(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.notBlank(str), spec);
-    }
-
-    default S notBlank(String str) {
-        return notBlank(str, FailureConst.NO_OP);
-    }
-
-    default S notBlank(String str, ResponseCode code) {
-        return notBlank(str, s -> s.responseCode(code));
-    }
-
-    default S notBlank(String str, ResponseCode code, String detail) {
-        return notBlank(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== notEmpty (alias) ==========
-
-    default S notEmpty(String str, Consumer<ViolationSpec> spec) {
-        return notBlank(str, spec);
-    }
-
+    // Alias: notEmpty -> notBlank
     default S notEmpty(String str) {
-        return notBlank(str);
+        return notBlank(str, FailureConst.NOT_EMPTY_ERROR);
     }
-
     default S notEmpty(String str, ResponseCode code) {
         return notBlank(str, code);
     }
-
     default S notEmpty(String str, ResponseCode code, String detail) {
         return notBlank(str, code, detail);
     }
 
-    // ========== blank ==========
-
-    default S blank(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.blank(str), spec);
-    }
-
     default S blank(String str) {
-        return blank(str, FailureConst.NO_OP);
+        return core().check(StringChecks.blank(str), FailureConst.BLANK_ERROR, null);
     }
 
     default S blank(String str, ResponseCode code) {
-        return blank(str, s -> s.responseCode(code));
+        return core().check(StringChecks.blank(str), code, null);
     }
 
     default S blank(String str, ResponseCode code, String detail) {
-        return blank(str, s -> s.responseCode(code).detail(detail));
+        return core().check(StringChecks.blank(str), code, detail);
     }
 
-    // ========== lengthBetween ==========
+    default S notBlank(String str) {
+        return core().check(StringChecks.notBlank(str), FailureConst.NOT_BLANK_ERROR, null);
+    }
 
-    default S lengthBetween(String str, int min, int max, Consumer<ViolationSpec> spec) {
-        if (!core().isAlive()) return core();
-        return core().check(StringChecks.lengthBetween(str, min, max), spec);
+    default S notBlank(String str, ResponseCode code) {
+        return core().check(StringChecks.notBlank(str), code, null);
+    }
+
+    default S notBlank(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.notBlank(str), code, detail);
     }
 
     default S lengthBetween(String str, int min, int max) {
-        return lengthBetween(str, min, max, FailureConst.NO_OP);
+        return core().check(StringChecks.lengthBetween(str, min, max), FailureConst.LENGTH_BETWEEN_ERROR, null);
     }
 
     default S lengthBetween(String str, int min, int max, ResponseCode code) {
-        return lengthBetween(str, min, max, s -> s.responseCode(code));
+        return core().check(StringChecks.lengthBetween(str, min, max), code, null);
     }
 
     default S lengthBetween(String str, int min, int max, ResponseCode code, String detail) {
-        return lengthBetween(str, min, max, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== lengthMin ==========
-
-    default S lengthMin(String str, int min, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.lengthMin(str, min), spec);
-    }
-
-    default S lengthMin(String str, int min) {
-        return lengthMin(str, min, FailureConst.NO_OP);
-    }
-
-    default S lengthMin(String str, int min, ResponseCode code) {
-        return lengthMin(str, min, s -> s.responseCode(code));
-    }
-
-    default S lengthMin(String str, int min, ResponseCode code, String detail) {
-        return lengthMin(str, min, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== lengthMax ==========
-
-    default S lengthMax(String str, int max, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.lengthMax(str, max), spec);
-    }
-
-    default S lengthMax(String str, int max) {
-        return lengthMax(str, max, FailureConst.NO_OP);
-    }
-
-    default S lengthMax(String str, int max, ResponseCode code) {
-        return lengthMax(str, max, s -> s.responseCode(code));
-    }
-
-    default S lengthMax(String str, int max, ResponseCode code, String detail) {
-        return lengthMax(str, max, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== match ==========
-
-    default S match(String str, String regex, Consumer<ViolationSpec> spec) {
-        if (!core().isAlive()) return core();
-        return core().check(StringChecks.match(str, regex), spec);
+        return core().check(StringChecks.lengthBetween(str, min, max), code, detail);
     }
 
     default S match(String str, String regex) {
-        return match(str, regex, FailureConst.NO_OP);
+        return core().check(StringChecks.match(str, regex), FailureConst.MATCH_ERROR, null);
     }
 
     default S match(String str, String regex, ResponseCode code) {
-        return match(str, regex, s -> s.responseCode(code));
+        return core().check(StringChecks.match(str, regex), code, null);
     }
 
     default S match(String str, String regex, ResponseCode code, String detail) {
-        return match(str, regex, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== email ==========
-
-    default S email(String email, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.email(email), spec);
+        return core().check(StringChecks.match(str, regex), code, detail);
     }
 
     default S email(String email) {
-        return email(email, FailureConst.NO_OP);
+        return core().check(StringChecks.email(email), FailureConst.EMAIL_ERROR, null);
     }
 
     default S email(String email, ResponseCode code) {
-        return email(email, s -> s.responseCode(code));
+        return core().check(StringChecks.email(email), code, null);
     }
 
     default S email(String email, ResponseCode code, String detail) {
-        return email(email, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== mobile ==========
-
-    default S mobile(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.mobile(str), spec);
-    }
-
-    default S mobile(String str) {
-        return mobile(str, FailureConst.NO_OP);
-    }
-
-    default S mobile(String str, ResponseCode code) {
-        return mobile(str, s -> s.responseCode(code));
-    }
-
-    default S mobile(String str, ResponseCode code, String detail) {
-        return mobile(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== url ==========
-
-    default S url(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.url(str), spec);
-    }
-
-    default S url(String str) {
-        return url(str, FailureConst.NO_OP);
-    }
-
-    default S url(String str, ResponseCode code) {
-        return url(str, s -> s.responseCode(code));
-    }
-
-    default S url(String str, ResponseCode code, String detail) {
-        return url(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== ipAddress ==========
-
-    default S ipAddress(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.ipAddress(str), spec);
-    }
-
-    default S ipAddress(String str) {
-        return ipAddress(str, FailureConst.NO_OP);
-    }
-
-    default S ipAddress(String str, ResponseCode code) {
-        return ipAddress(str, s -> s.responseCode(code));
-    }
-
-    default S ipAddress(String str, ResponseCode code, String detail) {
-        return ipAddress(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== uuid ==========
-
-    default S uuid(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.uuid(str), spec);
-    }
-
-    default S uuid(String str) {
-        return uuid(str, FailureConst.NO_OP);
-    }
-
-    default S uuid(String str, ResponseCode code) {
-        return uuid(str, s -> s.responseCode(code));
-    }
-
-    default S uuid(String str, ResponseCode code, String detail) {
-        return uuid(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== isNumeric ==========
-
-    default S isNumeric(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.isNumeric(str), spec);
-    }
-
-    default S isNumeric(String str) {
-        return isNumeric(str, FailureConst.NO_OP);
-    }
-
-    default S isNumeric(String str, ResponseCode code) {
-        return isNumeric(str, s -> s.responseCode(code));
-    }
-
-    default S isNumeric(String str, ResponseCode code, String detail) {
-        return isNumeric(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== isAlpha ==========
-
-    default S isAlpha(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.isAlpha(str), spec);
-    }
-
-    default S isAlpha(String str) {
-        return isAlpha(str, FailureConst.NO_OP);
-    }
-
-    default S isAlpha(String str, ResponseCode code) {
-        return isAlpha(str, s -> s.responseCode(code));
-    }
-
-    default S isAlpha(String str, ResponseCode code, String detail) {
-        return isAlpha(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== isAlphanumeric ==========
-
-    default S isAlphanumeric(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.isAlphanumeric(str), spec);
-    }
-
-    default S isAlphanumeric(String str) {
-        return isAlphanumeric(str, FailureConst.NO_OP);
-    }
-
-    default S isAlphanumeric(String str, ResponseCode code) {
-        return isAlphanumeric(str, s -> s.responseCode(code));
-    }
-
-    default S isAlphanumeric(String str, ResponseCode code, String detail) {
-        return isAlphanumeric(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== startsWith ==========
-
-    default S startsWith(String str, String prefix, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.startsWith(str, prefix), spec);
-    }
-
-    default S startsWith(String str, String prefix) {
-        return startsWith(str, prefix, FailureConst.NO_OP);
-    }
-
-    default S startsWith(String str, String prefix, ResponseCode code) {
-        return startsWith(str, prefix, s -> s.responseCode(code));
-    }
-
-    default S startsWith(String str, String prefix, ResponseCode code, String detail) {
-        return startsWith(str, prefix, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== endsWith ==========
-
-    default S endsWith(String str, String suffix, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.endsWith(str, suffix), spec);
-    }
-
-    default S endsWith(String str, String suffix) {
-        return endsWith(str, suffix, FailureConst.NO_OP);
-    }
-
-    default S endsWith(String str, String suffix, ResponseCode code) {
-        return endsWith(str, suffix, s -> s.responseCode(code));
-    }
-
-    default S endsWith(String str, String suffix, ResponseCode code, String detail) {
-        return endsWith(str, suffix, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== contains ==========
-
-    default S contains(String str, String substring, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.contains(str, substring), spec);
-    }
-
-    default S contains(String str, String substring) {
-        return contains(str, substring, FailureConst.NO_OP);
-    }
-
-    default S contains(String str, String substring, ResponseCode code) {
-        return contains(str, substring, s -> s.responseCode(code));
-    }
-
-    default S contains(String str, String substring, ResponseCode code, String detail) {
-        return contains(str, substring, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== notContains ==========
-
-    default S notContains(String str, String substring, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.notContains(str, substring), spec);
-    }
-
-    default S notContains(String str, String substring) {
-        return notContains(str, substring, FailureConst.NO_OP);
-    }
-
-    default S notContains(String str, String substring, ResponseCode code) {
-        return notContains(str, substring, s -> s.responseCode(code));
-    }
-
-    default S notContains(String str, String substring, ResponseCode code, String detail) {
-        return notContains(str, substring, s -> s.responseCode(code).detail(detail));
-    }
-    // 在 StringValidation 接口中添加：
-
-// ========== isLowerCase ==========
-
-    default S isLowerCase(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.isLowerCase(str), spec);
-    }
-
-    default S isLowerCase(String str) {
-        return isLowerCase(str, FailureConst.NO_OP);
-    }
-
-    default S isLowerCase(String str, ResponseCode code) {
-        return isLowerCase(str, s -> s.responseCode(code));
-    }
-
-    default S isLowerCase(String str, ResponseCode code, String detail) {
-        return isLowerCase(str, s -> s.responseCode(code).detail(detail));
-    }
-
-// ========== isUpperCase ==========
-
-    default S isUpperCase(String str, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.isUpperCase(str), spec);
-    }
-
-    default S isUpperCase(String str) {
-        return isUpperCase(str, FailureConst.NO_OP);
-    }
-
-    default S isUpperCase(String str, ResponseCode code) {
-        return isUpperCase(str, s -> s.responseCode(code));
-    }
-
-    default S isUpperCase(String str, ResponseCode code, String detail) {
-        return isUpperCase(str, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== equalsIgnoreCase ==========
-
-    default S equalsIgnoreCase(String str1, String str2, Consumer<ViolationSpec> spec) {
-        return core().check(StringChecks.equalsIgnoreCase(str1, str2), spec);
+        return core().check(StringChecks.email(email), code, detail);
     }
 
     default S equalsIgnoreCase(String str1, String str2) {
-        return equalsIgnoreCase(str1, str2, FailureConst.NO_OP);
+        return core().check(StringChecks.equalsIgnoreCase(str1, str2), FailureConst.EQUALS_IGNORE_CASE_ERROR, null);
     }
 
     default S equalsIgnoreCase(String str1, String str2, ResponseCode code) {
-        return equalsIgnoreCase(str1, str2, s -> s.responseCode(code));
+        return core().check(StringChecks.equalsIgnoreCase(str1, str2), code, null);
     }
 
     default S equalsIgnoreCase(String str1, String str2, ResponseCode code, String detail) {
-        return equalsIgnoreCase(str1, str2, s -> s.responseCode(code).detail(detail));
+        return core().check(StringChecks.equalsIgnoreCase(str1, str2), code, detail);
     }
+
+    default S startsWith(String str, String prefix) {
+        return core().check(StringChecks.startsWith(str, prefix), FailureConst.STARTS_WITH_ERROR, null);
+    }
+
+    default S startsWith(String str, String prefix, ResponseCode code) {
+        return core().check(StringChecks.startsWith(str, prefix), code, null);
+    }
+
+    default S startsWith(String str, String prefix, ResponseCode code, String detail) {
+        return core().check(StringChecks.startsWith(str, prefix), code, detail);
+    }
+
+    default S endsWith(String str, String suffix) {
+        return core().check(StringChecks.endsWith(str, suffix), FailureConst.ENDS_WITH_ERROR, null);
+    }
+
+    default S endsWith(String str, String suffix, ResponseCode code) {
+        return core().check(StringChecks.endsWith(str, suffix), code, null);
+    }
+
+    default S endsWith(String str, String suffix, ResponseCode code, String detail) {
+        return core().check(StringChecks.endsWith(str, suffix), code, detail);
+    }
+
+    default S contains(String str, String substring) {
+        return core().check(StringChecks.contains(str, substring), FailureConst.CONTAINS_ERROR, null);
+    }
+
+    default S contains(String str, String substring, ResponseCode code) {
+        return core().check(StringChecks.contains(str, substring), code, null);
+    }
+
+    default S contains(String str, String substring, ResponseCode code, String detail) {
+        return core().check(StringChecks.contains(str, substring), code, detail);
+    }
+
+    default S notContains(String str, String substring) {
+        return core().check(StringChecks.notContains(str, substring), FailureConst.NOT_CONTAINS_ERROR, null);
+    }
+
+    default S notContains(String str, String substring, ResponseCode code) {
+        return core().check(StringChecks.notContains(str, substring), code, null);
+    }
+
+    default S notContains(String str, String substring, ResponseCode code, String detail) {
+        return core().check(StringChecks.notContains(str, substring), code, detail);
+    }
+
+    default S lengthMin(String str, int min) {
+        return core().check(StringChecks.lengthMin(str, min), FailureConst.LENGTH_MIN_ERROR, null);
+    }
+
+    default S lengthMin(String str, int min, ResponseCode code) {
+        return core().check(StringChecks.lengthMin(str, min), code, null);
+    }
+
+    default S lengthMin(String str, int min, ResponseCode code, String detail) {
+        return core().check(StringChecks.lengthMin(str, min), code, detail);
+    }
+
+    default S lengthMax(String str, int max) {
+        return core().check(StringChecks.lengthMax(str, max), FailureConst.LENGTH_MAX_ERROR, null);
+    }
+
+    default S lengthMax(String str, int max, ResponseCode code) {
+        return core().check(StringChecks.lengthMax(str, max), code, null);
+    }
+
+    default S lengthMax(String str, int max, ResponseCode code, String detail) {
+        return core().check(StringChecks.lengthMax(str, max), code, detail);
+    }
+
+    default S isNumeric(String str) {
+        return core().check(StringChecks.isNumeric(str), FailureConst.IS_NUMERIC_ERROR, null);
+    }
+
+    default S isNumeric(String str, ResponseCode code) {
+        return core().check(StringChecks.isNumeric(str), code, null);
+    }
+
+    default S isNumeric(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.isNumeric(str), code, detail);
+    }
+
+    default S isAlpha(String str) {
+        return core().check(StringChecks.isAlpha(str), FailureConst.IS_ALPHA_ERROR, null);
+    }
+
+    default S isAlpha(String str, ResponseCode code) {
+        return core().check(StringChecks.isAlpha(str), code, null);
+    }
+
+    default S isAlpha(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.isAlpha(str), code, detail);
+    }
+
+    default S isAlphanumeric(String str) {
+        return core().check(StringChecks.isAlphanumeric(str), FailureConst.IS_ALPHANUMERIC_ERROR, null);
+    }
+
+    default S isAlphanumeric(String str, ResponseCode code) {
+        return core().check(StringChecks.isAlphanumeric(str), code, null);
+    }
+
+    default S isAlphanumeric(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.isAlphanumeric(str), code, detail);
+    }
+
+    default S isLowerCase(String str) {
+        return core().check(StringChecks.isLowerCase(str), FailureConst.IS_LOWER_CASE_ERROR, null);
+    }
+
+    default S isLowerCase(String str, ResponseCode code) {
+        return core().check(StringChecks.isLowerCase(str), code, null);
+    }
+
+    default S isLowerCase(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.isLowerCase(str), code, detail);
+    }
+
+    default S isUpperCase(String str) {
+        return core().check(StringChecks.isUpperCase(str), FailureConst.IS_UPPER_CASE_ERROR, null);
+    }
+
+    default S isUpperCase(String str, ResponseCode code) {
+        return core().check(StringChecks.isUpperCase(str), code, null);
+    }
+
+    default S isUpperCase(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.isUpperCase(str), code, detail);
+    }
+
+    default S mobile(String str) {
+        return core().check(StringChecks.mobile(str), FailureConst.MOBILE_ERROR, null);
+    }
+
+    default S mobile(String str, ResponseCode code) {
+        return core().check(StringChecks.mobile(str), code, null);
+    }
+
+    default S mobile(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.mobile(str), code, detail);
+    }
+
+    default S url(String str) {
+        return core().check(StringChecks.url(str), FailureConst.URL_ERROR, null);
+    }
+
+    default S url(String str, ResponseCode code) {
+        return core().check(StringChecks.url(str), code, null);
+    }
+
+    default S url(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.url(str), code, detail);
+    }
+
+    default S ipAddress(String str) {
+        return core().check(StringChecks.ipAddress(str), FailureConst.IP_ADDRESS_ERROR, null);
+    }
+
+    default S ipAddress(String str, ResponseCode code) {
+        return core().check(StringChecks.ipAddress(str), code, null);
+    }
+
+    default S ipAddress(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.ipAddress(str), code, detail);
+    }
+
+    default S uuid(String str) {
+        return core().check(StringChecks.uuid(str), FailureConst.UUID_ERROR, null);
+    }
+
+    default S uuid(String str, ResponseCode code) {
+        return core().check(StringChecks.uuid(str), code, null);
+    }
+
+    default S uuid(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.uuid(str), code, detail);
+    }
+
 }

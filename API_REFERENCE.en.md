@@ -78,20 +78,18 @@ Failure.with(ctx)
 
 ## 2. Validation Methods Detailed
 
-All validation methods support the following four overload forms (using `notNull` as an example):
+All validation methods support the following three overload forms (using `notNull` as an example):
 
-1. `notNull(obj)` - Use default error message
+1. `notNull(obj)` - Uses **built-in default error code** and **localized message**
 2. `notNull(obj, code)` - Specify `ResponseCode`
 3. `notNull(obj, code, detail)` - Specify `ResponseCode` and detailed description
-4. `notNull(obj, Consumer<Business.Fabricator>)` - Use Lambda to build complex error
 
 ```java
-// Example: Four overload forms
+// Example: Three overload forms
 Failure.begin()
-    .notNull(obj)                                    // Form 1
-    .notNull(obj, UserCode.REQUIRED)                 // Form 2
-    .notNull(obj, UserCode.REQUIRED, "Cannot be null") // Form 3
-    .notNull(obj, f -> f.responseCode(UserCode.REQUIRED).detail("Custom detail"))  // Form 4
+    .notNull(obj)                                    // Form 1: Default message (e.g., "Current value notNull")
+    .notNull(obj, UserCode.REQUIRED)                 // Form 2: Specify code
+    .notNull(obj, UserCode.REQUIRED, "Must be set")  // Form 3: Specify code + detail
     .fail();
 ```
 
@@ -264,8 +262,10 @@ Supports `Date`, `LocalDate`, `LocalDateTime`, `Instant`, `ZonedDateTime`.
 | Method | Description |
 | :--- | :--- |
 | `when(boolean)` | Dynamically controls whether subsequent checks are executed. false: skip; true: resume. |
-| `defer(supplier)` | **Lazy Validation**. Executes Supplier only when strictly necessary. Skipped if already failed or skipped by `when(false)`. Suitable for expensive checks. |
-| `or()` | Logical OR, connects the preceding and following conditions. If the former is satisfied, the latter is skipped; otherwise, the latter is attempted. |
+| `defer(supplier)`        | **Lazy Validation**. Executes Supplier only when strictly necessary. Skipped if already failed or skipped by `when(false)`. Suitable for expensive checks. |
+| `stopOnFail()`           | **Stop on Failure**. Stops subsequent checks if there are any errors (even in strict mode), until `resume()` is called. Essential for preventing NPE. |
+| `resume()`               | **Resume Execution**. Re-enables subsequent checks (counterpart to `stopOnFail()` or `when(false)`). |
+| `or()`                   | Logical OR, connects the preceding and following conditions. If the former is satisfied, the latter is skipped; otherwise, the latter is attempted. |
 
 **Example**:
 
@@ -274,6 +274,12 @@ Failure.begin()
     .when(isVip).check(vipRule)     // Only for VIP
     .when(true).check(commonRule)   // Resume common rules
     .defer(() -> checkDb(id));      // Query DB only if previous checks passed
+
+// Prevent NPE (Strict Mode)
+Failure.strict()
+    .notNull(user, UserCode.REQUIRED)
+    .stopOnFail()                   // Stop if user is null
+    .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // Safe access
 ```
 
 ---

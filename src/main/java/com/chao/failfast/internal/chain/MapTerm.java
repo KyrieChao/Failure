@@ -3,141 +3,94 @@ package com.chao.failfast.internal.chain;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.check.MapChecks;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.internal.core.ViolationSpec;
-
 import java.util.Map;
-import java.util.function.Consumer;
 
-/**
- * Map校验接口
- */
 public interface MapTerm<S extends ChainCore<S>> {
 
     S core();
 
-    // ========== notEmpty ==========
-
-    default S notEmpty(Map<?, ?> map, Consumer<ViolationSpec> spec) {
-        return core().check(MapChecks.notEmpty(map), spec);
-    }
-
     default S notEmpty(Map<?, ?> map) {
-        return notEmpty(map, FailureConst.NO_OP);
+        return core().check(MapChecks.notEmpty(map), FailureConst.NOT_EMPTY_ERROR, null);
     }
 
     default S notEmpty(Map<?, ?> map, ResponseCode code) {
-        return notEmpty(map, s -> s.responseCode(code));
+        return core().check(MapChecks.notEmpty(map), code, null);
     }
 
     default S notEmpty(Map<?, ?> map, ResponseCode code, String detail) {
-        return notEmpty(map, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== isEmpty ==========
-
-    default S isEmpty(Map<?, ?> map, Consumer<ViolationSpec> spec) {
-        return core().check(MapChecks.isEmpty(map), spec);
+        return core().check(MapChecks.notEmpty(map), code, detail);
     }
 
     default S isEmpty(Map<?, ?> map) {
-        return isEmpty(map, FailureConst.NO_OP);
+        return core().check(MapChecks.isEmpty(map), FailureConst.IS_EMPTY_ERROR, null);
     }
 
     default S isEmpty(Map<?, ?> map, ResponseCode code) {
-        return isEmpty(map, s -> s.responseCode(code));
+        return core().check(MapChecks.isEmpty(map), code, null);
     }
 
     default S isEmpty(Map<?, ?> map, ResponseCode code, String detail) {
-        return isEmpty(map, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== containsKey ==========
-
-    default S containsKey(Map<?, ?> map, Object key, Consumer<ViolationSpec> spec) {
-        return core().check(MapChecks.containsKey(map, key), spec);
+        return core().check(MapChecks.isEmpty(map), code, detail);
     }
 
     default S containsKey(Map<?, ?> map, Object key) {
-        return containsKey(map, key, FailureConst.NO_OP);
+        return core().check(MapChecks.containsKey(map, key), FailureConst.CONTAINS_KEY_ERROR, null);
     }
 
     default S containsKey(Map<?, ?> map, Object key, ResponseCode code) {
-        return containsKey(map, key, s -> s.responseCode(code));
+        return core().check(MapChecks.containsKey(map, key), code, null);
     }
 
     default S containsKey(Map<?, ?> map, Object key, ResponseCode code, String detail) {
-        return containsKey(map, key, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== notContainsKey ==========
-
-    default S notContainsKey(Map<?, ?> map, Object key, Consumer<ViolationSpec> spec) {
-        return core().check(MapChecks.notContainsKey(map, key), spec);
+        return core().check(MapChecks.containsKey(map, key), code, detail);
     }
 
     default S notContainsKey(Map<?, ?> map, Object key) {
-        return notContainsKey(map, key, FailureConst.NO_OP);
+        return core().check(MapChecks.notContainsKey(map, key), FailureConst.NOT_CONTAINS_KEY_ERROR, null);
     }
 
     default S notContainsKey(Map<?, ?> map, Object key, ResponseCode code) {
-        return notContainsKey(map, key, s -> s.responseCode(code));
+        return core().check(MapChecks.notContainsKey(map, key), code, null);
     }
 
     default S notContainsKey(Map<?, ?> map, Object key, ResponseCode code, String detail) {
-        return notContainsKey(map, key, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== containsValue ==========
-
-    default S containsValue(Map<?, ?> map, Object value, Consumer<ViolationSpec> spec) {
-        return core().check(MapChecks.containsValue(map, value), spec);
+        return core().check(MapChecks.notContainsKey(map, key), code, detail);
     }
 
     default S containsValue(Map<?, ?> map, Object value) {
-        return containsValue(map, value, FailureConst.NO_OP);
+        return core().check(MapChecks.containsValue(map, value), FailureConst.CONTAINS_VALUE_ERROR, null);
     }
 
     default S containsValue(Map<?, ?> map, Object value, ResponseCode code) {
-        return containsValue(map, value, s -> s.responseCode(code));
+        return core().check(MapChecks.containsValue(map, value), code, null);
     }
 
     default S containsValue(Map<?, ?> map, Object value, ResponseCode code, String detail) {
-        return containsValue(map, value, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== sizeBetween ==========
-
-    default S sizeBetween(Map<?, ?> map, int min, int max, Consumer<ViolationSpec> spec) {
-        return core().check(MapChecks.sizeBetween(map, min, max), spec);
+        return core().check(MapChecks.containsValue(map, value), code, detail);
     }
 
     default S sizeBetween(Map<?, ?> map, int min, int max) {
-        return sizeBetween(map, min, max, FailureConst.NO_OP);
+        return core().check(MapChecks.sizeBetween(map, min, max), FailureConst.SIZE_BETWEEN_ERROR, null);
     }
 
     default S sizeBetween(Map<?, ?> map, int min, int max, ResponseCode code) {
-        return sizeBetween(map, min, max, s -> s.responseCode(code));
+        return core().check(MapChecks.sizeBetween(map, min, max), code, null);
     }
 
     default S sizeBetween(Map<?, ?> map, int min, int max, ResponseCode code, String detail) {
-        return sizeBetween(map, min, max, s -> s.responseCode(code).detail(detail));
-    }
-
-    // ========== sizeEquals ==========
-
-    default S sizeEquals(Map<?, ?> map, int size, Consumer<ViolationSpec> spec) {
-        return core().check(MapChecks.sizeEquals(map, size), spec);
+        return core().check(MapChecks.sizeBetween(map, min, max), code, detail);
     }
 
     default S sizeEquals(Map<?, ?> map, int size) {
-        return sizeEquals(map, size, FailureConst.NO_OP);
+        return core().check(MapChecks.sizeEquals(map, size), FailureConst.SIZE_EQUALS_ERROR, null);
     }
 
     default S sizeEquals(Map<?, ?> map, int size, ResponseCode code) {
-        return sizeEquals(map, size, s -> s.responseCode(code));
+        return core().check(MapChecks.sizeEquals(map, size), code, null);
     }
 
     default S sizeEquals(Map<?, ?> map, int size, ResponseCode code, String detail) {
-        return sizeEquals(map, size, s -> s.responseCode(code).detail(detail));
+        return core().check(MapChecks.sizeEquals(map, size), code, detail);
     }
+
 }

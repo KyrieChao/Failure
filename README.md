@@ -19,6 +19,7 @@ Fail-Fast 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数�
 
 - **流式校验链**: 支持 `Fail-Fast` (快速失败) 与 `Fail-Strict` (全量收集) 双模式
 - **丰富的断言库**: 内置对象、字符串、数值、集合、日期时间、枚举、Optional 等 50+ 种校验方法
+- **默认本地化**: 提供开箱即用的中文错误提示（如 "当前值 不能为空"），无需手动配置
 - **上下文集成**: 支持 `TypedValidator` 模式，将校验逻辑与业务逻辑解耦
 - **注解驱动**: 提供 `@Validate` 注解与 `FastValidator` 接口，支持 AOP 切面校验
 - **函数式结果**: 提供 `Result<T>` 单子类型，支持 `map`, `flatMap`, `recover` 等函数式操作
@@ -129,6 +130,17 @@ Failure.begin()
     .notNull(userId)
     // 只有 userId 不为 null 时，才会执行数据库查询
     .defer(() -> dbService.isUserActive(userId), UserCode.USER_INACTIVE);
+```
+
+### 失败截断 (stopOnFail)
+
+如果当前链中存在错误（即使是 strict 模式），则停止后续所有校验（直到调用 `resume()`）。通常用于防止空指针异常（NPE）。
+
+```java
+Failure.strict()
+    .notNull(user, UserCode.REQUIRED)
+    .stopOnFail()                   // 如果 user 为空，停止后续校验
+    .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // 安全访问
 ```
 
 ---

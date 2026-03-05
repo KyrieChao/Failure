@@ -14,6 +14,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * 函数式结果封装 - 避免异常作为控制流
@@ -371,8 +372,8 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     /**
      * 转换为 Stream（成功时单元素流，失败时空流）
      */
-    public java.util.stream.Stream<T> stream() {
-        return isSuccess() ? java.util.stream.Stream.ofNullable(get()) : java.util.stream.Stream.empty();
+    public Stream<T> stream() {
+        return isSuccess() ? Stream.ofNullable(get()) : Stream.empty();
     }
 
     /**

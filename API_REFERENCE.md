@@ -81,20 +81,18 @@ Failure.with(ctx)
 
 ## 2. 校验方法详解
 
-所有校验方法均支持以下四种重载形式（以 `notNull` 为例）：
+所有校验方法均支持以下三种重载形式（以 `notNull` 为例）：
 
-1. `notNull(obj)` - 由 `failNow` 决定错误处理方式
+1. `notNull(obj)` - 使用**内置默认错误码**与**中文描述** (例如: "当前值 不能为空")
 2. `notNull(obj, code)` - 指定 `ResponseCode`
 3. `notNull(obj, code, detail)` - 指定 `ResponseCode` 和详细描述
-4. `notNull(obj, Consumer<Business.Fabricator>)` - 使用 Lambda 构建复杂错误
 
 ```java
-// 示例：四种重载方式
+// 示例：三种重载方式
 Failure.begin()
-    .notNull(obj)                                    // 方式1
-    .notNull(obj, UserCode.REQUIRED)                 // 方式2
-    .notNull(obj, UserCode.REQUIRED, "不能为空")      // 方式3
-    .notNull(obj, f ->f.responseCode(UserCode.REQUIRED).detail("自定义详情"))  // 方式4
+    .notNull(obj)                                    // 方式 1: 默认 "当前值 不能为空" (Code: 500)
+    .notNull(obj, UserCode.REQUIRED)                 // 方式 2: 指定错误码
+    .notNull(obj, UserCode.REQUIRED, "必须填写")      // 方式 3: 指定错误码 + 详情
     .fail();
 ```
 
@@ -268,6 +266,8 @@ Failure.begin()
 |--------------------------|--------------------------------------------------------------------|
 | `when(boolean)`          | 动态控制后续校验是否执行。false: 跳过后续校验; true: 恢复执行。                       |
 | `defer(supplier)`        | **延迟校验**。仅在真正需要时执行 Supplier。如果已失败或被跳过，则不执行。适用于昂贵的校验逻辑。       |
+| `stopOnFail()`           | **失败截断**。如果当前链中存在错误（即使是 strict 模式），则停止后续所有校验（直到调用 `resume()`）。通常用于防止空指针异常（NPE）。需配合 `defer` 使用以达到最佳效果。 |
+| `resume()`               | **恢复执行**。重新启用后续校验（对应 `stopOnFail()` 或 `when(false)`）。 |
 | `or()`                   | 逻辑或，连接前后两个校验条件。若前一个条件满足，则跳过后一个；若前一个不满足，则尝试后一个。             |
 
 **示例**：
@@ -277,21 +277,27 @@ Failure.begin()
     .when(isVip).check(vipRule)     // 只有 VIP 才执行
     .when(true).check(commonRule)   // 恢复执行通用规则
     .defer(() -> checkDb(id));      // 只有前面的校验都通过时，才查询数据库
+
+// 防止 NPE 示例 (Strict 模式)
+Failure.strict()
+    .notNull(user, UserCode.REQUIRED)
+    .stopOnFail()                   // 如果 user 为空，停止后续校验
+    .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // 安全访问
 ```
 
 ---
 
 ## 3. 终结操作 (Terminal Operations)
 
-| 方法                       | 适用模式        | 描述                  |
-|--------------------------|-------------|---------------------|
-| `fail()`                 | `begin()`   | 执行校验，若有错误则抛出第一个异常   |
-| `failAll()`              | `strict()`  | 执行校验，若有错误则抛出聚合异常    |
-| `failNow(code, message)` | `begin()`   | **强制立即失败**，无条件抛出异常  |
-| `verify()`               | `with(ctx)` | Contextual 模式的语义终结符 |
-| `getCauses()`            | 所有          | 获取当前链中已收集的所有错误对象    |
-| `isValid()`              | 所有          | 返回当前链是否通过校验         |
-| `onFail(runnable)`       | `begin()`   | 校验失败时执行的回调函数        |
+| 方法                          | 适用模式        | 描述                    |
+|-----------------------------|-------------|-----------------------|
+| `fail()`                    | `begin()`   | 执行校验，若有错误则抛出第一个异常     |
+| `failAll()`                 | `strict()`  | 执行校验，若有错误则抛出聚合异常      |
+| `failNow(code, detail)`     | `begin()`   | **用于分组**，若有错误则抛出第一个异常 |
+| `verify()`                  | `with(ctx)` | Contextual 模式的语义终结符   |
+| `getCauses()`               | 所有          | 获取当前链中已收集的所有错误对象      |
+| `isValid()`                 | 所有          | 返回当前链是否通过校验           |
+| `onFail(runnable)`          | `begin()`   | 校验失败时执行的回调函数          |
 
 ### 终结方法对比
 

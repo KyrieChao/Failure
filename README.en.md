@@ -19,6 +19,7 @@ Fail-Fast is a lightweight, high-performance validation and business-exception f
 
 - **Fluent Validation Chain**: Supports `Fail-Fast` (immediate fail) and `Fail-Strict` (collect all errors) modes.
 - **Rich Assertions**: Built-in 50+ validation methods for Objects, Strings, Numbers, Collections, Date/Time, Enums, Optionals, etc.
+- **Default Localization**: Provides out-of-the-box localized error messages (e.g., Chinese support) without manual configuration.
 - **Context Integration**: Supports `TypedValidator` pattern to decouple validation logic from business logic.
 - **Annotation-Driven**: Provides `@Validate` annotation and `FastValidator` interface for AOP-based validation.
 - **Functional Results**: Provides `Result<T>` monad with `map`, `flatMap`, `recover` operations.
@@ -119,6 +120,17 @@ Failure.begin()
     .notNull(userId)
     // Query DB only if userId is not null
     .defer(() -> dbService.isUserActive(userId), UserCode.USER_INACTIVE);
+```
+
+### Stop on Failure (stopOnFail)
+
+Stops subsequent checks if there are any errors (even in strict mode), until `resume()` is called. Essential for preventing NPE.
+
+```java
+Failure.strict()
+    .notNull(user, UserCode.REQUIRED)
+    .stopOnFail()                   // Stop if user is null
+    .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // Safe access
 ```
 
 ---

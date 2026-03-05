@@ -117,7 +117,6 @@ class TermDetailLambdaTest {
         Chain chain = Failure.strict();
 
         chain.positive(-1, CODE, DETAIL)
-                .positiveNumber(-1, CODE, DETAIL)
                 .inRange(0, 5, 10, CODE, DETAIL)
                 .inRangeNumber(0, 5, 10, CODE, DETAIL)
                 .nonNegative(-1, CODE, DETAIL)
@@ -131,7 +130,7 @@ class TermDetailLambdaTest {
                 .multipleOf(10, 3, CODE, DETAIL)
                 .decimalScale(new BigDecimal("1.234"), 2, CODE, DETAIL);
 
-        assertAllFailedWithDetail(chain, 14);
+        assertAllFailedWithDetail(chain, 13);
     }
 
     @Test

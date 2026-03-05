@@ -90,4 +90,53 @@ class ChainFlowControlTest {
 
         assertThat(chain.isValid()).isTrue();
     }
+
+    @Test
+    @DisplayName("strict模式下 stopOnFail 应该避免后续 NPE (配合 defer)")
+    void stopOnFailShouldPreventNPEInStrictMode() {
+        Chain chain = Chain.begin(false); // failFast = false
+
+        String role = null;
+
+        // 模拟用户场景：
+        // 1. role != null (Fail)
+        // 2. stopOnFail() (Should stop)
+        // 3. defer(() -> role.equals("ADMIN")) (Should be skipped, avoiding NPE)
+
+        chain.notNull(role, ResponseCode.of(400, "Role is null"))
+                .stopOnFail()
+                .defer(() -> role.equals("ADMIN"), ResponseCode.of(403, "Not Admin"));
+
+        assertThat(chain.isValid()).isFalse();
+        assertThat(chain.getCauses()).hasSize(1);
+        assertThat(chain.getCauses().get(0).getDetail()).isEqualTo("Role is null");
+    }
+
+    @Test
+    @DisplayName("stopOnFail 在没有错误时应该继续")
+    void stopOnFailShouldContinueWhenValid() {
+        Chain chain = Chain.begin(false);
+
+        chain.isTrue(true)
+                .stopOnFail()
+                .isTrue(true);
+
+        assertThat(chain.isValid()).isTrue();
+    }
+
+    @Test
+    @DisplayName("resume 应该能恢复被 stopOnFail 停止的链")
+    void resumeShouldRecoverFromStopOnFail() {
+        Chain chain = Chain.begin(false);
+
+        chain.isTrue(false, ResponseCode.of(400, "Error 1"))
+                .stopOnFail()
+                .isTrue(false, ResponseCode.of(400, "Error 2 (Skipped)"))
+                .resume()
+                .isTrue(false, ResponseCode.of(400, "Error 3"));
+
+        assertThat(chain.getCauses()).hasSize(2);
+        assertThat(chain.getCauses().get(0).getMessage()).isEqualTo("Error 1");
+        assertThat(chain.getCauses().get(1).getMessage()).isEqualTo("Error 3");
+    }
 }

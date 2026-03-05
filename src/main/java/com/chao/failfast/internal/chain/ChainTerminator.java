@@ -5,7 +5,6 @@ import com.chao.failfast.internal.MultiBusiness;
 import com.chao.failfast.internal.core.ResponseCode;
 
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -84,32 +83,6 @@ public interface ChainTerminator<S extends ChainCore<S>> {
     default S failNow(ResponseCode code, String msgFormat, Object... args) {
         if (core().isAlive()) return core();
         throw Business.of(code, String.format(msgFormat, args));
-    }
-
-    /**
-     * 默认方法：失败时立即执行操作并抛出异常
-     *
-     * @param fabricator 对Business.Fabricator的消费者接口，用于执行自定义操作
-     * @return 返回当前核心对象，如果核心存活
-     */
-    default S failNow(Consumer<Business.Fabricator> fabricator) {
-        if (core().isAlive()) return core();
-        Business.Fabricator f = Business.compose();
-        fabricator.accept(f);
-        throw f.materialize();
-    }
-
-
-    /**
-     * 默认方法，用于在核心线程存活时返回核心线程，否则抛出业务异常
-     *
-     * @param supplier 提供Business对象的Supplier接口实现
-     * @return 如果核心线程存活，返回核心线程对象
-     * @throws Business 当核心线程不存活时，通过supplier.get()抛出业务异常
-     */
-    default S failNow(Supplier<Business> supplier) {
-        if (core().isAlive()) return core();
-        throw supplier.get();
     }
 
 

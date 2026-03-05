@@ -99,51 +99,38 @@ class ChainDateMethodsTest {
             ZonedDateTime zonedDateTime = ZonedDateTime.now();
 
             ResponseCode code = ResponseCode.of(1, "test");
-            Consumer<Business.Fabricator> consumer = f -> f.responseCode(code);
-
             return Stream.of(
                     // Date
                     c -> c.isPast(date, code),
                     c -> c.isPast(date, code, "detail"),
-                    c -> c.isPast(date, spec -> spec.fabricator(consumer)),
                     c -> c.isFuture(date, code),
                     c -> c.isFuture(date, code, "detail"),
-                    c -> c.isFuture(date, spec -> spec.fabricator(consumer)),
 
                     // LocalDate
                     c -> c.isPast(localDate, code),
                     c -> c.isPast(localDate, code, "detail"),
-                    c -> c.isPast(localDate, spec -> spec.fabricator(consumer)),
                     c -> c.isFuture(localDate, code),
                     c -> c.isFuture(localDate, code, "detail"),
-                    c -> c.isFuture(localDate, spec -> spec.fabricator(consumer)),
                     c -> c.isToday(localDate, code),
                     c -> c.isToday(localDate, code, "detail"),
-                    c -> c.isToday(localDate, spec -> spec.fabricator(consumer)),
 
                     // LocalDateTime
                     c -> c.isPast(localDateTime, code),
                     c -> c.isPast(localDateTime, code, "detail"),
-                    c -> c.isPast(localDateTime, spec -> spec.fabricator(consumer)),
                     c -> c.isFuture(localDateTime, code),
                     c -> c.isFuture(localDateTime, code, "detail"),
-                    c -> c.isFuture(localDateTime, spec -> spec.fabricator(consumer)),
 
                     // Instant
                     c -> c.isPast(instant, code),
                     c -> c.isPast(instant, code, "detail"),
-                    c -> c.isPast(instant, spec -> spec.fabricator(consumer)),
                     c -> c.isFuture(instant, code),
                     c -> c.isFuture(instant, code, "detail"),
-                    c -> c.isFuture(instant, spec -> spec.fabricator(consumer)),
 
                     // ZonedDateTime
                     c -> c.isPast(zonedDateTime, code),
                     c -> c.isPast(zonedDateTime, code, "detail"),
-                    c -> c.isPast(zonedDateTime, spec -> spec.fabricator(consumer)),
                     c -> c.isFuture(zonedDateTime, code),
-                    c -> c.isFuture(zonedDateTime, code, "detail"),
-                    c -> c.isFuture(zonedDateTime, spec -> spec.fabricator(consumer))
+                    c -> c.isFuture(zonedDateTime, code, "detail")
             );
         }
 
@@ -152,7 +139,7 @@ class ChainDateMethodsTest {
         void testCoverage(Consumer<Chain> methodCall) {
             Chain chain = Chain.begin(false);
             methodCall.accept(chain);
-            assertThatCode(() -> chain.isValid()).doesNotThrowAnyException();
+            assertThatCode(chain::isValid).doesNotThrowAnyException();
         }
     }
 
@@ -405,7 +392,7 @@ class ChainDateMethodsTest {
         void testIsPast_WithConsumer() {
             Date future = new Date(System.currentTimeMillis() + 10000);
 
-            Chain chain = Chain.begin(false).isPast(future, fab -> fab.responseCode(ResponseCode.of(500, "Custom error")));
+            Chain chain = Chain.begin(false).isPast(future, ResponseCode.of(500, "Custom error"));
             assertThat(chain.isValid()).isFalse();
             assertThat(chain.getCauses().get(0).getResponseCode().getCode()).isEqualTo(500);
         }
@@ -456,7 +443,6 @@ class ChainDateMethodsTest {
                         Date now = new Date();
                         Thread.sleep(1);
                         Date future = new Date(System.currentTimeMillis() + 10000);
-                        Date past = new Date(System.currentTimeMillis() - 10000);
 
                         boolean valid1 = Chain.begin(true).isPast(now).isValid();
                         boolean valid2 = Chain.begin(true).isFuture(future).isValid();

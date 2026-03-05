@@ -27,7 +27,7 @@ import java.util.Map;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 @ConditionalOnMissingBean(FailFastExceptionHandler.class)
-public class DefaultExceptionHandler extends FailFastExceptionHandler {
+public final class DefaultExceptionHandler extends FailFastExceptionHandler {
 
     /**
      * 处理单个Business异常
