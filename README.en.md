@@ -1,4 +1,4 @@
-# Fail-Fast Spring Boot Starter
+# Failure Spring Boot Starter
 
 [![Java CI with Maven](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml/badge.svg)](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/KyrieChao/Failure/branch/main/graph/badge.svg)](https://codecov.io/gh/KyrieChao/Failure)
@@ -10,7 +10,7 @@
 
 [中文版本](./README.md)
 
-Fail-Fast is a lightweight, high-performance validation and business-exception framework designed for Spring Boot 3.x. Following the "Fail Fast, Fail Strict" philosophy, it eliminates boilerplate code and provides a type-strict, fluent validation experience.
+Failure is a lightweight, high-performance validation and business-exception framework designed for Spring Boot 3.x. Following the "Fail Fast, Fail Strict" philosophy, it eliminates boilerplate code and provides a type-strict, fluent validation experience.
 
 🔗 **Live Demo**: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)
 
@@ -55,7 +55,7 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 

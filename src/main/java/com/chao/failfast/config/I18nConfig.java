@@ -1,6 +1,7 @@
 package com.chao.failfast.config;
 
 import com.chao.failfast.internal.core.FailureProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +43,7 @@ public class I18nConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(LocaleResolver.class)
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
         // 设置默认语言
