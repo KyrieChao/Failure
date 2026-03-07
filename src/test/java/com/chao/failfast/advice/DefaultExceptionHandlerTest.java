@@ -7,6 +7,7 @@ import com.chao.failfast.internal.MultiBusiness;
 import com.chao.failfast.model.TestResponseCode;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,10 +21,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -45,6 +43,10 @@ class DefaultExceptionHandlerTest {
     void setUp() {
         // 清除上下文，避免其他测试的副作用影响当前测试
         Ex.setContext(null);
+    }
+    @BeforeAll
+    static void init() {
+        Locale.setDefault(Locale.CHINA);
     }
 
     @Test
