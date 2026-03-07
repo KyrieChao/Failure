@@ -13,8 +13,10 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /**
- * 国际化配置类
- * 配置 MessageSource 和 LocaleResolver
+ * Internationalization configuration class.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Configuration
 public class I18nConfig {

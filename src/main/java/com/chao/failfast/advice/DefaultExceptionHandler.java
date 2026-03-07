@@ -20,9 +20,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 默认异常处理器 - 增强版
- * 当用户没有自定义异常处理器时自动生效
- * 提供完整的异常处理能力，包括Business异常、验证异常等
+ * Default exception handler - Enhanced version.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -31,11 +32,10 @@ import java.util.Map;
 public final class DefaultExceptionHandler extends FailFastExceptionHandler {
 
     /**
-     * 处理单个Business异常
-     * 直接调用父类实现，保持统一处理逻辑
+     * Handle single Business exception.
      *
-     * @param e Business异常对象
-     * @return ResponseEntity响应对象
+     * @param e Business exception object
+     * @return ResponseEntity response object
      */
     @Override
     @ExceptionHandler(Business.class)
@@ -44,11 +44,10 @@ public final class DefaultExceptionHandler extends FailFastExceptionHandler {
     }
 
     /**
-     * 处理批量Business异常
-     * 直接调用父类实现，保持统一处理逻辑
+     * Handle batch Business exceptions.
      *
-     * @param e MultiBusiness异常对象
-     * @return ResponseEntity响应对象
+     * @param e MultiBusiness exception object
+     * @return ResponseEntity response object
      */
     @Override
     @ExceptionHandler(MultiBusiness.class)
@@ -57,11 +56,10 @@ public final class DefaultExceptionHandler extends FailFastExceptionHandler {
     }
 
     /**
-     * 处理Spring MVC参数校验异常
-     * 直接调用父类实现，保持统一处理逻辑
+     * Handle Spring MVC parameter validation exceptions.
      *
-     * @param e MethodArgumentNotValidException异常对象
-     * @return ResponseEntity响应对象
+     * @param e MethodArgumentNotValidException exception object
+     * @return ResponseEntity response object
      */
     @Override
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -70,11 +68,10 @@ public final class DefaultExceptionHandler extends FailFastExceptionHandler {
     }
 
     /**
-     * 处理Bean Validation约束违反异常
-     * 直接调用父类实现，保持统一处理逻辑
+     * Handle Bean Validation constraint violation exceptions.
      *
-     * @param e ConstraintViolationException异常对象
-     * @return ResponseEntity响应对象
+     * @param e ConstraintViolationException exception object
+     * @return ResponseEntity response object
      */
     @Override
     @ExceptionHandler(ConstraintViolationException.class)
@@ -83,11 +80,10 @@ public final class DefaultExceptionHandler extends FailFastExceptionHandler {
     }
 
     /**
-     * 处理表单绑定异常（BindException）
-     * 主要处理传统表单提交时的参数绑定错误
+     * Handle form binding exception (BindException).
      *
-     * @param e BindException异常对象
-     * @return ResponseEntity响应对象，返回500状态码
+     * @param e BindException exception object
+     * @return ResponseEntity response object, returning 500 status code
      */
     @ExceptionHandler(BindException.class)
     public ResponseEntity<?> handleBindException(BindException e) {

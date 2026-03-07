@@ -5,18 +5,18 @@ import com.chao.failfast.constant.FailureConst;
 import java.util.Set;
 
 /**
- * 异常构建工具类 - 线程安全改进版
+ * Exception builder utility class - Enhanced thread-safe version.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public final class Ex {
     /**
-     * StackWalker实例，用于遍历调用栈
-     * RETAIN_CLASS_REFERENCE选项保留类引用信息，便于获取完整的类名
+     * StackWalker instance for traversing call stack.
      */
     private static final StackWalker WALKER = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
     /**
-     * 需要跳过的包前缀集合
-     * 这些前缀通常对应框架代码、系统类或内部工具类
-     * 在捕获调用位置时会过滤掉这些无关的调用帧
+     * Set of package prefixes to skip.
      */
     private static final Set<String> SKIP_PREFIXES = Set.of(
             "com.chao.failfast.advice",     // 异常处理切面包
@@ -36,15 +36,14 @@ public final class Ex {
     );
 
     /**
-     * FailFast上下文对象，用于控制异常处理的行为配置
-     * 包含是否打印方法信息等运行时配置
+     * FailFast context object.
      */
     private static FailureContext context;
 
     /**
-     * 设置FailFast上下文
+     * Set FailFast context.
      *
-     * @param ctx FailFast上下文对象，包含配置信息
+     * @param ctx FailFast context object containing configuration
      */
     public static void setContext(FailureContext ctx) {
         Ex.context = ctx;
@@ -52,9 +51,9 @@ public final class Ex {
 
 
     /**
-     * 获取当前的FailFast上下文
+     * Get current FailFast context.
      *
-     * @return 当前的FailFast上下文对象，可能为null
+     * @return Current FailFast context object, may be null
      */
     static FailureContext getContext() {
         return context;
@@ -62,51 +61,42 @@ public final class Ex {
 
 
     /**
-     * 私有构造函数，防止实例化
-     * 这是一个纯工具类，所有方法都是静态的
+     * Private constructor to prevent instantiation.
      */
     private Ex() {
     }
 
     /**
-     * 获取当前调用位置信息的便捷方法
-     * 主要用于需要单独获取位置信息的场景
+     * Convenient method to get current call location info.
      *
-     * @return 返回格式化的调用位置字符串，格式如"ClassName.methodName(ClassName.java:lineNumber)"
-     * 如果未启用方法打印或无法获取，则返回null
+     * @return Formatted location string, or null if not enabled
      */
     static String location() {
         return isShadowTrace() ? captureLocation() : null;
     }
 
     /**
-     * 获取当前调用方法信息的便捷方法
-     * 主要用于需要单独获取方法信息的场景
+     * Convenient method to get current call method info.
      *
-     * @return 返回格式化的方法名称字符串，格式如"SimpleClassName#methodName"
-     * 如果未启用方法打印或无法获取，则返回null
+     * @return Formatted method name string, or null if not enabled
      */
     static String method() {
         return isShadowTrace() ? captureMethodName() : null;
     }
 
     /**
-     * 检查是否应该打印方法信息的内部辅助方法
-     * 通过检查上下文配置来决定是否启用方法信息捕获功能
+     * Internal helper to check if method info should be printed.
      *
-     * @return 当上下文存在且启用了方法打印时返回true，否则返回false
+     * @return True if context exists and method printing is enabled, false otherwise
      */
     private static boolean isShadowTrace() {
         return context != null && context.isShadowTrace();
     }
 
     /**
-     * 捕获并格式化当前调用位置信息
-     * 使用StackWalker遍历调用栈，过滤掉系统和框架相关的调用帧，
-     * 找到第一个用户业务代码的位置并格式化输出
+     * Capture and format current call location info.
      *
-     * @return 返回格式化的调用位置字符串，如果未启用打印或无法获取则返回null，
-     * 格式示例："MyService.doSomething(MyService.java:45)"
+     * @return Formatted location string, or null if failed
      */
     static String captureLocation() {
         // 首先检查是否启用方法打印功能
@@ -125,9 +115,9 @@ public final class Ex {
     }
 
     /**
-     * 获取方法名称的静态方法
+     * Static method to get method name.
      *
-     * @return 返回方法名称字符串，如果条件不满足则返回null
+     * @return Method name string, or null if condition not met
      */
     static String captureMethodName() {
         if (!isShadowTrace()) return null;
@@ -146,11 +136,10 @@ public final class Ex {
     }
 
     /**
-     * 检查给定的栈帧是否不被跳过
-     * 该方法通过检查类名是否以任何预定义的前缀开头来判断是否跳过该栈帧
+     * Check if given stack frame should not be skipped.
      *
-     * @param f 要检查的栈帧对象
-     * @return 如果类名不以任何SKIP_PREFIXES中的前缀开头，返回true；否则返回false
+     * @param f Stack frame object to check
+     * @return True if class name does not start with any skip prefixes, false otherwise
      */
     private static boolean isNotSkipped(StackWalker.StackFrame f) {
         String cls = f.getClassName();
@@ -158,10 +147,10 @@ public final class Ex {
     }
 
     /**
-     * 格式化栈帧信息为可读的字符串
+     * Format stack frame info into readable string.
      *
-     * @param f StackWalker.StackFrame对象，包含调用栈帧的信息
-     * @return 格式化后的字符串，格式为"类名.方法名(类名.java:行号)"
+     * @param f StackWalker.StackFrame object
+     * @return Formatted string
      */
     private static String formatLocation(StackWalker.StackFrame f) {
         String full = f.getClassName();
@@ -174,10 +163,10 @@ public final class Ex {
     }
 
     /**
-     * 格式化方法名称，将类名和方法名组合成特定格式的字符串
+     * Format method name.
      *
-     * @param f StackWalker.StackFrame对象，包含调用栈信息
-     * @return 返回格式化后的字符串，格式为"简单类名#方法名"
+     * @param f StackWalker.StackFrame object
+     * @return Formatted string
      */
     private static String formatMethodName(StackWalker.StackFrame f) {
         String cls = f.getClassName();

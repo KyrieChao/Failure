@@ -4,38 +4,42 @@ import java.util.Collection;
 import java.util.function.Predicate;
 
 /**
- * 集合校验工具类
- * 提供了一系列用于校验集合状态的方法，包括判断集合是否为空、大小是否在指定范围内、是否包含特定元素等
+ * Utility class for collection validation.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public final class CollectionChecks {
 
-    // 私有构造方法，防止实例化工具类
     private CollectionChecks() {}
 
     /**
-     * 检查集合是否不为空
-     * @param col 要检查的集合
-     * @return 如果集合不为null且不为空则返回true，否则返回false
+     * Checks if the collection is not empty.
+     *
+     * @param col the collection to check
+     * @return true if the collection is not null and not empty, false otherwise
      */
     public static boolean notEmpty(Collection<?> col) {
         return col != null && !col.isEmpty();
     }
     
     /**
-     * 检查集合是否为空
-     * @param col 要检查的集合
-     * @return 如果集合为null或为空则返回true，否则返回false
+     * Checks if the collection is empty.
+     *
+     * @param col the collection to check
+     * @return true if the collection is null or empty, false otherwise
      */
     public static boolean isEmpty(Collection<?> col) {
         return col == null || col.isEmpty();
     }
 
     /**
-     * 检查集合大小是否在指定范围内
-     * @param col 要检查的集合
-     * @param min 最小大小（包含）
-     * @param max 最大大小（包含）
-     * @return 如果集合大小在[min,max]范围内则返回true，否则返回false
+     * Checks if the collection size is within the specified range.
+     *
+     * @param col the collection to check
+     * @param min the minimum size (inclusive)
+     * @param max the maximum size (inclusive)
+     * @return true if the collection size is within [min, max], false otherwise
      */
     public static boolean sizeBetween(Collection<?> col, int min, int max) {
         int size = (col == null) ? 0 : col.size();
@@ -43,39 +47,43 @@ public final class CollectionChecks {
     }
 
     /**
-     * 检查集合大小是否等于预期值
-     * @param col 要检查的集合
-     * @param expectedSize 预期的大小
-     * @return 如果集合不为null且大小等于预期值则返回true，否则返回false
+     * Checks if the collection size equals the expected size.
+     *
+     * @param col          the collection to check
+     * @param expectedSize the expected size
+     * @return true if the collection size equals the expected size, false otherwise
      */
     public static boolean sizeEquals(Collection<?> col, int expectedSize) {
         return col != null && col.size() == expectedSize;
     }
 
     /**
-     * 检查集合是否包含指定元素
-     * @param col 要检查的集合
-     * @param o 要查找的元素
-     * @return 如果集合不为null且包含指定元素则返回true，否则返回false
+     * Checks if the collection contains the specified element.
+     *
+     * @param col the collection to check
+     * @param o   the element to find
+     * @return true if the collection contains the element, false otherwise
      */
     public static boolean contains(Collection<?> col, Object o) {
         return col != null && col.contains(o);
     }
 
     /**
-     * 检查集合是否不包含指定元素
-     * @param col 要检查的集合
-     * @param o 要排除的元素
-     * @return 如果集合为null或不包含指定元素则返回true，否则返回false
+     * Checks if the collection does not contain the specified element.
+     *
+     * @param col the collection to check
+     * @param o   the element to exclude
+     * @return true if the collection does not contain the element, false otherwise
      */
     public static boolean notContains(Collection<?> col, Object o) {
         return col == null || !col.contains(o);
     }
 
     /**
-     * 检查集合中是否不包含null元素
-     * @param col 要检查的集合
-     * @return 如果集合为null或没有null元素则返回true，否则返回false
+     * Checks if the collection contains no null elements.
+     *
+     * @param col the collection to check
+     * @return true if the collection is null or contains no null elements, false otherwise
      */
     public static boolean hasNoNullElements(Collection<?> col) {
         if (col == null) return true;
@@ -88,10 +96,11 @@ public final class CollectionChecks {
     }
 
     /**
-     * 检查集合中所有元素是否都满足指定条件
-     * @param col 要检查的集合
-     * @param predicate 判断条件
-     * @return 如果集合和条件都不为null且所有元素都满足条件则返回true，否则返回false
+     * Checks if all elements in the collection match the predicate.
+     *
+     * @param col       the collection to check
+     * @param predicate the condition to match
+     * @return true if all elements match the predicate, false otherwise
      */
     public static <T> boolean allMatch(Collection<T> col, Predicate<T> predicate) {
         if (col == null || predicate == null) return false;
@@ -104,10 +113,11 @@ public final class CollectionChecks {
     }
 
     /**
-     * 检查集合中是否存在至少一个元素满足指定条件
-     * @param col 要检查的集合
-     * @param predicate 判断条件
-     * @return 如果集合和条件都不为null且至少有一个元素满足条件则返回true，否则返回false
+     * Checks if any element in the collection matches the predicate.
+     *
+     * @param col       the collection to check
+     * @param predicate the condition to match
+     * @return true if any element matches the predicate, false otherwise
      */
     public static <T> boolean anyMatch(Collection<T> col, Predicate<T> predicate) {
         if (col == null || predicate == null) return false;

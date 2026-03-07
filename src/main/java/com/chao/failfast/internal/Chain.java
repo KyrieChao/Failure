@@ -4,12 +4,10 @@ import com.chao.failfast.annotation.FastValidator.ValidationContext;
 import com.chao.failfast.internal.chain.*;
 
 /**
- * 验证链 - 门面类
- * <p>
- * 仅保留工厂方法，所有逻辑委托给：
- * - ChainCore: 状态管理
- * - ChainTerminator: 终结操作
- * - *Validation: 各类校验
+ * Validation Chain - Facade class.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public final class Chain extends ChainCore<Chain> implements
         ChainTerminator<Chain>,

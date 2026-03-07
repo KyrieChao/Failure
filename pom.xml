@@ -14,7 +14,7 @@
     <!-- 修改 groupId 为验证通过的 namespace -->
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <!-- 必须：名称和描述 -->
@@ -36,6 +36,7 @@
             <id>kyriechao</id>
             <name>Kyrie Chao</name>
             <email>chao893760@163.com</email>
+            <timezone>Asia/Shanghai</timezone>
         </developer>
     </developers>
 

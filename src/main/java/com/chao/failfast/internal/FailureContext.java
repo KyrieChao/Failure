@@ -8,39 +8,38 @@ import org.springframework.stereotype.Component;
 import java.util.function.Supplier;
 
 /**
- * FailFast 上下文 - 线程安全的配置管理
- * 提供全局配置访问和线程级配置覆盖功能
- * 支持在运行时动态调整框架行为而不影响其他线程
+ * FailFast Context - Thread-safe configuration management.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Component
 public class FailureContext {
 
     /**
-     * 全局配置属性
+     * Global configuration properties.
      */
     private final FailureProperties properties;
     /**
-     * 全局代码映射配置
+     * Global code mapping configuration.
      */
     @Getter
     private final CodeMappingConfig codeMappingConfig;
 
     /**
-     * 线程级方法启用覆盖
-     * 用于在特定线程中临时修改方法启用状态
+     * Thread-local method enabled override.
      */
     private final ThreadLocal<Boolean> methodEnabledOverride = ThreadLocal.withInitial(() -> null);
 
     /**
-     * 线程级方法打印覆盖
-     * 用于在特定线程中临时控制是否打印方法信息
+     * Thread-local method print override.
      */
     private final ThreadLocal<Boolean> printMethodOverride = ThreadLocal.withInitial(() -> null);
 
     /**
-     * 构造函数
+     * Constructor.
      *
-     * @param properties FailFast配置属性
+     * @param properties FailFast configuration properties
      */
     public FailureContext(FailureProperties properties, CodeMappingConfig codeMappingConfig) {
         this.properties = properties;
@@ -48,10 +47,9 @@ public class FailureContext {
     }
 
     /**
-     * 检查是否打印方法名信息
-     * 支持线程级配置覆盖，优先使用线程局部变量的设置
+     * Check if method name info should be printed.
      *
-     * @return true表示打印方法信息，false表示不打印
+     * @return True to print method info, false otherwise
      */
     boolean isShadowTrace() {
         // 检查线程级覆盖设置
@@ -64,17 +62,16 @@ public class FailureContext {
     }
 
     /**
-     * 检查是否启用调试快照
+     * Check if debug snapshot is enabled.
      *
-     * @return true表示启用快照
+     * @return True if snapshot is enabled
      */
     boolean isDebugSnapshot() {
         return properties.isDebugSnapshot();
     }
 
     /**
-     * 清理当前线程的上下文变量
-     * 防止ThreadLocal内存泄漏，应在请求处理完成后调用
+     * Clear context variables for current thread.
      */
     public void clearThreadContext() {
         printMethodOverride.remove();
@@ -82,13 +79,12 @@ public class FailureContext {
     }
 
     /**
-     * 在指定方法打印配置下执行代码块
-     * 自动恢复原有的配置状态，确保线程安全
+     * Execute code block under specified method print configuration.
      *
-     * @param printMethod 是否打印方法信息
-     * @param action      要执行的代码块
-     * @param <T>         返回值类型
-     * @return 代码块的执行结果
+     * @param printMethod Whether to print method info
+     * @param action      Code block to execute
+     * @param <T>         Return value type
+     * @return Execution result
      */
     public <T> T withPrintMethod(boolean printMethod, Supplier<T> action) {
         Boolean original = printMethodOverride.get();
@@ -104,11 +100,10 @@ public class FailureContext {
     }
 
     /**
-     * 在指定方法打印配置下执行无返回值的代码块
-     * 自动恢复原有的配置状态，确保线程安全
+     * Execute void code block under specified method print configuration.
      *
-     * @param printMethod 是否打印方法信息
-     * @param action      要执行的代码块
+     * @param printMethod Whether to print method info
+     * @param action      Code block to execute
      */
     public void withPrintMethod(boolean printMethod, Runnable action) {
         Boolean original = printMethodOverride.get();

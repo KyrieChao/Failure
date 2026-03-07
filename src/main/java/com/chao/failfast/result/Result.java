@@ -16,11 +16,11 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
- * 函数式结果封装 - 避免异常作为控制流
- * 提供Success/Failure两种状态的安全结果处理方式
- * 支持函数式编程风格的操作链
+ * Functional result encapsulation - Avoid using exceptions as control flow.
  *
- * @param <T> 成功时的返回值类型
+ * @param <T> Return value type on success
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -32,7 +32,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     protected String timestamp;
 
     /**
-     * 私有构造函数，防止外部实例化
+     * Private constructor to prevent external instantiation.
      */
     private Result(int code, String message, String description) {
         this.code = code;
@@ -42,79 +42,79 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 创建成功的Result
+     * Create successful Result.
      *
-     * @param value 成功值
-     * @param <T>   值类型
-     * @return Success结果
+     * @param value Success value
+     * @param <T>   Value type
+     * @return Success result
      */
     public static <T> Result<T> ok(T value) {
         return new Success<>(value);
     }
 
     /**
-     * 创建失败的Result（使用响应码）
+     * Create failed Result (using response code).
      *
-     * @param code 响应码
-     * @param <T>  值类型
-     * @return Failure结果
+     * @param code Response code
+     * @param <T>  Value type
+     * @return Failure result
      */
     public static <T> Result<T> fail(ResponseCode code) {
         return new Fail<>(Business.of(code));
     }
 
     /**
-     * 创建失败的Result（使用响应码和详细描述）
+     * Create failed Result (using response code and detailed description).
      *
-     * @param code   响应码
-     * @param detail 详细描述
-     * @param <T>    值类型
-     * @return Failure结果
+     * @param code   Response code
+     * @param detail Detailed description
+     * @param <T>    Value type
+     * @return Failure result
      */
     public static <T> Result<T> fail(ResponseCode code, String detail) {
         return new Fail<>(Business.of(code, detail));
     }
 
     /**
-     * 创建失败的Result（使用Business异常）
+     * Create failed Result (using Business exception).
      *
-     * @param business Business异常
-     * @param <T>      值类型
-     * @return Failure结果
+     * @param business Business exception
+     * @param <T>      Value type
+     * @return Failure result
      */
     public static <T> Result<T> fail(Business business) {
         return new Fail<>(business);
     }
 
     /**
-     * 根据值是否为null创建Result
+     * Create Result based on whether value is null.
      *
-     * @param value 值
-     * @param code  失败时的响应码
-     * @param <T>   值类型
-     * @return Result结果
+     * @param value Value
+     * @param code  Response code when failed
+     * @param <T>   Value type
+     * @return Result object
      */
     public static <T> Result<T> ofNullable(T value, ResponseCode code) {
         return value != null ? ok(value) : fail(code);
     }
 
     /**
-     * 根据值是否为null创建Result（带详细描述）
+     * Create Result based on whether value is null (with detailed description).
      *
-     * @param value  值
-     * @param code   失败时的响应码
-     * @param detail 失败时的详细描述
-     * @param <T>    值类型
-     * @return Result结果
+     * @param value  Value
+     * @param code   Response code when failed
+     * @param detail Detailed description when failed
+     * @param <T>    Value type
+     * @return Result object
      */
     public static <T> Result<T> ofNullable(T value, ResponseCode code, String detail) {
         return value != null ? ok(value) : fail(code, detail);
     }
 
     /**
-     * 检查是否为成功状态
+     * Check if it is success state.
      *
-     * @return true表示成功，false表示失败
+     * @return True if success, false if failed
      */
     @JsonIgnore
     public boolean isSuccess() {
@@ -122,9 +122,9 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 检查是否为失败状态
+     * Check if it is failure state.
      *
-     * @return true表示失败，false表示成功
+     * @return True if failed, false if success
      */
     @JsonIgnore
     public boolean isFail() {
@@ -132,10 +132,10 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 获取成功值
+     * Get success value.
      *
-     * @return 成功值
-     * @throws IllegalStateException 当Result为失败状态时抛出
+     * @return Success value
+     * @throws IllegalStateException Thrown when Result is failure state
      */
     @JsonIgnore
     public T get() {
@@ -145,9 +145,9 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
 
 
     /**
-     * 获取成功响应中的数据
+     * Get data in success response.
      *
-     * @return 返回Success实例中的data数据，如果是Fail实例则返回null
+     * @return Data in Success instance, or null if Fail instance
      */
     @JsonIgnore
     public T getOrNull() {
@@ -156,10 +156,10 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 获取错误信息
+     * Get error info.
      *
-     * @return Business异常
-     * @throws IllegalStateException 当Result为成功状态时抛出
+     * @return Business exception
+     * @throws IllegalStateException Thrown when Result is success state
      */
     @JsonIgnore
     public Business getError() {
@@ -167,14 +167,14 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         throw new IllegalStateException("Result is success");
     }
 
-    // ============ 函数式操作 ============
+    // ============ Functional Operations ============
 
     /**
-     * 映射成功值到新类型
+     * Map success value to new type.
      *
-     * @param mapper 映射函数
-     * @param <R>    目标类型
-     * @return 映射后的Result
+     * @param mapper Mapping function
+     * @param <R>    Target type
+     * @return Mapped Result
      */
     public <R> Result<R> map(Function<T, R> mapper) {
         if (this instanceof Success<T> s) {
@@ -193,11 +193,11 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 扁平映射成功值到新的Result
+     * Flat map success value to new Result.
      *
-     * @param mapper 扁平映射函数
-     * @param <R>    目标类型
-     * @return 映射后的Result
+     * @param mapper Flat mapping function
+     * @param <R>    Target type
+     * @return Mapped Result
      */
     public <R> Result<R> flatMap(Function<T, Result<R>> mapper) {
         if (this instanceof Success<T> s) {
@@ -209,10 +209,10 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 对成功值执行副作用操作
+     * Execute side effect on success value.
      *
-     * @param action 副作用操作
-     * @return 原始Result
+     * @param action Side effect action
+     * @return Original Result
      */
     public Result<T> peek(Consumer<T> action) {
         if (this instanceof Success<T> s) {
@@ -222,10 +222,10 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 对错误执行副作用操作
+     * Execute side effect on error.
      *
-     * @param action 副作用操作
-     * @return 原始Result
+     * @param action Side effect action
+     * @return Original Result
      */
     public Result<T> peekError(Consumer<Business> action) {
         if (this instanceof Result.Fail<T> f) {
@@ -235,11 +235,11 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 过滤成功值
+     * Filter success value.
      *
-     * @param predicate 过滤条件
-     * @param code      不满足条件时的错误码
-     * @return 过滤后的Result
+     * @param predicate Filter condition
+     * @param code      Error code when condition not met
+     * @return Filtered Result
      */
     public Result<T> filter(Function<T, Boolean> predicate, ResponseCode code) {
         if (this instanceof Success<T> s) {
@@ -259,13 +259,13 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         return this;
     }
 
-    // ============ 恢复操作 ============
+    // ============ Recovery Operations ============
 
     /**
-     * 从错误中恢复为成功值
+     * Recover from error to success value.
      *
-     * @param recovery 回复函数
-     * @return 恢复后的Result
+     * @param recovery Recovery function
+     * @return Recovered Result
      */
     public Result<T> recover(Function<Business, T> recovery) {
         if (this instanceof Result.Fail<T> f) {
@@ -275,10 +275,10 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 从错误中恢复为新的Result
+     * Recover from error to new Result.
      *
-     * @param recovery 恢复函数
-     * @return 恢复后的Result
+     * @param recovery Recovery function
+     * @return Recovered Result
      */
     public Result<T> recoverWith(Function<Business, Result<T>> recovery) {
         if (this instanceof Result.Fail<T> f) {
@@ -287,23 +287,23 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         return this;
     }
 
-    // ============ 终结操作 ============
+    // ============ Terminal Operations ============
 
     /**
-     * 获取值或通过Supplier提供的默认值
+     * Get value or default value provided by Supplier.
      *
-     * @param supplier 默认值提供者
-     * @return 成功值或默认值
+     * @param supplier Default value provider
+     * @return Success value or default value
      */
     public T onFailGet(Supplier<T> supplier) {
         return isSuccess() ? get() : supplier.get();
     }
 
     /**
-     * 获取值或抛出Business异常
+     * Get value or throw Business exception.
      *
-     * @return 成功值
-     * @throws Business 当Result为失败状态时抛出
+     * @return Success value
+     * @throws Business Thrown when Result is failure state
      */
     public T failNow() {
         if (this instanceof Result.Fail<T> f) throw f.error;
@@ -311,22 +311,22 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 获取值或默认值
+     * Get value or default value.
      *
-     * @param defaultValue 默认值
-     * @return 成功值或默认值
+     * @param defaultValue Default value
+     * @return Success value or default value
      */
     public T failNow(T defaultValue) {
         return isSuccess() ? get() : defaultValue;
     }
 
     /**
-     * 获取值或抛出自定义异常
+     * Get value or throw custom exception.
      *
-     * @param exceptionProvider 异常提供者
-     * @param <X>               异常类型
-     * @return 成功值
-     * @throws X 当Result为失败状态时抛出
+     * @param exceptionProvider Exception provider
+     * @param <X>               Exception type
+     * @return Success value
+     * @throws X Thrown when Result is failure state
      */
     public <X extends Throwable> T failNow(Function<Business, X> exceptionProvider) throws X {
         if (this instanceof Result.Fail<T> f) {
@@ -337,13 +337,13 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
 
 
     /**
-     * 组合两个Result
+     * Combine two Results.
      *
-     * @param other    另一个Result
-     * @param combiner 组合函数
-     * @param <U>      另一个Result的类型
-     * @param <R>      组合后的类型
-     * @return 组合后的Result
+     * @param other    Another Result
+     * @param combiner Combiner function
+     * @param <U>      Type of another Result
+     * @param <R>      Combined type
+     * @return Combined Result
      */
     public <U, R> Result<R> combine(Result<U> other, BiFunction<T, U, R> combiner) {
         if (this.isFail()) {
@@ -359,38 +359,38 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         return Result.ok(combiner.apply(this.get(), other.get()));
     }
 
-// ============ 转换操作 ============
+// ============ Conversion Operations ============
 
     /**
-     * 转换为 Optional（成功时有值，失败时 empty）
+     * Convert to Optional (value present on success, empty on failure).
      */
     public Optional<T> toOptional() {
         return isSuccess() ? Optional.ofNullable(get()) : Optional.empty();
     }
 
     /**
-     * 转换为 Stream（成功时单元素流，失败时空流）
+     * Convert to Stream (single element stream on success, empty stream on failure).
      */
     public Stream<T> stream() {
         return isSuccess() ? Stream.ofNullable(get()) : Stream.empty();
     }
 
     /**
-     * 获取值或默认值（无论成功失败，失败时返回默认值）
+     * Get value or default value (regardless of success/failure, return default on failure).
      */
     public T getOrElse(T defaultValue) {
         return isSuccess() ? get() : defaultValue;
     }
 
     /**
-     * 获取值或从错误计算（函数式获取默认值）
+     * Get value or calculate from error (functional default value).
      */
     public T getOrElseGet(Function<Business, T> errorHandler) {
         return isSuccess() ? get() : errorHandler.apply(getError());
     }
 
     /**
-     * 转换为另一种类型，无论成功失败（类似 bimap）
+     * Convert to another type, regardless of success/failure (similar to bimap).
      */
     public <R> Result<R> fold(Function<T, R> successFn, Function<Business, R> failureFn) {
         return isSuccess()
@@ -399,7 +399,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 交换成功失败（成功变失败，失败变成功）
+     * Swap success and failure (success becomes failure, failure becomes success).
      */
     public Result<T> swap(ResponseCode successAsError) {
         return isSuccess()
@@ -408,37 +408,37 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 检查是否包含特定值（成功且值等于）
+     * Check if contains specific value (success and value equals).
      */
     public boolean contains(T value) {
         return isSuccess() && java.util.Objects.equals(get(), value);
     }
 
     /**
-     * 存在性检查（成功且有值）
+     * Existence check (success and has value).
      */
     public boolean exists() {
         return isSuccess() && get() != null;
     }
 
-    // ============ 内部类 ============
+    // ============ Inner Classes ============
 
     /**
-     * 成功状态的Result实现
+     * Result implementation for success state.
      *
-     * @param <T> 数据类型
+     * @param <T> Data type
      */
     @Getter
     public static final class Success<T> extends Result<T> {
         /**
-         * 成功数据
+         * Success data.
          */
         private final T data;
 
         /**
-         * 构造函数
+         * Constructor.
          *
-         * @param data 成功数据
+         * @param data Success data
          */
         public Success(T data) {
             super(200, "Success", "操作成功");
@@ -447,22 +447,22 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     /**
-     * 失败状态的Result实现
+     * Result implementation for failure state.
      *
-     * @param <T> 数据类型
+     * @param <T> Data type
      */
     @Getter
     public static final class Fail<T> extends Result<T> {
         /**
-         * 错误信息
+         * Error info.
          */
         @JsonIgnore
         private final Business error;
 
         /**
-         * 构造函数
+         * Constructor.
          *
-         * @param error 错误信息
+         * @param error Error info
          */
         public Fail(Business error) {
             super(

@@ -12,57 +12,59 @@ import java.io.Serializable;
 import java.util.regex.Matcher;
 
 /**
- * 业务异常类 - 增强版
- * 提供丰富的业务异常信息，支持链式调用和自动堆栈跟踪控制
+ * Business exception class - Enhanced version.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Getter
 public class Business extends RuntimeException implements Serializable {
 
     /**
-     * 响应码枚举、定义错误类型和HTTP状态码
+     * Response code enum.
      */
     private final ResponseCode responseCode;
 
     /**
-     * 错误详细描述信息 覆盖父类description
+     * Detailed error description.
      */
     private final String detail;
 
     /**
-     * 异常发生的方法名称
+     * Exception method name.
      */
     private final String method;
 
     /**
-     * 异常发生的位置信息（类名.方法名:行号）
+     * Exception location info.
      */
     private final String location;
 
     /**
-     * HTTP状态码
+     * HTTP status code.
      */
     private final HttpStatus httpStatus;
 
     /**
-     * 导致异常的参数值（仅在debugSnapshot启用时记录）
+     * Invalid value causing exception.
      */
     private final Object invalidValue;
 
     /**
-     * 序列化版本UID
+     * Serial version UID.
      */
     @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * 构造函数
+     * Constructor.
      *
-     * @param responseCode 响应码枚举
-     * @param detail       详细错误描述
-     * @param method       发生异常的方法名
-     * @param location     发生异常的位置信息
-     * @param httpStatus   HTTP状态码
-     * @param invalidValue 导致异常的参数值
+     * @param responseCode Response code enum
+     * @param detail       Detailed error description
+     * @param method       Method name where exception occurred
+     * @param location     Location info where exception occurred
+     * @param httpStatus   HTTP status code
+     * @param invalidValue Parameter value causing exception
      */
     Business(ResponseCode responseCode, String detail, String method, String location, HttpStatus httpStatus, Object invalidValue) {
         super(I18n.get(responseCode != null ? responseCode.getMessage() : FailureConst.UNKNOWN_ERROR), null, true, shouldFillStackTrace(responseCode));
@@ -95,46 +97,46 @@ public class Business extends RuntimeException implements Serializable {
     }
 
     /**
-     * 创建业务异常的静态工厂方法
+     * Static factory method to create Business exception.
      *
-     * @param code 响应码
-     * @return 构建好的Business异常对象
+     * @param code Response code
+     * @return Constructed Business exception object
      */
     public static Business of(ResponseCode code) {
         return compose().responseCode(code).materialize();
     }
 
     /**
-     * 创建带详细描述的业务异常
+     * Create Business exception with detailed description.
      *
-     * @param code   响应码
-     * @param detail 详细错误描述
-     * @return 构建好的Business异常对象
+     * @param code   Response code
+     * @param detail Detailed error description
+     * @return Constructed Business exception object
      */
     public static Business of(ResponseCode code, String detail) {
         return compose().responseCode(code).detail(detail).materialize();
     }
 
     /**
-     * 创建带格式化参数的业务异常
+     * Create Business exception with formatted parameters.
      *
-     * @param code   响应码
-     * @param detail 包含占位符的描述模板
-     * @param args   格式化参数
-     * @return 构建好的Business异常对象
+     * @param code   Response code
+     * @param detail Description template containing placeholders
+     * @param args   Formatting arguments
+     * @return Constructed Business exception object
      */
     public static Business of(ResponseCode code, String detail, Object... args) {
         return compose().responseCode(code).detail(String.format(detail, args)).materialize();
     }
 
     /**
-     * 创建指定方法和位置的业务异常
+     * Create Business exception with specified method and location.
      *
-     * @param code     响应码
-     * @param detail   详细错误描述
-     * @param method   方法名称
-     * @param location 位置信息
-     * @return 构建好的Business异常对象
+     * @param code     Response code
+     * @param detail   Detailed error description
+     * @param method   Method name
+     * @param location Location info
+     * @return Constructed Business exception object
      */
     public static Business of(ResponseCode code, String detail, String method, String location) {
         return compose().responseCode(code).detail(detail).method(method).location(location).materialize();
@@ -145,55 +147,54 @@ public class Business extends RuntimeException implements Serializable {
     }
 
     /**
-     * 获取构建器实例，用于链式调用构建Business对象
+     * Get builder instance for chain-building Business object.
      *
-     * @return Fabricator构建器实例
+     * @return Fabricator builder instance
      */
     public static Fabricator compose() {
         return new Fabricator();
     }
 
     /**
-     * Business对象构建器类
-     * 支持链式调用方式构建复杂的Business异常对象
+     * Business object builder class.
      */
     public static class Fabricator implements Serializable {
         /**
-         * 响应码
+         * Response code.
          */
         private ResponseCode responseCode;
 
         /**
-         * 详细描述
+         * Detailed description.
          */
         private String detail;
 
         /**
-         * 方法名称
+         * Method name.
          */
         private String method;
 
         /**
-         * 位置信息
+         * Location info.
          */
         private String location;
 
         /**
-         * 无效值
+         * Invalid value.
          */
         private Object invalidValue;
 
         /**
-         * 序列化版本UID
+         * Serial version UID.
          */
         @Serial
         private static final long serialVersionUID = 1L;
 
         /**
-         * 设置响应码
+         * Set response code.
          *
-         * @param code 响应码枚举
-         * @return 当前构建器实例，支持链式调用
+         * @param code Response code enum
+         * @return Current builder instance
          */
         public Fabricator responseCode(ResponseCode code) {
             this.responseCode = code;
@@ -201,10 +202,10 @@ public class Business extends RuntimeException implements Serializable {
         }
 
         /**
-         * 设置详细描述信息
+         * Set detailed description.
          *
-         * @param detail 详细描述
-         * @return 当前构建器实例，支持链式调用
+         * @param detail Detailed description
+         * @return Current builder instance
          */
         public Fabricator detail(String detail) {
             this.detail = detail;
@@ -212,10 +213,10 @@ public class Business extends RuntimeException implements Serializable {
         }
 
         /**
-         * 设置方法名称（包级私有）
+         * Set method name (package-private).
          *
-         * @param method 方法名称
-         * @return 当前构建器实例，支持链式调用
+         * @param method Method name
+         * @return Current builder instance
          */
         Fabricator method(String method) {
             this.method = method;
@@ -223,10 +224,10 @@ public class Business extends RuntimeException implements Serializable {
         }
 
         /**
-         * 设置位置信息（包级私有）
+         * Set location info (package-private).
          *
-         * @param location 位置信息
-         * @return 当前构建器实例，支持链式调用
+         * @param location Location info
+         * @return Current builder instance
          */
         Fabricator location(String location) {
             this.location = location;
@@ -234,10 +235,10 @@ public class Business extends RuntimeException implements Serializable {
         }
 
         /**
-         * 设置无效值
+         * Set invalid value.
          *
-         * @param value 导致异常的参数值
-         * @return 当前构建器实例
+         * @param value Parameter value causing exception
+         * @return Current builder instance
          */
         public Fabricator invalidValue(Object value) {
             this.invalidValue = value;
@@ -245,11 +246,10 @@ public class Business extends RuntimeException implements Serializable {
         }
 
         /**
-         * 构建最终的Business对象
-         * 自动处理默认值和上下文信息
+         * Build final Business object.
          *
-         * @return 构建完成的Business异常对象
-         * @throws IllegalArgumentException 当code为空时抛出
+         * @return Constructed Business exception object
+         * @throws IllegalArgumentException Thrown when code is null
          */
         public Business materialize() {
             // 校验必要参数
@@ -273,10 +273,9 @@ public class Business extends RuntimeException implements Serializable {
     }
 
     /**
-     * 重写toString方法，提供格式化的异常信息输出
-     * 格式：[方法名] {code=xxx_xx, mes=消息, des=描述, val=快照} (文件名:行号)
+     * Override toString method to provide formatted exception info.
      *
-     * @return 格式化的字符串表示
+     * @return Formatted string representation
      */
     @Override
     public String toString() {
@@ -338,12 +337,10 @@ public class Business extends RuntimeException implements Serializable {
     }
 
     /**
-     * 从完整位置信息中提取文件名和行号
-     * 输入格式："ClassName.methodName(ClassName.java:123)" 或 "TestController$AdvancedUserValidator.validate(TestController.java:103)"
-     * 输出格式："ClassName.java:123" 或 "TestController.java:103"
+     * Extract filename and line number from full location info.
      *
-     * @param loc 完整的位置信息字符串
-     * @return 提取的文件名和行号，如果输入为null则返回空字符串
+     * @param loc Full location info string
+     * @return Extracted filename and line number
      */
     private String extractFileLine(String loc) {
         // 查找左括号位置

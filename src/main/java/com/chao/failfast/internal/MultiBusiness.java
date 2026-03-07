@@ -8,26 +8,27 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 
 /**
- * 批量业务异常 - 非FailFast模式下收集的所有错误
- * 用于在严格模式下收集多个验证错误，统一抛出
+ * Batch business exception - Collects all errors in non-FailFast mode.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Getter
 public class MultiBusiness extends Business {
     /**
-     * 默认最大错误数量限制，防止内存溢出
+     * Default maximum error count limit.
      */
     private static final int MAX_ERRORS = 50;
 
     /**
-     * 收集的业务异常列表
+     * Collected list of business exceptions.
      */
     private final List<Business> errors;
 
     /**
-     * 构造函数
-     * 根据错误数量创建适当地响应信息
+     * Constructor.
      *
-     * @param errors 业务异常列表
+     * @param errors List of business exceptions
      */
     public MultiBusiness(List<Business> errors) {
         super(ResponseCode.of(
@@ -46,9 +47,9 @@ public class MultiBusiness extends Business {
     }
 
     /**
-     * 重写toString方法，提供格式化的批量错误输出
+     * Override toString method to provide formatted batch error output.
      *
-     * @return 格式化的错误信息字符串
+     * @return Formatted error message string
      */
     @Override
     public String toString() {

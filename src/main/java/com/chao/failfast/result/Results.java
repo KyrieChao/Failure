@@ -13,8 +13,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.*;
 
 /**
- * Result 工具类 - 提供批量操作和便捷方法
- * 封装常用的Result操作模式，简化函数式编程
+ * Result utility class - Provide batch operations and convenient methods.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public final class Results {
 
@@ -24,7 +26,7 @@ public final class Results {
     private record SplitResult<T>(List<T> successes, List<Business> failures) {
     }
 
-    // ==================== 异常捕获 ====================
+    // ==================== Exception Capture ====================
 
     public static <T> Result<T> tryOf(Supplier<T> supplier, ResponseCode errorCode) {
         return tryOf(supplier, errorCode, null);
@@ -60,7 +62,7 @@ public final class Results {
         }
     }
 
-    // ==================== Optional 转换 ====================
+    // ==================== Optional Conversion ====================
     public static <T> Result<T> fromOptional(Optional<T> optional, ResponseCode errorCode) {
         return fromOptional(optional, errorCode, null);
     }
@@ -76,10 +78,10 @@ public final class Results {
         return Result.ok(optional != null ? optional.orElse(defaultValue) : defaultValue);
     }
 
-    // ==================== 条件执行 ====================
+    // ==================== Conditional Execution ====================
 
     /**
-     * 条件为 true 时执行 supplier，false 返回 ok(null)
+     * Execute supplier when condition is true, return ok(null) when false.
      */
     public static <T> Result<T> when(boolean condition, Supplier<Result<T>> supplier) {
         if (condition) {
@@ -92,7 +94,7 @@ public final class Results {
     }
 
     /**
-     * 条件为 true 时返回 successValue，false 返回 fail
+     * Return successValue when condition is true, return fail when false.
      */
     public static <T> Result<T> whenOrFail(boolean condition, T successValue, ResponseCode failCode) {
         return whenOrFail(condition, successValue, failCode, null);
@@ -103,7 +105,7 @@ public final class Results {
     }
 
     /**
-     * 条件为 true 时执行 supplier，false 返回 fail
+     * Execute supplier when condition is true, return fail when false.
      */
     public static <T> Result<T> whenOrFail(boolean condition, Supplier<T> supplier, ResponseCode failCode) {
         return whenOrFail(condition, supplier, failCode, null);
@@ -122,7 +124,7 @@ public final class Results {
         }
     }
 
-    // ==================== 批量收集 ====================
+    // ==================== Batch Collection ====================
 
     @SafeVarargs
     public static <T> Result<List<T>> sequence(Result<T>... results) {
@@ -145,7 +147,7 @@ public final class Results {
         return sequenceAll(List.of(results));
     }
 
-    // sequenceAll 使用公共逻辑
+    // sequenceAll uses common logic
     public static <T> Result<List<T>> sequenceAll(List<Result<T>> results) {
         SplitResult<T> split = splitResults(results);
 
@@ -156,14 +158,14 @@ public final class Results {
     }
 
     /**
-     * 分区收集：同时获取成功和失败
+     * Partition collection: get both successes and failures.
      */
     public static <T> Partition<T> partition(List<Result<T>> results) {
         SplitResult<T> split = splitResults(results);
         return new Partition<>(split.successes, split.failures);
     }
 
-    // 提取公共逻辑
+    // Extract common logic
     private static <T> SplitResult<T> splitResults(List<Result<T>> results) {
         List<T> successes = new ArrayList<>();
         List<Business> failures = new ArrayList<>();
@@ -179,7 +181,7 @@ public final class Results {
     }
 
     /**
-     * 只提取成功值
+     * Extract successes only.
      */
     public static <T> List<T> successes(List<Result<T>> results) {
         return results.stream()
@@ -189,7 +191,7 @@ public final class Results {
     }
 
     /**
-     * 只提取失败
+     * Extract failures only.
      */
     public static <T> List<Business> failures(List<Result<T>> results) {
         return results.stream()
@@ -199,7 +201,7 @@ public final class Results {
     }
 
     /**
-     * 折叠：将 List<Result<T>> 合并为单个 Result，使用组合函数
+     * Fold: merge List<Result<T>> into single Result using combiner function.
      */
     public static <T> Result<T> fold(List<Result<T>> results, T identity, BiFunction<T, T, T> combiner) {
         Result<T> acc = Result.ok(identity);
@@ -210,7 +212,7 @@ public final class Results {
     }
 
     /**
-     * 归约：从第一个成功元素开始归约
+     * Reduce: reduce from first successful element.
      */
     public static <T> Result<T> reduce(List<Result<T>> results, BiFunction<T, T, T> combiner) {
         if (results.isEmpty()) {
@@ -225,7 +227,7 @@ public final class Results {
         });
     }
 
-    // ==================== 遍历映射 ====================
+    // ==================== Traversal Mapping ====================
 
     public static <T, R> Result<List<R>> traverse(List<T> list, Function<T, Result<R>> mapper) {
         List<R> results = new ArrayList<>();
@@ -259,7 +261,7 @@ public final class Results {
     }
 
     /**
-     * 带索引的遍历（快速失败）
+     * Indexed traversal (fail-fast).
      */
     public static <T, R> Result<List<R>> traverseIndexed(List<T> list, BiFunction<Integer, T, Result<R>> mapper) {
         List<R> results = new ArrayList<>();
@@ -274,7 +276,7 @@ public final class Results {
     }
 
     /**
-     * 带索引的遍历（全量收集）
+     * Indexed traversal (collect all).
      */
     public static <T, R> Result<List<R>> traverseAllIndexed(List<T> list, BiFunction<Integer, T, Result<R>> mapper) {
         List<R> successes = new ArrayList<>();
@@ -295,7 +297,7 @@ public final class Results {
         return Result.ok(successes);
     }
 
-    // ==================== 组合操作 ====================
+    // ==================== Combination Operations ====================
 
     public static <T1, T2, R> Result<R> zip(Result<T1> r1, Result<T2> r2, BiFunction<T1, T2, R> combiner) {
         Result<R> fail = firstFailure(r1, r2);
@@ -323,7 +325,7 @@ public final class Results {
     }
 
     /**
-     * 组合 4 个 Result
+     * Combine 4 Results.
      */
     public static <T1, T2, T3, T4, R> Result<R> zip(
             Result<T1> r1,
@@ -350,7 +352,7 @@ public final class Results {
         R apply(A a, B b, C c, D d);
     }
 
-    // ==================== 副作用 ====================
+    // ==================== Side Effects ====================
 
     public static <T> Result<T> tap(Result<T> result, Consumer<Result<T>> action) {
         action.accept(result);
@@ -372,14 +374,14 @@ public final class Results {
     }
 
     /**
-     * 异步执行副作用（不阻塞主流程）
+     * Async execution of side effect (non-blocking).
      */
     public static <T> Result<T> tapAsync(Result<T> result, Consumer<Result<T>> action) {
         CompletableFuture.runAsync(() -> action.accept(result));
         return result;
     }
 
-    // ==================== 验证 ====================
+    // ==================== Validation ====================
 
     public static <T> Result<T> ensure(Result<T> result, Predicate<T> predicate, ResponseCode errorCode) {
         return ensure(result, predicate, errorCode, null);
@@ -395,14 +397,14 @@ public final class Results {
         return result;
     }
 
-    // ==================== 其他工具 ====================
+    // ==================== Other Tools ====================
 
     public static <T> T getOrNull(Result<T> result) {
         return result.isSuccess() ? result.get() : null;
     }
 
     /**
-     * 竞争执行：返回第一个成功的，或最后一个失败的结果（缓存结果避免重复执行）
+     * Race execution: return first success or last failure (cached result avoids re-execution).
      */
     @SafeVarargs
     public static <T> Result<T> race(Supplier<Result<T>>... suppliers) {
@@ -417,14 +419,14 @@ public final class Results {
     }
 
     /**
-     * 重试机制：失败时重试指定次数
+     * Retry mechanism: retry specified times on failure.
      */
     public static <T> Result<T> retry(int times, Supplier<Result<T>> supplier) {
         return retry(times, Duration.ZERO, supplier);
     }
 
     /**
-     * 带延迟的重试
+     * Retry with delay.
      */
     public static <T> Result<T> retry(int times, Duration delay, Supplier<Result<T>> supplier) {
         Result<T> lastResult = null;
@@ -446,7 +448,7 @@ public final class Results {
     }
 
     /**
-     * 管道操作：按顺序执行，前一个成功才执行后一个
+     * Pipe operation: execute sequentially, execute next only if previous succeeds.
      */
     @SafeVarargs
     public static <T> Result<T> pipe(Result<T> initial, Function<T, Result<T>>... functions) {
@@ -460,10 +462,10 @@ public final class Results {
         return current;
     }
 
-    // ====================== 延迟执行 ======================
+    // ====================== Deferred Execution ======================
 
     /**
-     * 真正的延迟执行：Supplier 在第一次 get() 时才执行（线程安全）
+     * True deferred execution: Supplier executes on first get() (thread-safe).
      */
     public static <T> Supplier<Result<T>> defer(Supplier<Result<T>> supplier) {
         return new Supplier<>() {
@@ -486,14 +488,14 @@ public final class Results {
     }
 
     /**
-     * 延迟执行并自动记忆化（线程安全版本）
+     * Deferred execution with auto-memoization (thread-safe version).
      */
     public static <T> Supplier<Result<T>> lazy(Supplier<Result<T>> supplier) {
         return defer(supplier);
     }
 
     /**
-     * 记忆化：缓存 Supplier 的结果（非线程安全，性能更好）
+     * Memoization: cache Supplier result (not thread-safe, better performance).
      */
     public static <T> Supplier<Result<T>> memoize(Supplier<Result<T>> supplier) {
         return new Supplier<>() {
@@ -511,7 +513,7 @@ public final class Results {
         };
     }
 
-    // ==================== 内部类 ====================
+    // ==================== Inner Classes ====================
 
     public record Partition<T>(List<T> successes, List<Business> failures) {
         public Partition(List<T> successes, List<Business> failures) {

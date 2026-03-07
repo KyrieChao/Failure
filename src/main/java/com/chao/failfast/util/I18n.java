@@ -9,8 +9,10 @@ import jakarta.annotation.PostConstruct;
 import java.util.Locale;
 
 /**
- * 国际化消息工具类
- * 提供静态方法获取国际化消息
+ * Internationalization message utility class.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Component
 public class I18n {
@@ -28,26 +30,28 @@ public class I18n {
     }
 
     /**
-     * 获取消息
-     * @param code 消息键
-     * @return 国际化消息
+     * Get message.
+     *
+     * @param code Message key
+     * @return Internationalized message
      */
     public static String get(String code) {
         return get(code, (Object[]) null);
     }
 
     /**
-     * 获取消息（带参数）
-     * @param code 消息键
-     * @param args 参数
-     * @return 国际化消息
+     * Get message (with arguments).
+     *
+     * @param code Message key
+     * @param args Arguments
+     * @return Internationalized message
      */
     public static String get(String code, Object... args) {
         if (instance == null || !StringUtils.hasText(code)) {
             // System.out.println("DEBUG: I18n.get(" + code + ") instance is NULL or code empty");
             return code;
         }
-        // 如果 code 被 {} 包裹，去除包裹
+        // If code is wrapped in {}, unwrap it
         String key = code;
         if (code.startsWith("{") && code.endsWith("}")) {
             key = code.substring(1, code.length() - 1);
@@ -63,8 +67,9 @@ public class I18n {
     }
 
     /**
-     * 获取当前 Locale
-     * @return Locale
+     * Get current Locale.
+     *
+     * @return Locale object
      */
     public static Locale getLocale() {
         return LocaleContextHolder.getLocale();

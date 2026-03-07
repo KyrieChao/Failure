@@ -4,8 +4,20 @@ import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.check.ObjectChecks;
 import com.chao.failfast.internal.core.ResponseCode;
 
+/**
+ * Object validation interface.
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.0.0
+ */
 public interface ObjectTerm<S extends ChainCore<S>> {
 
+    /**
+     * Get chain core.
+     *
+     * @return Chain core instance
+     */
     S core();
 
     // Alias: notNull -> exists

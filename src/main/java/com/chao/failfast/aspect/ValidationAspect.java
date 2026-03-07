@@ -33,10 +33,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 验证切面 - 处理 @Validate 注解声明的自定义验证器
- * 当前只保留最核心功能：
- * - value：指定自定义验证器
- * - fast：是否快速失败（默认 true）
+ * Validation aspect - Handle custom validators declared by @Validate annotation.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Slf4j
 @Aspect
@@ -45,12 +45,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ValidationAspect {
 
     /**
-     * 使用ConcurrentHashMap作为缓存，存储验证器实例
+     * Use ConcurrentHashMap as cache to store validator instances.
      */
     private static final ConcurrentHashMap<Class<? extends FastValidator<Object>>, FastValidator<Object>> VALIDATOR_CACHE = new ConcurrentHashMap<>();
 
     /**
-     * 定义一个不可变的Set集合，包含需要跳过验证的类型
+     * Define an immutable Set containing types to skip validation.
      */
     private static final Set<Class<?>> SKIP_TYPES = Set.of(
             ServletRequest.class,  // 服务请求对象
@@ -84,7 +84,10 @@ public class ValidationAspect {
     }
 
     /**
-     * 收集需要校验的参数（过滤 null、@SkipValidation、容器类型）
+     * Collect parameters that need validation (filter null, @SkipValidation, container types).
+     *
+     * @param point Join point
+     * @return List of validatable arguments
      */
     private List<Object> collectValidatableArgs(ProceedingJoinPoint point) {
         Object[] args = point.getArgs();
@@ -103,7 +106,12 @@ public class ValidationAspect {
     }
 
     /**
-     * 执行所有验证器，收集错误
+     * Execute all validators and collect errors.
+     *
+     * @param validatorClasses Validator classes
+     * @param args Arguments to validate
+     * @param failFast Whether to fail fast
+     * @return List of Business errors
      */
     private List<Business> executeValidators(Class<? extends FastValidator>[] validatorClasses, List<Object> args, boolean failFast) {
         List<Business> errors = new ArrayList<>();
@@ -119,7 +127,12 @@ public class ValidationAspect {
     }
 
     /**
-     * 执行单个验证器
+     * Execute single validator.
+     *
+     * @param validator Validator instance
+     * @param args Arguments to validate
+     * @param failFast Whether to fail fast
+     * @return List of Business errors
      */
     private List<Business> executeSingleValidator(FastValidator<Object> validator, List<Object> args, boolean failFast) {
 
@@ -134,7 +147,11 @@ public class ValidationAspect {
     }
 
     /**
-     * 执行 TypedValidator（多类型）
+     * Execute TypedValidator.
+     *
+     * @param validator TypedValidator instance
+     * @param args Arguments to validate
+     * @param ctx Validation context
      */
     private void executeTypedValidator(TypedValidator validator, List<Object> args, FastValidator.ValidationContext ctx) {
         Set<Class<?>> registeredTypes = validator.getRegisteredTypes();
@@ -147,7 +164,11 @@ public class ValidationAspect {
     }
 
     /**
-     * 执行普通 FastValidator（单类型）
+     * Execute plain FastValidator.
+     *
+     * @param validator FastValidator instance
+     * @param args Arguments to validate
+     * @param ctx Validation context
      */
     private void executePlainValidator(FastValidator<Object> validator, List<Object> args, FastValidator.ValidationContext ctx) {
 
@@ -166,10 +187,10 @@ public class ValidationAspect {
     }
 
     /**
-     * 获取或创建一个验证器实例
+     * Get or create a validator instance.
      *
-     * @param clazz 验证器的类对象
-     * @return 返回验证器实例，如果已存在则从应用上下文中获取，否则创建新实例
+     * @param clazz Validator class object
+     * @return Validator instance, get from application context if exists, otherwise create new instance
      */
     @SuppressWarnings("unchecked")
     private FastValidator<Object> getOrCreateValidator(Class<? extends FastValidator> clazz) {
@@ -188,10 +209,10 @@ public class ValidationAspect {
     }
 
     /**
-     * 获取验证器支持的类型
+     * Get type supported by validator.
      *
-     * @param validator 验证器实例
-     * @return 支持的类型，如果无法确定则返回Object.class
+     * @param validator Validator instance
+     * @return Supported type, return Object.class if undetermined
      */
     private Class<?> getValidatorSupportedType(FastValidator<?> validator) {
         Class<?> declared = validator.getSupportedType();
@@ -204,20 +225,20 @@ public class ValidationAspect {
     }
 
     /**
-     * 判断给定的类是否应该被跳过
+     * Determine if the given class should be skipped.
      *
-     * @param clazz 需要检查的类
-     * @return 如果类在SKIP_TYPES列表中或其父类/接口在SKIP_TYPES列表中，则返回true；否则返回false
+     * @param clazz Class to check
+     * @return True if class is in SKIP_TYPES list or its superclass/interface is in SKIP_TYPES list, false otherwise
      */
     private boolean shouldSkip(Class<?> clazz) {
         return SKIP_TYPES.stream().anyMatch(t -> t.isAssignableFrom(clazz));
     }
 
     /**
-     * 检查注解数组中是否包含SkipValidation注解
+     * Check if annotation array contains SkipValidation annotation.
      *
-     * @param annotations 需要检查的注解数组
-     * @return 如果包含SkipValidation注解则返回true，否则返回false
+     * @param annotations Array of annotations to check
+     * @return True if contains SkipValidation annotation, false otherwise
      */
     private boolean hasSkipAnnotation(Annotation[] annotations) {
         if (annotations == null) return false;

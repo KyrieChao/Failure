@@ -3,8 +3,10 @@ package com.chao.failfast.annotation;
 import java.lang.annotation.*;
 
 /**
- * 表示此方法/类/字段需要重构或优化
- * 原因/计划请见 Javadoc 或关联 Issue
+ * Indicates that this method/class/field needs refactoring or optimization.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Documented
 @Retention(RetentionPolicy.SOURCE)
@@ -12,17 +14,17 @@ import java.lang.annotation.*;
 public @interface ToImprove {
 
     /**
-     * 重构原因或计划
+     * Reason for refactoring or plan.
      */
     String value() default "";
 
     /**
-     * 预计完成版本
+     * Estimated completion version.
      */
     String inVersion() default "";
 
     /**
-     * 关联的 Issue / PR 链接
+     * Related Issue / PR link.
      */
     String issue() default "";
 }

@@ -4,8 +4,20 @@ import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.check.NumberChecks;
 import com.chao.failfast.internal.core.ResponseCode;
 
+/**
+ * Number validation interface.
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.0.0
+ */
 public interface NumberTerm<S extends ChainCore<S>> {
 
+    /**
+     * Get chain core.
+     *
+     * @return Chain core instance
+     */
     S core();
 
     default S positive(Number value) {

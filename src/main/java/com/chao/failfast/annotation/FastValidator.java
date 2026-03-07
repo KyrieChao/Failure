@@ -10,25 +10,27 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 验证器接口 - 支持自定义验证逻辑
+ * Validator interface - Support custom validation logic.
  *
- * @param <T> 目标类型
+ * @param <T> Target type
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @FunctionalInterface
 public interface FastValidator<T> {
 
     /**
-     * 验证方法，用于对目标对象进行有效性验证
+     * Validation method for validating target object.
      *
-     * @param target  需要验证的目标对象
-     * @param context 验证上下文，包含验证所需的规则和条件
+     * @param target  Target object to be validated
+     * @param context Validation context containing rules and conditions
      */
     void validate(T target, ValidationContext context);
 
     /**
-     * 获取当前处理器支持的默认类型
+     * Get default type supported by current handler.
      *
-     * @return 返回Object.class作为默认支持的类型
+     * @return Return Object.class as default supported type
      */
     default Class<?> getSupportedType() {
         return Object.class;
@@ -69,20 +71,18 @@ public interface FastValidator<T> {
         }
 
         /**
-         * 获取包含原因的业务对象列表
-         * 返回一个不可修改的列表，以确保数据的不可变性
+         * Get list of business objects containing causes.
          *
-         * @return 包含原因的业务对象列表，类型为List<Business>
+         * @return List of business objects containing causes, type is List<Business>
          */
         public List<Business> hasCauses() {
             return Collections.unmodifiableList(errors);
         }
 
         /**
-         * 获取第一个错误信息
-         * 如果错误列表为空，则返回null，否则返回列表中的第一个错误
+         * Get the first error message.
          *
-         * @return Business类型的错误对象，如果没有错误则返回null
+         * @return Business type error object, or null if no error
          */
         public Business getFirstError() {
             return errors.isEmpty() ? null : errors.get(0);

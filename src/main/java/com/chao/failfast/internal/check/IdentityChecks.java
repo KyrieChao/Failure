@@ -3,53 +3,54 @@ package com.chao.failfast.internal.check;
 import java.util.Objects;
 
 /**
- * 对象同一性校验工具类
- * 提供用于检查对象同一性和相等性的静态方法
+ * Utility class for object identity and equality checks.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public final class IdentityChecks {
 
-    /**
-     * 私有构造方法，防止实例化工具类
-     */
     private IdentityChecks() {}
 
     /**
-     * 检查两个对象是否为同一个对象（同一性）
-     * @param obj1 第一个对象
-     * @param obj2 第二个对象
-     * @return 如果两个对象引用相同则返回true，否则返回false
+     * Checks if two objects are the same instance.
+     *
+     * @param obj1 the first object
+     * @param obj2 the second object
+     * @return true if both objects refer to the same instance, false otherwise
      */
     public static boolean same(Object obj1, Object obj2) {
         return obj1 == obj2;
     }
 
     /**
-     * 检查两个对象是否不是同一个对象（同一性）
-     * @param obj1 第一个对象
-     * @param obj2 第二个对象
-     * @return 如果两个对象引用不同则返回true，否则返回false
+     * Checks if two objects are not the same instance.
+     *
+     * @param obj1 the first object
+     * @param obj2 the second object
+     * @return true if objects refer to different instances, false otherwise
      */
     public static boolean notSame(Object obj1, Object obj2) {
         return obj1 != obj2;
     }
 
     /**
-     * 检查两个对象是否相等（相等性）
-     * 使用Objects.equals方法，可以正确处理null值
-     * @param obj1 第一个对象
-     * @param obj2 第二个对象
-     * @return 如果两个对象相等则返回true，否则返回false
+     * Checks if two objects are equal.
+     *
+     * @param obj1 the first object
+     * @param obj2 the second object
+     * @return true if objects are equal, false otherwise
      */
     public static boolean equals(Object obj1, Object obj2) {
         return Objects.equals(obj1, obj2);
     }
 
     /**
-     * 检查两个对象是否不相等（相等性）
-     * 使用Objects.equals方法，可以正确处理null值
-     * @param obj1 第一个对象
-     * @param obj2 第二个对象
-     * @return 如果两个对象不相等则返回true，否则返回false
+     * Checks if two objects are not equal.
+     *
+     * @param obj1 the first object
+     * @param obj2 the second object
+     * @return true if objects are not equal, false otherwise
      */
     public static boolean notEquals(Object obj1, Object obj2) {
         return !Objects.equals(obj1, obj2);

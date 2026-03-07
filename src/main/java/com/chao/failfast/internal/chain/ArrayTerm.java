@@ -3,10 +3,21 @@ package com.chao.failfast.internal.chain;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.check.ArrayChecks;
 import com.chao.failfast.internal.core.ResponseCode;
-import java.util.function.Predicate;
 
+/**
+ * Array validation interface.
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.0.0
+ */
 public interface ArrayTerm<S extends ChainCore<S>> {
 
+    /**
+     * Get chain core.
+     *
+     * @return Chain core instance
+     */
     S core();
 
     default <T> S notEmpty(T[] array) {
@@ -93,27 +104,27 @@ public interface ArrayTerm<S extends ChainCore<S>> {
         return core().check(ArrayChecks.hasNoNullElements(array), code, detail);
     }
 
-    default <T> S allMatch(T[] array, Predicate<T> predicate) {
+    default <T> S allMatch(T[] array, java.util.function.Predicate<T> predicate) {
         return core().check(ArrayChecks.allMatch(array, predicate), FailureConst.ALL_MATCH_ERROR, null);
     }
 
-    default <T> S allMatch(T[] array, Predicate<T> predicate, ResponseCode code) {
+    default <T> S allMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code) {
         return core().check(ArrayChecks.allMatch(array, predicate), code, null);
     }
 
-    default <T> S allMatch(T[] array, Predicate<T> predicate, ResponseCode code, String detail) {
+    default <T> S allMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code, String detail) {
         return core().check(ArrayChecks.allMatch(array, predicate), code, detail);
     }
 
-    default <T> S anyMatch(T[] array, Predicate<T> predicate) {
+    default <T> S anyMatch(T[] array, java.util.function.Predicate<T> predicate) {
         return core().check(ArrayChecks.anyMatch(array, predicate), FailureConst.ANY_MATCH_ERROR, null);
     }
 
-    default <T> S anyMatch(T[] array, Predicate<T> predicate, ResponseCode code) {
+    default <T> S anyMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code) {
         return core().check(ArrayChecks.anyMatch(array, predicate), code, null);
     }
 
-    default <T> S anyMatch(T[] array, Predicate<T> predicate, ResponseCode code, String detail) {
+    default <T> S anyMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code, String detail) {
         return core().check(ArrayChecks.anyMatch(array, predicate), code, detail);
     }
 

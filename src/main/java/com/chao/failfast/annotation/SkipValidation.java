@@ -3,7 +3,10 @@ package com.chao.failfast.annotation;
 import java.lang.annotation.*;
 
 /**
- * 待实现 未来计划引入 @SkipValidation 注解，用于显式标记“无需校验的参数”
+ * To be implemented: Annotation to explicitly mark parameters to skip validation.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)

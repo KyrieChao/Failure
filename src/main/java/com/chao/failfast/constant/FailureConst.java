@@ -7,22 +7,23 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
 /**
- * Failure 框架全局常量定义。
+ * Global constant definition for Failure framework.
  *
- * <p>包含验证、配置、响应等模块的共享常量，统一维护避免魔法值散落。</p>
+ * <p>Contains shared constants for validation, configuration, response, etc.</p>
  *
- * @author KyrieChao
+ * @author Kyrie Chao
+ * @version 1.0.0
  * @since 1.3.1
  */
 public final class FailureConst {
 
     /**
-     * 私有构造方法，防止该工具类被实例化
+     * Private constructor to prevent instantiation.
      */
     private FailureConst() {
     }
 
-    // ==================== 正则表达式 ====================
+    // ==================== Regular Expressions ====================
     public static final Pattern Card = Pattern.compile("^\\d{15,19}$");
     public static final Pattern Email = Pattern.compile("^(.)(.+)(@.+)$");
     public static final Pattern Mobile = Pattern.compile("^1[3-9]\\d{9}$");
@@ -32,442 +33,442 @@ public final class FailureConst {
     public static final Pattern Range = Pattern.compile("^\\s*(\\d+)\\s*\\.\\.\\s*(\\d+)\\s*$|^\\s*(\\d+)\\s*-\\s*(\\d+)\\s*$");
 
 
-    // ==================== 响应码 ====================
+    // ==================== Response Codes ====================
     /**
-     * isJson 默认错误
+     * isJson default error.
      */
     public static final ResponseCode IS_JSON_ERROR = ResponseCode.of(500, "Current value isJson", "{response.code.is.json}");
     /**
-     * isCreditCard 默认错误
+     * isCreditCard default error.
      */
     public static final ResponseCode IS_CREDIT_CARD_ERROR = ResponseCode.of(500, "Current value isCreditCard", "{response.code.is.credit.card}");
     /**
-     * isBase64 默认错误
+     * isBase64 default error.
      */
     public static final ResponseCode IS_BASE64_ERROR = ResponseCode.of(500, "Current value isBase64", "{response.code.is.base64}");
 
 
-    // ==================== 响应字段名（JSON 字段） ====================
+    // ==================== Response Field Names (JSON Fields) ====================
 
     /**
-     * 错误码字段
+     * Error code field.
      */
     public static final String FIELD_CODE = "code";
 
     /**
-     * 错误消息字段
+     * Error message field.
      */
     public static final String FIELD_MESSAGE = "message";
 
     /**
-     * 错误详情字段
+     * Error description field.
      */
     public static final String FIELD_DESCRIPTION = "description";
 
     /**
-     * 错误明细字段
+     * Error detail field.
      */
     public static final String FIELD_DETAIL = "detail";
 
     /**
-     * 时间戳字段
+     * Timestamp field.
      */
     public static final String FIELD_TIMESTAMP = "timestamp";
 
     /**
-     * 错误列表字段（详细模式）
+     * Error list field (verbose mode).
      */
     public static final String FIELD_ERRORS = "errors";
 
 
-    // ==================== 通用错误消息（英文） ====================
+    // ==================== Common Error Messages (English) ====================
 
     /**
-     * 参数无效
+     * Invalid parameter.
      */
     public static final String INVALID_PARAMETER = "{failure.const.invalid.parameter}";
 
     /**
-     * 未知错误
+     * Unknown error.
      */
     public static final String UNKNOWN_ERROR = "{failure.const.unknown.error}";
 
     /**
-     * 未知
+     * Unknown.
      */
     public static final String UNKNOWN = "{failure.const.unknown}";
 
     /**
-     * 多重校验错误
+     * Multiple validation errors.
      */
     public static final String MULTIPLE_VALIDATION_ERRORS = "{failure.const.multiple.validation.errors}";
 
     /**
-     * 位置分隔符
+     * Location separator.
      */
     public static final String AT = "{failure.const.at}";
 
     /**
-     * 校验错误
+     * Validation error.
      */
     public static final String VALIDATION_ERROR = "{failure.const.validation.error}";
 
     /**
-     * 无法缩减空列表
+     * Cannot reduce empty list.
      */
     public static final String CANNOT_REDUCE_EMPTY_LIST = "{failure.const.cannot.reduce.empty.list}";
 
 
-    // ==================== 错误提示模板（中文） ====================
+    // ==================== Error Templates (Chinese) ====================
 
     /**
-     * code 不能为空
+     * Code cannot be null.
      */
     public static final String CODE_REQUIRED = "{failure.const.code.required}";
 
     /**
-     * message 或 description 至少一个不能为 null
+     * Message or description must not be null.
      */
     public static final String MESSAGE_OR_DESCRIPTION_REQUIRED = "{failure.const.message.description.required}";
 
     /**
-     * 不支持的校验类型前缀
+     * Unsupported validation type prefix.
      */
     public static final String UNSUPPORTED_VALIDATION_TYPE = "{failure.const.unsupported.validation.type}";
 
     /**
-     * 校验失败前缀
+     * Validation error prefix.
      */
     public static final String VALIDATION_ERROR_PREFIX = "{failure.const.validation.error.prefix}";
 
     /**
-     * 错误项后缀
+     * Error item suffix.
      */
     public static final String ERROR_ITEM_SUFFIX = "{failure.const.error.item.suffix}";
 
     /**
-     * 错误过多提示
+     * Too many errors message.
      */
     public static final String TOO_MANY_ERRORS = "{failure.const.too.many.errors}";
 
 
-    // ==================== 系统默认值 ====================
+    // ==================== System Defaults ====================
 
     /**
-     * 系统默认错误码
+     * System default error code.
      */
     public static final Integer SYSTEM_CODE = 500;
 
     /**
-     * 默认错误消息
+     * Default error message.
      */
     public static final String DEFAULT_MESSAGE = "{failure.const.default.message}";
 
 
-    // ==================== 时间相关 ====================
+    // ==================== Time Related ====================
 
     /**
-     * 中国标准时间（Asia/Shanghai）
+     * China Standard Time (Asia/Shanghai).
      */
     public static final ZoneId CST = ZoneId.of("Asia/Shanghai");
 
     /**
-     * 默认日期时间格式
+     * Default datetime pattern.
      */
     public static final String DEFAULT_DATETIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
     /**
-     * 默认日期时间格式化器
+     * Default datetime formatter.
      */
     public static final DateTimeFormatter DEFAULT_DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATETIME_PATTERN);
 
-    // ==================== 自动生成的方法默认错误码 ====================
+    // ==================== Auto-generated Method Default Error Codes ====================
 
     /**
-     * notBlank 默认错误
+     * notBlank default error.
      */
     public static final ResponseCode NOT_BLANK_ERROR = ResponseCode.of(500, "Current value notBlank", "{response.code.not.blank}");
     /**
-     * notEmpty 默认错误
+     * notEmpty default error.
      */
     public static final ResponseCode NOT_EMPTY_ERROR = ResponseCode.of(500, "Current value notEmpty", "{response.code.not.empty}");
     /**
-     * blank 默认错误
+     * blank default error.
      */
     public static final ResponseCode BLANK_ERROR = ResponseCode.of(500, "Current value blank", "{response.code.blank}");
     /**
-     * lengthBetween 默认错误
+     * lengthBetween default error.
      */
     public static final ResponseCode LENGTH_BETWEEN_ERROR = ResponseCode.of(500, "Current value lengthBetween", "{response.code.length.between}");
     /**
-     * lengthMin 默认错误
+     * lengthMin default error.
      */
     public static final ResponseCode LENGTH_MIN_ERROR = ResponseCode.of(500, "Current value lengthMin", "{response.code.length.min}");
     /**
-     * lengthMax 默认错误
+     * lengthMax default error.
      */
     public static final ResponseCode LENGTH_MAX_ERROR = ResponseCode.of(500, "Current value lengthMax", "{response.code.length.max}");
     /**
-     * match 默认错误
+     * match default error.
      */
     public static final ResponseCode MATCH_ERROR = ResponseCode.of(500, "Current value match", "{response.code.match}");
     /**
-     * email 默认错误
+     * email default error.
      */
     public static final ResponseCode EMAIL_ERROR = ResponseCode.of(500, "Current value email", "{response.code.email}");
     /**
-     * mobile 默认错误
+     * mobile default error.
      */
     public static final ResponseCode MOBILE_ERROR = ResponseCode.of(500, "Current value mobile", "{response.code.mobile}");
     /**
-     * url 默认错误
+     * url default error.
      */
     public static final ResponseCode URL_ERROR = ResponseCode.of(500, "Current value url", "{response.code.url}");
     /**
-     * ipAddress 默认错误
+     * ipAddress default error.
      */
     public static final ResponseCode IP_ADDRESS_ERROR = ResponseCode.of(500, "Current value ipAddress", "{response.code.ip.address}");
     /**
-     * uuid 默认错误
+     * uuid default error.
      */
     public static final ResponseCode UUID_ERROR = ResponseCode.of(500, "Current value uuid", "{response.code.uuid}");
     /**
-     * isNumeric 默认错误
+     * isNumeric default error.
      */
     public static final ResponseCode IS_NUMERIC_ERROR = ResponseCode.of(500, "Current value isNumeric", "{response.code.is.numeric}");
     /**
-     * isAlpha 默认错误
+     * isAlpha default error.
      */
     public static final ResponseCode IS_ALPHA_ERROR = ResponseCode.of(500, "Current value isAlpha", "{response.code.is.alpha}");
     /**
-     * isAlphanumeric 默认错误
+     * isAlphanumeric default error.
      */
     public static final ResponseCode IS_ALPHANUMERIC_ERROR = ResponseCode.of(500, "Current value isAlphanumeric", "{response.code.is.alphanumeric}");
     /**
-     * startsWith 默认错误
+     * startsWith default error.
      */
     public static final ResponseCode STARTS_WITH_ERROR = ResponseCode.of(500, "Current value startsWith", "{response.code.starts.with}");
     /**
-     * endsWith 默认错误
+     * endsWith default error.
      */
     public static final ResponseCode ENDS_WITH_ERROR = ResponseCode.of(500, "Current value endsWith", "{response.code.ends.with}");
     /**
-     * contains 默认错误
+     * contains default error.
      */
     public static final ResponseCode CONTAINS_ERROR = ResponseCode.of(500, "Current value contains", "{response.code.contains}");
     /**
-     * notContains 默认错误
+     * notContains default error.
      */
     public static final ResponseCode NOT_CONTAINS_ERROR = ResponseCode.of(500, "Current value notContains", "{response.code.not.contains}");
     /**
-     * isLowerCase 默认错误
+     * isLowerCase default error.
      */
     public static final ResponseCode IS_LOWER_CASE_ERROR = ResponseCode.of(500, "Current value isLowerCase", "{response.code.is.lower.case}");
     /**
-     * isUpperCase 默认错误
+     * isUpperCase default error.
      */
     public static final ResponseCode IS_UPPER_CASE_ERROR = ResponseCode.of(500, "Current value isUpperCase", "{response.code.is.upper.case}");
     /**
-     * equalsIgnoreCase 默认错误
+     * equalsIgnoreCase default error.
      */
     public static final ResponseCode EQUALS_IGNORE_CASE_ERROR = ResponseCode.of(500, "Current value equalsIgnoreCase", "{response.code.equals.ignore.case}");
     /**
-     * positive 默认错误
+     * positive default error.
      */
     public static final ResponseCode POSITIVE_ERROR = ResponseCode.of(500, "Current value positive", "{response.code.positive}");
 
     /**
-     * inRange 默认错误
+     * inRange default error.
      */
     public static final ResponseCode IN_RANGE_ERROR = ResponseCode.of(500, "Current value inRange", "{response.code.in.range}");
     /**
-     * inRangeNumber 默认错误
+     * inRangeNumber default error.
      */
     public static final ResponseCode IN_RANGE_NUMBER_ERROR = ResponseCode.of(500, "Current value inRangeNumber", "{response.code.in.range.number}");
     /**
-     * nonNegative 默认错误
+     * nonNegative default error.
      */
     public static final ResponseCode NON_NEGATIVE_ERROR = ResponseCode.of(500, "Current value nonNegative", "{response.code.non.negative}");
     /**
-     * greaterThan 默认错误
+     * greaterThan default error.
      */
     public static final ResponseCode GREATER_THAN_ERROR = ResponseCode.of(500, "Current value greaterThan", "{response.code.greater.than}");
     /**
-     * greaterOrEqual 默认错误
+     * greaterOrEqual default error.
      */
     public static final ResponseCode GREATER_OR_EQUAL_ERROR = ResponseCode.of(500, "Current value greaterOrEqual", "{response.code.greater.or.equal}");
     /**
-     * lessThan 默认错误
+     * lessThan default error.
      */
     public static final ResponseCode LESS_THAN_ERROR = ResponseCode.of(500, "Current value lessThan", "{response.code.less.than}");
     /**
-     * lessOrEqual 默认错误
+     * lessOrEqual default error.
      */
     public static final ResponseCode LESS_OR_EQUAL_ERROR = ResponseCode.of(500, "Current value lessOrEqual", "{response.code.less.or.equal}");
     /**
-     * notZero 默认错误
+     * notZero default error.
      */
     public static final ResponseCode NOT_ZERO_ERROR = ResponseCode.of(500, "Current value notZero", "{response.code.not.zero}");
     /**
-     * isZero 默认错误
+     * isZero default error.
      */
     public static final ResponseCode IS_ZERO_ERROR = ResponseCode.of(500, "Current value isZero", "{response.code.is.zero}");
     /**
-     * negative 默认错误
+     * negative default error.
      */
     public static final ResponseCode NEGATIVE_ERROR = ResponseCode.of(500, "Current value negative", "{response.code.negative}");
     /**
-     * multipleOf 默认错误
+     * multipleOf default error.
      */
     public static final ResponseCode MULTIPLE_OF_ERROR = ResponseCode.of(500, "Current value multipleOf", "{response.code.multiple.of}");
     /**
-     * decimalScale 默认错误
+     * decimalScale default error.
      */
     public static final ResponseCode DECIMAL_SCALE_ERROR = ResponseCode.of(500, "Current value decimalScale", "{response.code.decimal.scale}");
     /**
-     * notNull 默认错误
+     * notNull default error.
      */
     public static final ResponseCode NOT_NULL_ERROR = ResponseCode.of(500, "Current value notNull", "{response.code.not.null}");
     /**
-     * exists 默认错误
+     * exists default error.
      */
     public static final ResponseCode EXISTS_ERROR = ResponseCode.of(500, "Current value exists", "{response.code.exists}");
     /**
-     * isNull 默认错误
+     * isNull default error.
      */
     public static final ResponseCode IS_NULL_ERROR = ResponseCode.of(500, "Current value isNull", "{response.code.is.null}");
     /**
-     * instanceOf 默认错误
+     * instanceOf default error.
      */
     public static final ResponseCode INSTANCE_OF_ERROR = ResponseCode.of(500, "Current value instanceOf", "{response.code.instance.of}");
     /**
-     * notInstanceOf 默认错误
+     * notInstanceOf default error.
      */
     public static final ResponseCode NOT_INSTANCE_OF_ERROR = ResponseCode.of(500, "Current value notInstanceOf", "{response.code.not.instance.of}");
     /**
-     * allNotNull 默认错误
+     * allNotNull default error.
      */
     public static final ResponseCode ALL_NOT_NULL_ERROR = ResponseCode.of(500, "Current value allNotNull", "{response.code.all.not.null}");
     /**
-     * state 默认错误
+     * state default error.
      */
     public static final ResponseCode STATE_ERROR = ResponseCode.of(500, "Current value state", "{response.code.state}");
     /**
-     * isTrue 默认错误
+     * isTrue default error.
      */
     public static final ResponseCode IS_TRUE_ERROR = ResponseCode.of(500, "Current value isTrue", "{response.code.is.true}");
     /**
-     * isFalse 默认错误
+     * isFalse default error.
      */
     public static final ResponseCode IS_FALSE_ERROR = ResponseCode.of(500, "Current value isFalse", "{response.code.is.false}");
     /**
-     * containsKey 默认错误
+     * containsKey default error.
      */
     public static final ResponseCode CONTAINS_KEY_ERROR = ResponseCode.of(500, "Current value containsKey", "{response.code.contains.key}");
     /**
-     * containsValue 默认错误
+     * containsValue default error.
      */
     public static final ResponseCode CONTAINS_VALUE_ERROR = ResponseCode.of(500, "Current value containsValue", "{response.code.contains.value}");
     /**
-     * before 默认错误
+     * before default error.
      */
     public static final ResponseCode BEFORE_ERROR = ResponseCode.of(500, "Current value before", "{response.code.before}");
     /**
-     * after 默认错误
+     * after default error.
      */
     public static final ResponseCode AFTER_ERROR = ResponseCode.of(500, "Current value after", "{response.code.after}");
 
     /**
-     * satisfies 默认错误
+     * satisfies default error.
      */
     public static final ResponseCode SATISFIES_ERROR = ResponseCode.of(500, "Current value satisfies", "{response.code.satisfies}");
     /**
-     * compare 默认错误
+     * compare default error.
      */
     public static final ResponseCode COMPARE_ERROR = ResponseCode.of(500, "Current value compare", "{response.code.compare}");
     /**
-     * defer 默认错误
+     * defer default error.
      */
     public static final ResponseCode DEFER_ERROR = ResponseCode.of(500, "Current value defer", "{response.code.defer}");
 
     /**
-     * isEmpty 默认错误
+     * isEmpty default error.
      */
     public static final ResponseCode IS_EMPTY_ERROR = ResponseCode.of(500, "Current value isEmpty", "{response.code.is.empty}");
     /**
-     * sizeBetween 默认错误
+     * sizeBetween default error.
      */
     public static final ResponseCode SIZE_BETWEEN_ERROR = ResponseCode.of(500, "Current value sizeBetween", "{response.code.size.between}");
     /**
-     * sizeEquals 默认错误
+     * sizeEquals default error.
      */
     public static final ResponseCode SIZE_EQUALS_ERROR = ResponseCode.of(500, "Current value sizeEquals", "{response.code.size.equals}");
     /**
-     * hasNoNullElements 默认错误
+     * hasNoNullElements default error.
      */
     public static final ResponseCode HAS_NO_NULL_ELEMENTS_ERROR = ResponseCode.of(500, "Current value hasNoNullElements", "{response.code.has.no.null.elements}");
     /**
-     * allMatch 默认错误
+     * allMatch default error.
      */
     public static final ResponseCode ALL_MATCH_ERROR = ResponseCode.of(500, "Current value allMatch", "{response.code.all.match}");
     /**
-     * anyMatch 默认错误
+     * anyMatch default error.
      */
     public static final ResponseCode ANY_MATCH_ERROR = ResponseCode.of(500, "Current value anyMatch", "{response.code.any.match}");
     /**
-     * notContainsKey 默认错误
+     * notContainsKey default error.
      */
     public static final ResponseCode NOT_CONTAINS_KEY_ERROR = ResponseCode.of(500, "Current value notContainsKey", "{response.code.not.contains.key}");
     /**
-     * enumValue 默认错误
+     * enumValue default error.
      */
     public static final ResponseCode ENUM_VALUE_ERROR = ResponseCode.of(500, "Current value enumValue", "{response.code.enum.value}");
     /**
-     * enumConstant 默认错误
+     * enumConstant default error.
      */
     public static final ResponseCode ENUM_CONSTANT_ERROR = ResponseCode.of(500, "Current value enumConstant", "{response.code.enum.constant}");
     /**
-     * same 默认错误
+     * same default error.
      */
     public static final ResponseCode SAME_ERROR = ResponseCode.of(500, "Current value same", "{response.code.same}");
     /**
-     * notSame 默认错误
+     * notSame default error.
      */
     public static final ResponseCode NOT_SAME_ERROR = ResponseCode.of(500, "Current value notSame", "{response.code.not.same}");
     /**
-     * equals 默认错误
+     * equals default error.
      */
     public static final ResponseCode EQUALS_ERROR = ResponseCode.of(500, "Current value equals", "{response.code.equals}");
     /**
-     * notEquals 默认错误
+     * notEquals default error.
      */
     public static final ResponseCode NOT_EQUALS_ERROR = ResponseCode.of(500, "Current value notEquals", "{response.code.not.equals}");
     /**
-     * isPresent 默认错误
+     * isPresent default error.
      */
     public static final ResponseCode IS_PRESENT_ERROR = ResponseCode.of(500, "Current value isPresent", "{response.code.is.present}");
     /**
-     * afterOrEqual 默认错误
+     * afterOrEqual default error.
      */
     public static final ResponseCode AFTER_OR_EQUAL_ERROR = ResponseCode.of(500, "Current value afterOrEqual", "{response.code.after.or.equal}");
     /**
-     * beforeOrEqual 默认错误
+     * beforeOrEqual default error.
      */
     public static final ResponseCode BEFORE_OR_EQUAL_ERROR = ResponseCode.of(500, "Current value beforeOrEqual", "{response.code.before.or.equal}");
     /**
-     * between 默认错误
+     * between default error.
      */
     public static final ResponseCode BETWEEN_ERROR = ResponseCode.of(500, "Current value between", "{response.code.between}");
     /**
-     * isPast 默认错误
+     * isPast default error.
      */
     public static final ResponseCode IS_PAST_ERROR = ResponseCode.of(500, "Current value isPast", "{response.code.is.past}");
     /**
-     * isFuture 默认错误
+     * isFuture default error.
      */
     public static final ResponseCode IS_FUTURE_ERROR = ResponseCode.of(500, "Current value isFuture", "{response.code.is.future}");
     /**
-     * isToday 默认错误
+     * isToday default error.
      */
     public static final ResponseCode IS_TODAY_ERROR = ResponseCode.of(500, "Current value isToday", "{response.code.is.today}");
 }

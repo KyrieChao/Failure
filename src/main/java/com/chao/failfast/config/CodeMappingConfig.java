@@ -11,7 +11,10 @@ import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 /**
- * 错误码映射配置 - 支持配置化HTTP状态映射
+ * Error code mapping configuration - Support configurable HTTP status mapping.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Component
 @Slf4j
@@ -22,9 +25,9 @@ public class CodeMappingConfig {
     private final Map<String, List<CodeRange>> groupRanges = new HashMap<>();
 
     /**
-     * 构造函数，用于初始化CodeMappingConfig实例
+     * Constructor to initialize CodeMappingConfig instance.
      *
-     * @param properties 包含失败快速属性的配置对象
+     * @param properties Configuration properties containing failure fast settings
      */
     public CodeMappingConfig(FailureProperties properties) {
         // 将传入的properties赋值给实例变量
@@ -42,10 +45,9 @@ public class CodeMappingConfig {
     }
 
     /**
-     * 初始化默认的HTTP状态码映射
-     * 该方法将自定义的错误码映射到标准的HTTP状态码
+     * Initialize default HTTP status code mappings.
      *
-     * @param map 用于存储错误码与HTTP状态码映射关系的Map集合
+     * @param map Map collection used to store error code and HTTP status code mappings
      */
     private void initializeDefaultMappings(Map<Integer, HttpStatus> map) {
         // 4xx 客户端错误状态码
@@ -70,9 +72,9 @@ public class CodeMappingConfig {
     }
 
     /**
-     * 加载自定义的状态码映射关系
+     * Load custom status code mappings.
      *
-     * @param map 用于存储状态码映射的Map集合
+     * @param map Map collection used to store status code mappings
      */
     private void loadCustomMappings(Map<Integer, HttpStatus> map) {
         properties.getCodeMapping().getHttpStatus().forEach((key, status) -> {
@@ -88,8 +90,7 @@ public class CodeMappingConfig {
     }
 
     /**
-     * 解析代码组范围的方法
-     * 该方法从属性中获取代码映射的组信息，并将其转换为代码范围列表
+     * Parse code group ranges.
      */
     private void parseGroupRanges() {
         // 从属性中获取代码映射的组信息
@@ -126,10 +127,10 @@ public class CodeMappingConfig {
     }
 
     /**
-     * 解析代码范围字符串，将其转换为CodeRange对象
+     * Parse code range string and convert to CodeRange object.
      *
-     * @param input 输入的代码范围字符串，格式如"1-5"或"5-1"
-     * @return 返回解析后的CodeRange对象，如果输入格式不正确则返回null
+     * @param input Code range string input, e.g., "1-5" or "5-1"
+     * @return Parsed CodeRange object, return null if format is incorrect
      */
     private CodeRange parseRange(String input) {
         // 使用正则表达式模式匹配输入字符串
@@ -152,7 +153,11 @@ public class CodeMappingConfig {
     }
 
     /**
-     * 判断错误码是否属于指定分组（支持范围 + 精确值）
+     * Determine if error code belongs to specified group (support range + exact value).
+     *
+     * @param code Error code
+     * @param groupName Group name
+     * @return True if in group, false otherwise
      */
     public boolean isInGroup(int code, String groupName) {
         List<CodeRange> ranges = groupRanges.get(groupName);
@@ -167,8 +172,10 @@ public class CodeMappingConfig {
     }
 
     /**
-     * 获取指定分组的所有错误码（仅返回精确值列表，范围展开不返回）
-     * （保持原有方法兼容性）
+     * Get all error codes for specified group (only exact values, range expansion not returned).
+     *
+     * @param groupName Group name
+     * @return List of error codes
      */
     public List<Integer> getGroupCodes(String groupName) {
         return properties.getCodeMapping().getGroups()
@@ -181,20 +188,21 @@ public class CodeMappingConfig {
     }
 
     /**
-     * 获取分组的所有错误码（展开范围后的完整列表）
-     * - 如果总数 ≤ 5，返回完整列表
-     * - 如果总数 > 5，返回省略格式，如 [40000, 40050, ..., 40099]
+     * Get all error codes for group (expanded list).
+     *
+     * @param groupName Group name
+     * @return Expanded string representation of group codes
      */
     public String getGroupCodesExpanded(String groupName) {
         return getGroupCodesExpanded(groupName, 5);
     }
 
     /**
-     * 获取展开后的组代码列表，根据指定数量决定是否返回完整列表或省略格式
+     * Get expanded group code list.
      *
-     * @param groupName 组名称
-     * @param n         展示的最大数量阈值
-     * @return 返回格式化的字符串表示的代码列表
+     * @param groupName Group name
+     * @param n Maximum number of items to display
+     * @return Formatted string representation of code list
      */
     public String getGroupCodesExpanded(String groupName, int n) {
         List<CodeRange> ranges = groupRanges.get(groupName);
@@ -222,11 +230,10 @@ public class CodeMappingConfig {
     }
 
     /**
-     * 解析错误码对应的HTTP状态
-     * 采用多层次匹配策略：精确匹配 → 范围匹配 → 大类匹配 → 标准HTTP码 → 默认值
+     * Resolve HTTP status corresponding to error code.
      *
-     * @param code 业务错误码
-     * @return 对应的HttpStatus对象
+     * @param code Business error code
+     * @return Corresponding HttpStatus object
      */
     public HttpStatus resolveHttpStatus(int code) {
         // 1. 标准 HTTP 状态码优先精确匹配（100-599）

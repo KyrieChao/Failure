@@ -1,116 +1,116 @@
 package com.chao.failfast.internal.core;
 
 /**
- * 响应码接口 - 支持配置化HTTP状态映射
- * 定义业务错误码的标准结构，支持动态消息格式化和HTTP状态映射
+ * Response code interface - Support configurable HTTP status mapping.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public interface ResponseCode {
 
-    // ==================== 框架内置错误码 ====================
+    // ==================== Framework Built-in Error Codes ====================
 
     /**
-     * 通用校验错误（500）
+     * General validation error (500).
      */
     ResponseCode VALIDATION_ERROR = of(500, "{response.code.validation.error}");
 
     /**
-     * 参数校验失败（400）
+     * Parameter validation failed (400).
      */
     ResponseCode VALIDATION_ERROR_400 = of(400, "{response.code.validation.error}", "{response.code.validation.error}");
 
     /**
-     * 校验对象不能为空（500）
+     * Validation object cannot be null (500).
      */
     ResponseCode VALIDATION_ERROR_NULL = of(500, "{response.code.validation.error}", "{response.code.validation.error.null}");
 
 
     /**
-     * 重试被中断（500）
+     * Retry interrupted (500).
      */
     ResponseCode INTERRUPTED_ERROR = of(500, "{response.code.interrupted.error}", "{response.code.interrupted.error}");
 
     /**
-     * 非法参数（500）
+     * Illegal argument (500).
      */
     ResponseCode ILLEGAL_ARGUMENT = of(500, "{response.code.illegal.argument}", "{response.code.illegal.argument}");
 
     /**
-     * 默认校验失败（500）
+     * Default validation failed (500).
      */
     ResponseCode VALIDATION_ERROR_500 = of(500, "{response.code.validation.failed}", "{response.code.validation.failed}");
     ResponseCode VALIDATION_ERROR_500_DYNAMIC = of(500, "{response.code.validation.failed}", "{response.code.validation.failed.dynamic}");
 
     /**
-     * 获取错误码数值
+     * Get error code value.
      *
-     * @return 错误码整数值
+     * @return Error code integer value
      */
     int getCode();
 
     /**
-     * 获取错误消息模板
+     * Get error message template.
      *
-     * @return 错误消息字符串
+     * @return Error message string
      */
     String getMessage();
 
     /**
-     * 获取详细错误描述
+     * Get detailed error description.
      *
-     * @return 详细描述信息
+     * @return Detailed description info
      */
     String getDescription();
 
     /**
-     * 支持动态消息模板
-     * 使用String.format对消息模板进行参数化
+     * Support dynamic message template.
      *
-     * @param args 格式化参数
-     * @return 格式化后的消息
+     * @param args Formatting arguments
+     * @return Formatted message
      */
     default String formatMessage(Object... args) {
         if (getMessage() == null) {
-            return null; // 或返回默认值
+            return null; // or return default value
         }
         return String.format(getMessage(), args);
     }
 
     /**
-     * 创建简单的响应码（只有错误码）
+     * Create simple response code (error code only).
      *
-     * @param code 错误码
-     * @return ResponseCode实例
+     * @param code Error code
+     * @return ResponseCode instance
      */
     static ResponseCode of(int code) {
         return new Simple(code, null, null);
     }
 
     /**
-     * 创建响应码（错误码+消息）
+     * Create response code (error code + message).
      *
-     * @param code    错误码
-     * @param message 错误消息
-     * @return ResponseCode实例
+     * @param code    Error code
+     * @param message Error message
+     * @return ResponseCode instance
      */
     static ResponseCode of(int code, String message) {
         return new Simple(code, message, null);
     }
 
     /**
-     * 创建完整的响应码（错误码+消息+描述）
+     * Create complete response code (error code + message + description).
      *
-     * @param code        错误码
-     * @param message     错误消息
-     * @param description 详细描述
-     * @return ResponseCode实例
+     * @param code        Error code
+     * @param message     Error message
+     * @param description Detailed description
+     * @return ResponseCode instance
      */
     static ResponseCode of(int code, String message, String description) {
         return new Simple(code, message, description);
     }
 
     /**
-     * 简单响应码实现类
-     * 使用record实现不可变的数据载体
+     * Simple response code implementation class.
      */
     record Simple(int code, String message, String description) implements ResponseCode {
         @Override

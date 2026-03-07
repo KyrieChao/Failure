@@ -8,10 +8,19 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
- * 自定义条件校验接口
+ * Custom condition validation interface.
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public interface CustomTerm<S extends ChainCore<S>> {
 
+    /**
+     * Get chain core.
+     *
+     * @return Chain core instance
+     */
     S core();
 
     // ========== satisfies ==========
@@ -25,7 +34,7 @@ public interface CustomTerm<S extends ChainCore<S>> {
     }
 
     default <T> S satisfies(T value, Predicate<T> condition, ResponseCode code, String detail) {
-        // 为了避免 NPE，先检查 value 是否为 null
+        // Check value for null to avoid NPE
         return core().check(value != null && condition.test(value), code, detail);
     }
 

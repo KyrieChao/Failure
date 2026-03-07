@@ -11,16 +11,20 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
- * 验证链核心 - 管理状态（failFast, alive, errors, context）
+ * Validation chain core - Manage state (failFast, alive, errors, context).
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public abstract class ChainCore<S extends ChainCore<S>> {
     @Getter
     protected final boolean failFast;
     @Getter
     protected boolean alive = true;
-    // 动态跳过状态 (true=执行, false=跳过)
+    // Dynamic skip state (true=execute, false=skip)
     private boolean conditionState = true;
-    // OR 状态
+    // OR state
     private boolean orMode = false;
     private boolean orHasSuccess = false;
     protected final ValidationContext context;
@@ -32,8 +36,10 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     /**
-     * 动态控制是否执行后续校验
-     * 当 condition 为 false 时，后续的 check/or 等操作将被跳过，直到再次调用 when(true)
+     * Dynamically control whether to execute subsequent validation.
+     *
+     * @param condition If false, skip subsequent check/or operations until when(true) is called again
+     * @return Current chain instance
      */
     public S when(boolean condition) {
         this.conditionState = condition;
@@ -44,13 +50,13 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         if (!conditionState) return self();
         if (context != null && context.isStopped()) return self();
         this.orMode = true;
-        this.orHasSuccess = isValid();   // 如果当前已通过，标记成功
+        this.orHasSuccess = isValid();   // If current valid, mark success
 
-        // 如果是failFast且已经失败，or给了第二次机会，重置alive
+        // If failFast and already failed, or gives a second chance, reset alive
         if (failFast && !alive) {
             alive = true;
         }
-        // 清空当前错误，准备收集or右侧的错误
+        // Clear current errors, prepare to collect errors on the right side of or
         if (!orHasSuccess) {
             errors.clear();
         }
@@ -58,7 +64,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     public boolean shouldSkip() {
-        // 如果当前被动态跳过，或 context 停止，则跳过
+        // If currently dynamically skipped, or context stopped, then skip
         if (!conditionState) return true;
         if (context != null && context.isStopped()) return true;
         return (!alive && failFast);
@@ -70,7 +76,12 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     /**
-     * 延迟计算校验 - 支持 Supplier
+     * Lazy calculation validation - Support Supplier.
+     *
+     * @param conditionSupplier Condition supplier
+     * @param code              Response code
+     * @param detail            Detailed description
+     * @return Current chain instance
      */
     public S check(Supplier<Boolean> conditionSupplier, ResponseCode code, String detail) {
         if (shouldSkip()) return self();
@@ -78,34 +89,45 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     /**
-     * 统一校验入口 - 支持配置
+     * Unified validation entry - Support configuration.
+     *
+     * @param condition Validation condition
+     * @param code      Response code
+     * @param detail    Detailed description
+     * @return Current chain instance
      */
     public S check(boolean condition, ResponseCode code, String detail) {
         return check(condition, code, detail, null);
     }
 
     /**
-     * 统一校验入口 - 支持配置和值快照
+     * Unified validation entry - Support configuration and value snapshot.
+     *
+     * @param condition Validation condition
+     * @param code      Response code
+     * @param detail    Detailed description
+     * @param value     Value snapshot
+     * @return Current chain instance
      */
     public S check(boolean condition, ResponseCode code, String detail, Object value) {
         if (shouldSkip()) return self();
 
         if (orMode) {
-            // or模式：计算组合结果
-            orMode = false;  // 消费掉or状态
+            // OR mode: calculate combined result
+            orMode = false;  // Consume or state
             boolean finalSuccess = orHasSuccess || condition;
 
             if (!finalSuccess) {
-                // 左右都失败，报错
+                // Both failed, report error
                 addError(code, detail, value);
                 if (failFast) alive = false;
             } else {
-                // 有一个成功，整个or通过，清除错误
+                // One success, whole or passed, clear errors
                 alive = true;
-                // errors已经在or()时清空了
+                // errors already cleared in or()
             }
         } else {
-            // 普通模式
+            // Normal mode
             if (!condition) {
                 addError(code, detail, value);
                 if (failFast) alive = false;
@@ -115,7 +137,10 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     /**
-     * 无配置校验 - 使用默认错误
+     * No configuration validation - Use default error.
+     *
+     * @param condition Validation condition
+     * @return Current chain instance
      */
     public S check(boolean condition) {
         return check(condition, null, null);
@@ -141,26 +166,27 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     /**
-     * 获取核心实例（供接口默认方法使用）
+     * Get core instance (for interface default methods).
+     *
+     * @return Core instance
      */
     public S core() {
         return self();
     }
 
     /**
-     * 获取业务原因列表
-     * 该方法返回一个新的ArrayList，包含所有的错误信息
+     * Get list of business causes.
      *
-     * @return 返回一个Business类型的列表，包含所有错误信息
+     * @return List of Business objects containing all error info
      */
     public List<Business> getCauses() {
         return new ArrayList<>(errors);
     }
 
     /**
-     * 检查当前对象是否有效的公共方法
+     * Check if current object is valid.
      *
-     * @return 如果错误集合为空且对象处于活跃状态则返回true，否则返回false
+     * @return True if error collection is empty and object is alive, false otherwise
      */
     public boolean isValid() {
         if (context != null) {
@@ -170,8 +196,9 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     /**
-     * 如果当前有错误，则停止后续校验（将 conditionState 设为 false）
-     * 用于 strict 模式下防止 NPE（需配合 defer 使用）
+     * Stop subsequent validation if current has errors (set conditionState to false).
+     *
+     * @return Current chain instance
      */
     public S stopOnFail() {
         if (!conditionState) return self();
@@ -180,7 +207,9 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     /**
-     * 恢复校验（将 conditionState 设为 true）
+     * Resume validation (set conditionState to true).
+     *
+     * @return Current chain instance
      */
     public S resume() {
         return when(true);

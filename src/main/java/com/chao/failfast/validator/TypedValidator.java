@@ -10,33 +10,38 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 /**
- * TypedValidator 是一个抽象的泛型校验器类，实现了 FastValidator 接口，用于支持多种类型的校验逻辑。
+ * TypedValidator - Abstract generic validator class.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public abstract class TypedValidator implements FastValidator<Object> {
 
     /**
-     * 使用 ConcurrentHashMap 存储不同类型的校验器，键为 Class 对象，值为对应的校验逻辑 BiConsumer。
-     * 使用线程安全的 ConcurrentHashMap 确保多线程环境下的安全性。
+     * Store validators for different types using ConcurrentHashMap.
      */
     private final Map<Class<?>, BiConsumer<Object, ValidationContext>> validators = new ConcurrentHashMap<>();
 
     /**
-     * 构造方法，在创建实例时自动调用 registerValidators() 方法，
-     * 让子类可以注册自己支持的校验逻辑。
+     * Constructor.
      */
     protected TypedValidator() {
         registerValidators();
     }
 
     /**
-     * 子类实现这个方法来注册校验逻辑
+     * Subclasses implement this method to register validation logic.
      */
     protected void registerValidators() {
-        // 默认空实现
+        // Default empty implementation
     }
 
     /**
-     * 注册一个类型的校验方法
+     * Register a validation method for a type.
+     *
+     * @param type      Type class
+     * @param validator Validation logic
+     * @param <T>       Type
      */
     protected final <T> void register(Class<T> type, BiConsumer<T, ValidationContext> validator) {
         validators.put(type, (obj, ctx) -> validator.accept(type.cast(obj), ctx));
@@ -44,7 +49,9 @@ public abstract class TypedValidator implements FastValidator<Object> {
 
 
     /**
-     * 获取所有注册的类型
+     * Get all registered types.
+     *
+     * @return Set of registered types
      */
     public Set<Class<?>> getRegisteredTypes() {
         return Set.copyOf(validators.keySet());
@@ -52,19 +59,15 @@ public abstract class TypedValidator implements FastValidator<Object> {
 
     @Override
     public Class<?> getSupportedType() {
-        // 单一类型直接返回，多类型返回 Object
+        // Return type directly if single type, otherwise return Object
         return validators.size() == 1 ? validators.keySet().iterator().next() : Object.class;
     }
 
     /**
-     * 执行对象校验的核心方法。
-     * <p>
-     * 该方法首先检查目标对象是否为空，若为空则立即记录错误并终止校验流程；
-     * 若目标对象非空，则尝试从已注册的校验器映射中查找对应类型的处理器，
-     * 并调用该处理器执行具体校验逻辑；如果未找到匹配的处理器，则记录不支持的类型错误。
+     * Execute object validation.
      *
-     * @param object  待校验的目标对象，不能为 {@code null}
-     * @param context 校验上下文，用于记录校验过程中的错误信息
+     * @param object  Target object to be validated
+     * @param context Validation context
      */
     @Override
     public final void validate(Object object, ValidationContext context) {
@@ -72,12 +75,12 @@ public abstract class TypedValidator implements FastValidator<Object> {
             context.reportError(ResponseCode.VALIDATION_ERROR_NULL);
             return;
         }
-        // 查找并执行对应类型的校验处理器
+        // Find and execute validation handler for corresponding type
         BiConsumer<Object, ValidationContext> handler = validators.get(object.getClass());
         if (handler != null) {
             handler.accept(object, context);
         } else {
-            // 处理未注册的类型情况
+            // Handle unregistered types
             String s = FailureConst.UNSUPPORTED_VALIDATION_TYPE + object.getClass().getSimpleName();
             context.reportError(ResponseCode.of(400, s));
         }

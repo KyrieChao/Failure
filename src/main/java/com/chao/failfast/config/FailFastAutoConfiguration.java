@@ -26,9 +26,10 @@ import org.springframework.core.Ordered;
 import java.io.IOException;
 
 /**
- * Fail-Fast 自动配置类 - 增强版
- * 负责自动装配FailFast框架的所有核心组件
- * 通过条件注解确保只在需要时加载相关Bean
+ * Fail-Fast auto-configuration class - Enhanced version.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Slf4j
 @AutoConfiguration
@@ -38,24 +39,23 @@ import java.io.IOException;
 public class FailFastAutoConfiguration {
 
     /**
-     * FailFast配置属性
+     * FailFast configuration properties.
      */
     private final FailureProperties properties;
 
     /**
-     * 构造函数
+     * Constructor.
      *
-     * @param properties FailFast配置属性
+     * @param properties FailFast configuration properties
      */
     public FailFastAutoConfiguration(FailureProperties properties) {
         this.properties = properties;
     }
 
     /**
-     * 创建FailFast上下文Bean
-     * 提供全局配置管理和线程级配置覆盖功能
+     * Create FailFast context Bean.
      *
-     * @return FailFastContext实例
+     * @return FailFastContext instance
      */
     @Bean
     @ConditionalOnMissingBean
@@ -64,10 +64,9 @@ public class FailFastAutoConfiguration {
     }
 
     /**
-     * 创建错误码映射配置Bean
-     * 负责HTTP状态码与业务错误码之间的映射
+     * Create error code mapping configuration Bean.
      *
-     * @return CodeMappingConfig实例
+     * @return CodeMappingConfig instance
      */
     @Bean
     @ConditionalOnMissingBean
@@ -77,10 +76,9 @@ public class FailFastAutoConfiguration {
 
 
     /**
-     * 创建默认异常处理器Bean
-     * 当用户没有自定义异常处理器时自动生效
+     * Create default exception handler Bean.
      *
-     * @return DefaultExceptionHandler实例
+     * @return DefaultExceptionHandler instance
      */
     @Bean
     @ConditionalOnMissingBean(FailFastExceptionHandler.class)
@@ -90,11 +88,9 @@ public class FailFastAutoConfiguration {
 
 
     /**
-     * 创建验证切面Bean
-     * 处理@Validate注解的自定义验证逻辑
-     * 仅在AspectJ可用时创建
+     * Create validation aspect Bean.
      *
-     * @return ValidationAspect实例
+     * @return ValidationAspect instance
      */
     @Bean
     @ConditionalOnMissingBean
@@ -106,11 +102,10 @@ public class FailFastAutoConfiguration {
     // ============ 内部组件 ============
 
     /**
-     * 创建异常工具初始化器Bean
-     * 负责将FailFastContext注入到静态工具类中
+     * Create exception utility initializer Bean.
      *
-     * @param context FailFast上下文
-     * @return ExInitializer实例
+     * @param context FailFast context
+     * @return ExInitializer instance
      */
     @Bean
     public ExInitializer exInitializer(FailureContext context) {
@@ -118,15 +113,13 @@ public class FailFastAutoConfiguration {
     }
 
     /**
-     * 异常工具初始化器
-     * 通过构造函数注入的方式初始化Ex工具类的上下文
+     * Exception utility initializer.
      */
     public static class ExInitializer {
         /**
-         * 构造函数
-         * 将FailFastContext设置到Ex工具类中
+         * Constructor.
          *
-         * @param context FailFast上下文
+         * @param context FailFast context
          */
         ExInitializer(FailureContext context) {
             Ex.setContext(context);
@@ -163,15 +156,13 @@ public class FailFastAutoConfiguration {
     // ============ 内部配置类 ============
 
     /**
-     * 调试配置类
-     * 当启用方法打印时激活，提供额外的调试信息
+     * Debug configuration class.
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(prefix = "fail-fast", name = "shadow-trace", havingValue = "true")
     static class DebugConfiguration {
         /**
-         * 调试模式初始化
-         * 打印调试模式启用信息
+         * Debug mode initialization.
          */
         @PostConstruct
         public void init() {

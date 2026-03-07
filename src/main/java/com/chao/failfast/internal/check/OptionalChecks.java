@@ -3,29 +3,30 @@ package com.chao.failfast.internal.check;
 import java.util.Optional;
 
 /**
- * Optional校验工具类
- * 提供对Optional对象的便捷校验方法
+ * Utility class for optional validation.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public final class OptionalChecks {
-    // 私有构造方法，防止实例化工具类
     private OptionalChecks() {
     }
 
     /**
-     * 检查Optional对象是否存在值
+     * Checks if the optional has a value.
      *
-     * @param opt 要检查的Optional对象
-     * @return 如果Optional对象不为null且包含值则返回true，否则返回false
+     * @param opt the optional to check
+     * @return true if the optional is present, false otherwise
      */
     public static boolean isPresent(Optional<?> opt) {
         return opt != null && opt.isPresent();
     }
 
     /**
-     * 检查Optional对象是否为空
+     * Checks if the optional is empty.
      *
-     * @param opt 要检查的Optional对象
-     * @return 如果Optional对象为null或不包含值则返回true，否则返回false
+     * @param opt the optional to check
+     * @return true if the optional is empty, false otherwise
      */
     public static boolean isEmpty(Optional<?> opt) {
         return opt == null || !opt.isPresent();

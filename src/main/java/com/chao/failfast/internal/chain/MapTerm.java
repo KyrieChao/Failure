@@ -3,10 +3,23 @@ package com.chao.failfast.internal.chain;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.check.MapChecks;
 import com.chao.failfast.internal.core.ResponseCode;
+
 import java.util.Map;
 
+/**
+ * Map validation interface.
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.0.0
+ */
 public interface MapTerm<S extends ChainCore<S>> {
 
+    /**
+     * Get chain core.
+     *
+     * @return Chain core instance
+     */
     S core();
 
     default S notEmpty(Map<?, ?> map) {

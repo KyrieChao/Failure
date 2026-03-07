@@ -7,12 +7,13 @@ import java.net.URI;
 import java.util.Base64;
 
 /**
- * 字符串校验工具类
- * 提供各种常用的字符串校验方法，如空值校验、长度校验、格式校验等
+ * Utility class for string validation.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 public final class StringChecks {
 
-    // 私有构造方法，防止实例化工具类
     private StringChecks() {
     }
 
@@ -23,140 +24,140 @@ public final class StringChecks {
     }
 
     /**
-     * 检查字符串是否为空或空白
+     * Checks if the string is blank (null or whitespace only).
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串为null或空白字符串返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string is blank, false otherwise
      */
     public static boolean blank(String str) {
         return str == null || str.trim().isEmpty();
     }
 
     /**
-     * 检查字符串是否非空且非空白
+     * Checks if the string is not blank.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串非null且非空白字符串返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string is not blank, false otherwise
      */
     public static boolean notBlank(String str) {
         return str != null && !str.trim().isEmpty();
     }
 
     /**
-     * 检查字符串长度是否在指定范围内
+     * Checks if the string length is within the specified range.
      *
-     * @param str 要检查的字符串
-     * @param min 最小长度（包含）
-     * @param max 最大长度（包含）
-     * @return 如果字符串长度在min和max之间返回true，否则返回false
+     * @param str the string to check
+     * @param min the minimum length (inclusive)
+     * @param max the maximum length (inclusive)
+     * @return true if the string length is within [min, max], false otherwise
      */
     public static boolean lengthBetween(String str, int min, int max) {
         return str != null && str.length() >= min && str.length() <= max;
     }
 
     /**
-     * 检查字符串是否匹配指定的正则表达式
+     * Checks if the string matches the regular expression.
      *
-     * @param str   要检查的字符串
-     * @param regex 正则表达式
-     * @return 如果字符串匹配正则表达式返回true，否则返回false
+     * @param str   the string to check
+     * @param regex the regular expression
+     * @return true if the string matches the regex, false otherwise
      */
     public static boolean match(String str, String regex) {
         return str != null && str.matches(regex);
     }
 
     /**
-     * 检查字符串是否为有效的邮箱格式
+     * Checks if the string is a valid email address.
      *
-     * @param email 要检查的邮箱字符串
-     * @return 如果字符串是有效的邮箱格式返回true，否则返回false
+     * @param email the email string to check
+     * @return true if the string is a valid email, false otherwise
      */
     public static boolean email(String email) {
         return email != null && FailureConst.Email_Pattern.matcher(email).matches();
     }
 
     /**
-     * 比较两个字符串是否相等（忽略大小写）
+     * Checks if two strings are equal, ignoring case.
      *
-     * @param str1 第一个字符串
-     * @param str2 第二个字符串
-     * @return 如果两个字符串相等（忽略大小写）返回true，否则返回false
+     * @param str1 the first string
+     * @param str2 the second string
+     * @return true if the strings are equal ignoring case, false otherwise
      */
     public static boolean equalsIgnoreCase(String str1, String str2) {
         return str1 != null && str1.equalsIgnoreCase(str2);
     }
 
     /**
-     * 检查字符串是否以指定的前缀开头
+     * Checks if the string starts with the specified prefix.
      *
-     * @param str    要检查的字符串
-     * @param prefix 前缀字符串
-     * @return 如果字符串以指定前缀开头返回true，否则返回false
+     * @param str    the string to check
+     * @param prefix the prefix string
+     * @return true if the string starts with the prefix, false otherwise
      */
     public static boolean startsWith(String str, String prefix) {
         return str != null && str.startsWith(prefix);
     }
 
     /**
-     * 检查字符串是否以指定的后缀结尾
+     * Checks if the string ends with the specified suffix.
      *
-     * @param str    要检查的字符串
-     * @param suffix 后缀字符串
-     * @return 如果字符串以指定后缀结尾返回true，否则返回false
+     * @param str    the string to check
+     * @param suffix the suffix string
+     * @return true if the string ends with the suffix, false otherwise
      */
     public static boolean endsWith(String str, String suffix) {
         return str != null && str.endsWith(suffix);
     }
 
     /**
-     * 检查字符串是否包含指定的子字符串
+     * Checks if the string contains the specified substring.
      *
-     * @param str       要检查的字符串
-     * @param substring 要查找的子字符串
-     * @return 如果字符串包含指定的子字符串返回true，否则返回false
+     * @param str       the string to check
+     * @param substring the substring to find
+     * @return true if the string contains the substring, false otherwise
      */
     public static boolean contains(String str, String substring) {
         return str != null && substring != null && str.contains(substring);
     }
 
     /**
-     * 检查字符串是否不包含指定的子字符串
+     * Checks if the string does not contain the specified substring.
      *
-     * @param str       要检查的字符串
-     * @param substring 要查找的子字符串
-     * @return 如果字符串不包含指定的子字符串返回true，否则返回false
+     * @param str       the string to check
+     * @param substring the substring to exclude
+     * @return true if the string does not contain the substring, false otherwise
      */
     public static boolean notContains(String str, String substring) {
         return str == null || substring == null || !str.contains(substring);
     }
 
     /**
-     * 检查字符串长度是否大于等于指定值
+     * Checks if the string length is greater than or equal to the minimum.
      *
-     * @param str 要检查的字符串
-     * @param min 最小长度
-     * @return 如果字符串长度大于等于min返回true，否则返回false
+     * @param str the string to check
+     * @param min the minimum length
+     * @return true if the string length is >= min, false otherwise
      */
     public static boolean lengthMin(String str, int min) {
         return str != null && str.length() >= min;
     }
 
     /**
-     * 检查字符串长度是否小于等于指定值
+     * Checks if the string length is less than or equal to the maximum.
      *
-     * @param str 要检查的字符串
-     * @param max 最大长度
-     * @return 如果字符串长度小于等于max返回true，否则返回false
+     * @param str the string to check
+     * @param max the maximum length
+     * @return true if the string length is <= max, false otherwise
      */
     public static boolean lengthMax(String str, int max) {
         return str != null && str.length() <= max;
     }
 
     /**
-     * 检查字符串是否全部由数字组成
+     * Checks if the string contains only numeric characters.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串全部由数字组成返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string contains only numeric characters, false otherwise
      */
     public static boolean isNumeric(String str) {
         if (str == null || str.isEmpty()) {
@@ -171,10 +172,10 @@ public final class StringChecks {
     }
 
     /**
-     * 检查字符串是否全部由字母组成
+     * Checks if the string contains only letters.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串全部由字母组成返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string contains only letters, false otherwise
      */
     public static boolean isAlpha(String str) {
         if (str == null || str.isEmpty()) {
@@ -189,10 +190,10 @@ public final class StringChecks {
     }
 
     /**
-     * 检查字符串是否全部由字母或数字组成
+     * Checks if the string contains only alphanumeric characters.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串全部由字母或数字组成返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string contains only alphanumeric characters, false otherwise
      */
     public static boolean isAlphanumeric(String str) {
         if (str == null || str.isEmpty()) {
@@ -207,47 +208,45 @@ public final class StringChecks {
     }
 
     /**
-     * 检查字符串是否全部由小写字母组成
+     * Checks if the string contains only lowercase letters.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串全部由小写字母组成返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string contains only lowercase letters, false otherwise
      */
     public static boolean isLowerCase(String str) {
         return str != null && str.equals(str.toLowerCase());
     }
 
     /**
-     * 检查字符串是否全部由大写字母组成
+     * Checks if the string contains only uppercase letters.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串全部由大写字母组成返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string contains only uppercase letters, false otherwise
      */
     public static boolean isUpperCase(String str) {
         return str != null && str.equals(str.toUpperCase());
     }
 
     /**
-     * 检查字符串是否为有效的手机号码格式
+     * Checks if the string is a valid mobile phone number.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串是有效的手机号码格式返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string is a valid mobile number, false otherwise
      */
     public static boolean mobile(String str) {
         return str != null && FailureConst.Mobile.matcher(str).matches();
     }
 
     /**
-     * 检查字符串是否为有效的 URL 格式
-     * 使用 java.net.URI 进行严格校验
+     * Checks if the string is a valid URL.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串是有效的 URL 格式返回 true，否则返回 false
+     * @param str the string to check
+     * @return true if the string is a valid URL, false otherwise
      */
     public static boolean url(String str) {
         if (str == null || str.isBlank()) return false;
         try {
             URI uri = new URI(str);
-            // 验证 URI 可以转换为 URL 且协议有效
             return uri.getScheme() != null && uri.getHost() != null;
         } catch (Exception e) {
             return false;
@@ -255,10 +254,10 @@ public final class StringChecks {
     }
 
     /**
-     * 检查字符串是否为有效的JSON格式
+     * Checks if the string is a valid JSON.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串是有效的JSON格式返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string is a valid JSON, false otherwise
      */
     public static boolean isJson(String str) {
         if (str == null || str.isBlank()) return false;
@@ -271,10 +270,10 @@ public final class StringChecks {
     }
 
     /**
-     * 检查字符串是否为有效的 Base64 编码
+     * Checks if the string is a valid Base64 encoded string.
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串是有效的 Base64 编码返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string is a valid Base64 string, false otherwise
      */
     public static boolean isBase64(String str) {
         if (str == null || str.isBlank()) return false;
@@ -287,10 +286,10 @@ public final class StringChecks {
     }
 
     /**
-     * 检查字符串是否为有效的信用卡号 (Luhn 算法)
+     * Checks if the string is a valid credit card number (Luhn algorithm).
      *
-     * @param str 要检查的字符串
-     * @return 如果字符串是有效的信用卡号返回true，否则返回false
+     * @param str the string to check
+     * @return true if the string is a valid credit card number, false otherwise
      */
     public static boolean isCreditCard(String str) {
         if (str == null || !str.matches("\\d+")) return false;
@@ -310,11 +309,22 @@ public final class StringChecks {
         return (sum % 10 == 0);
     }
 
+    /**
+     * Checks if the string is a valid IPv4 address.
+     *
+     * @param str the string to check
+     * @return true if the string is a valid IPv4 address, false otherwise
+     */
     public static boolean ipAddress(String str) {
-        // Simple regex for IPv4
         return str != null && FailureConst.IP4.matcher(str).matches();
     }
 
+    /**
+     * Checks if the string is a valid UUID.
+     *
+     * @param str the string to check
+     * @return true if the string is a valid UUID, false otherwise
+     */
     public static boolean uuid(String str) {
         return str != null && FailureConst.UUID.matcher(str).matches();
     }

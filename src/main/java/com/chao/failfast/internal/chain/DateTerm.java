@@ -3,17 +3,28 @@ package com.chao.failfast.internal.chain;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.check.DateChecks;
 import com.chao.failfast.internal.core.ResponseCode;
+
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.time.chrono.ChronoLocalDate;
 import java.time.chrono.ChronoLocalDateTime;
 import java.time.chrono.ChronoZonedDateTime;
 import java.util.Date;
 
+/**
+ * Date validation interface.
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.0.0
+ */
 public interface DateTerm<S extends ChainCore<S>> {
 
+    /**
+     * Get chain core.
+     *
+     * @return Chain core instance
+     */
     S core();
 
     default S after(Date date1, Date date2) {

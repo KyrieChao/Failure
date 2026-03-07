@@ -27,17 +27,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 抽象异常处理器 - 可扩展的基础类
- * 提供统一的异常处理框架，支持Business异常和多异常处理
- * 子类可以通过重写方法来自定义响应格式和处理逻辑
+ * Abstract exception handler - Extensible base class.
+ *
+ * @author Kyrie Chao
+ * @version 1.0.0
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public abstract class FailFastExceptionHandler {
 
     /**
-     * Fail-Fast配置属性
-     * 通过Setter注入，避免构造函数注入导致子类必须调用super
+     * Fail-Fast configuration properties.
      */
     private FailureProperties properties;
 
@@ -48,11 +48,10 @@ public abstract class FailFastExceptionHandler {
 
 
     /**
-     * 处理单个Business异常的入口方法
-     * 记录日志并构建响应
+     * Entry method for handling single Business exception.
      *
-     * @param e Business异常对象
-     * @return ResponseEntity响应对象
+     * @param e Business exception object
+     * @return ResponseEntity response object
      */
     public ResponseEntity<?> handleBusinessException(Business e) {
         logException(e);
@@ -60,11 +59,10 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 处理批量业务异常的入口方法
-     * 记录日志并构建批量错误响应
+     * Entry method for handling batch business exceptions.
      *
-     * @param e MultiBusiness批量异常对象
-     * @return ResponseEntity响应对象
+     * @param e MultiBusiness batch exception object
+     * @return ResponseEntity response object
      */
     public ResponseEntity<?> handleMultiBusinessException(MultiBusiness e) {
         logException(e);
@@ -72,11 +70,10 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 处理 Spring MVC 参数校验异常 (@Valid / @Validated)
-     * 转换为统一的Business异常格式进行处理
+     * Handle Spring MVC parameter validation exceptions (@Valid / @Validated).
      *
-     * @param e MethodArgumentNotValidException异常对象
-     * @return ResponseEntity响应对象
+     * @param e MethodArgumentNotValidException exception object
+     * @return ResponseEntity response object
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
@@ -120,11 +117,10 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 处理 Bean Validation 异常 (ConstraintViolationException)
-     * 主要处理方法参数级别的约束违反
+     * Handle Bean Validation exceptions (ConstraintViolationException).
      *
-     * @param e ConstraintViolationException异常对象
-     * @return ResponseEntity响应对象
+     * @param e ConstraintViolationException exception object
+     * @return ResponseEntity response object
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException e) {
@@ -149,11 +145,10 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 构建单个异常的HTTP响应体
-     * 子类可以重写此方法来自定义响应格式
+     * Build HTTP response body for single exception.
      *
-     * @param e Business异常对象
-     * @return ResponseEntity响应对象
+     * @param e Business exception object
+     * @return ResponseEntity response object
      */
     protected ResponseEntity<?> buildResponse(Business e) {
         Map<String, Object> body = buildMap(e);
@@ -161,11 +156,10 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 构建批量异常的HTTP响应体
-     * 子类可以重写此方法来自定义批量错误的响应格式
+     * Build HTTP response body for batch exceptions.
      *
-     * @param e MultiBusiness批量异常对象
-     * @return ResponseEntity响应对象
+     * @param e MultiBusiness batch exception object
+     * @return ResponseEntity response object
      */
     protected ResponseEntity<?> buildMultiErrorResponse(MultiBusiness e) {
         Map<String, Object> body = buildMap(e);
@@ -191,11 +185,10 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 统一处理多个验证错误
-     * 根据错误数量决定返回单个错误还是批量错误响应
+     * Unified handling of multiple validation errors.
      *
-     * @param errors Business错误列表
-     * @return ResponseEntity响应对象
+     * @param errors List of Business errors
+     * @return ResponseEntity response object
      */
     private ResponseEntity<?> handleMultiErrors(List<Business> errors) {
         // 处理空错误列表的情况
@@ -217,10 +210,9 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 记录异常日志的通用方法
-     * 根据异常类型决定日志记录格式
+     * Common method for logging exceptions.
      *
-     * @param e 要记录的Business异常对象
+     * @param e Business exception object to be logged
      */
     protected void logException(Business e) {
         if (e instanceof MultiBusiness m) {
@@ -236,15 +228,11 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 格式化校验异常的位置信息
-     * 统一处理不同类型的校验错误位置格式
-     * 格式示例:
-     * - Bean校验: UserDTO at age
-     * - 方法参数校验: TestController.annoSimple at name
+     * Format validation exception location information.
      *
-     * @param clazz       目标类对象
-     * @param fieldOrPath 字段名或路径
-     * @return 格式化后的位置字符串
+     * @param clazz Target class object
+     * @param fieldOrPath Field name or path
+     * @return Formatted location string
      */
     private String formatValidationLocation(Class<?> clazz, String fieldOrPath) {
         if (fieldOrPath == null) return I18n.get(FailureConst.UNKNOWN_ERROR);
@@ -277,13 +265,12 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 解析验证错误消息并构建成Business异常
-     * 支持 "code:message" 格式的自定义错误码
+     * Parse validation error message and build Business exception.
      *
-     * @param message    错误消息字符串
-     * @param location   错误发生位置
-     * @param methodName 方法名称
-     * @return 构建好的Business异常对象
+     * @param message Error message string
+     * @param location Error location
+     * @param methodName Method name
+     * @return Constructed Business exception object
      */
     @ToImprove(value = "默认使用400错误码 待完善")
     private Business parseError(String message, String location, String methodName) {
@@ -313,11 +300,10 @@ public abstract class FailFastExceptionHandler {
     }
 
     /**
-     * 检查字符串是否为纯数字
-     * 用于验证错误码格式
+     * Check if string is numeric.
      *
-     * @param str 待检查的字符串
-     * @return 如果字符串只包含数字字符则返回true，否则返回false
+     * @param str String to be checked
+     * @return True if string contains only digits, false otherwise
      */
     private boolean isNumeric(String str) {
         if (str == null || str.isEmpty()) return false;
@@ -329,10 +315,10 @@ public abstract class FailFastExceptionHandler {
 
 
     /**
-     * 构建包含业务响应信息的Map对象
+     * Build Map object containing business response information.
      *
-     * @param e 业务对象，包含响应代码、消息和详细信息
-     * @return 包含响应代码、消息、详细信息和时间戳的Map对象
+     * @param e Business object containing response code, message and detail
+     * @return Map object containing response code, message, detail and timestamp
      */
     private Map<String, Object> buildMap(Business e) {
         Map<String, Object> body = new HashMap<>();

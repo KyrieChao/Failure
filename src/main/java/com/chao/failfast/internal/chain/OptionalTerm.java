@@ -5,8 +5,20 @@ import com.chao.failfast.internal.check.OptionalChecks;
 import com.chao.failfast.internal.core.ResponseCode;
 import java.util.Optional;
 
+/**
+ * Optional validation interface.
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.0.0
+ */
 public interface OptionalTerm<S extends ChainCore<S>> {
 
+    /**
+     * Get chain core.
+     *
+     * @return Chain core instance
+     */
     S core();
 
     default S isPresent(Optional<?> opt) {
