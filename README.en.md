@@ -12,10 +12,11 @@
 [![Repo Size](https://img.shields.io/github/repo-size/KyrieChao/Failure?logo=git&color=lightgrey)](https://github.com/KyrieChao/Failure)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
 
-
 [中文版本](./README.md)
 
-Failure is a lightweight, high-performance validation and business-exception framework designed for Spring Boot 3.x. Following the "Fail Fast, Fail Strict" philosophy, it eliminates boilerplate code and provides a type-strict, fluent validation experience.
+Failure is a lightweight, high-performance validation and business-exception framework designed for Spring Boot 3.x.
+Following the "Fail Fast, Fail Strict" philosophy, it eliminates boilerplate code and provides a type-strict, fluent
+validation experience.
 
 🔗 **Live Demo**: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)
 
@@ -24,13 +25,17 @@ Failure is a lightweight, high-performance validation and business-exception fra
 ## 🚀 Core Features
 
 - **Fluent Validation Chain**: Supports `Fail-Fast` (immediate fail) and `Fail-Strict` (collect all errors) modes.
-- **Rich Assertions**: Built-in 50+ validation methods for Objects, Strings, Numbers, Collections, Date/Time, Enums, Optionals, etc.
-- **Default Localization**: Provides out-of-the-box localized error messages (e.g., Chinese support) without manual configuration.
+- **Rich Assertions**: Built-in 50+ validation methods for Objects, Strings, Numbers, Collections, Date/Time, Enums,
+  Optionals, etc.
+- **Default Localization**: Provides out-of-the-box localized error messages (e.g., Chinese support) without manual
+  configuration.
 - **Context Integration**: Supports `TypedValidator` pattern to decouple validation logic from business logic.
 - **Annotation-Driven**: Provides `@Validate` annotation and `FastValidator` interface for AOP-based validation.
 - **Functional Results**: Provides `Result<T>` monad with `map`, `flatMap`, `recover` operations.
-- **Smart Debug Snapshot**: Captures invalid values in exceptions (with auto-masking & truncation), making errors actionable.
-- **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes, with `shadow-trace` for quick debugging.
+- **Smart Debug Snapshot**: Captures invalid values in exceptions (with auto-masking & truncation), making errors
+  actionable.
+- **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes, with `shadow-trace` for
+  quick debugging.
 
 ---
 
@@ -47,14 +52,24 @@ Failure is a lightweight, high-performance validation and business-exception fra
 <td>
 
 ```java
-if (user == null) {
-    throw new BusinessException(Code.USER_NULL);
+if(user ==null){
+        throw new
+
+BusinessException(Code.USER_NULL);
 }
-if (StringUtils.isBlank(user.getName())) {
-    throw new BusinessException(Code.NAME_EMPTY);
+        if(StringUtils.
+
+isBlank(user.getName())){
+        throw new
+
+BusinessException(Code.NAME_EMPTY);
 }
-if (user.getAge() < 18) {
-    throw new BusinessException(Code.TOO_YOUNG);
+        if(user.
+
+getAge() < 18){
+        throw new
+
+BusinessException(Code.TOO_YOUNG);
 }
 ```
 
@@ -63,10 +78,18 @@ if (user.getAge() < 18) {
 
 ```java
 Failure.begin()
-    .notNull(user, Code.USER_NULL)
-    .notBlank(user.getName(), Code.NAME_EMPTY)
-    .min(user.getAge(), 18, Code.TOO_YOUNG)
-    .fail();
+    .
+
+notNull(user, Code.USER_NULL)
+    .
+
+notBlank(user.getName(),Code.NAME_EMPTY)
+        .
+
+min(user.getAge(), 18,Code.TOO_YOUNG)
+        .
+
+fail();
 ```
 
 </td>
@@ -77,12 +100,12 @@ Failure.begin()
 
 ## 📚 Documentation
 
-| Document | Content |
-| :--- | :--- |
-| [Quick Start](#%EF%B8%8F-quick-start) | Installation, basic usage, and three modes introduction |
-| [API Reference](./API_REFERENCE.en.md) | Complete API list, method details, and best practices |
-| [Configuration](#%EF%B8%8F-configuration) | application.yml configuration details |
-| [I18n Guide](./docs/I18N_GUIDE.md) | Internationalization configuration and key reference |
+| Document                                  | Content                                                 |
+|:------------------------------------------|:--------------------------------------------------------|
+| [Quick Start](#%EF%B8%8F-quick-start)     | Installation, basic usage, and three modes introduction |
+| [API Reference](./API_REFERENCE.en.md)    | Complete API list, method details, and best practices   |
+| [Configuration](#%EF%B8%8F-configuration) | application.yml configuration details                   |
+| [I18n Guide](./docs/I18N_GUIDE.md)        | Internationalization configuration and key reference    |
 
 ---
 
@@ -100,12 +123,14 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
 ```xml
 <!-- Maven Central (Recommended for Production) -->
 <dependency>
-  <groupId>io.github.kyriechao</groupId>
-  <artifactId>failure-spring-boot-starter</artifactId>
-  <version>1.0.1</version>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-spring-boot-starter</artifactId>
+    <version>1.0.1</version>
 </dependency>
 ```
+
 ---
+
 ```xml
 <!-- JitPack (Ideal for Rapid Testing & Development) -->
 <dependency>
@@ -121,30 +146,45 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
 
 ### Mode 1: Fail-Fast (Immediate Failure)
 
-**Scenario**: Defensive programming for parameters. Stops subsequent logic immediately upon finding an invalid parameter.
+**Scenario**: Defensive programming for parameters. Stops subsequent logic immediately upon finding an invalid
+parameter.
 
 ```java
 // Throws exception immediately if notBlank fails, subsequent checks will not be executed
 Failure.begin()
-    .notBlank(username, UserCode.USERNAME_REQUIRED)
-    .email(email, UserCode.EMAIL_INVALID)
-    .fail();
+    .
+
+notBlank(username, UserCode.USERNAME_REQUIRED)
+    .
+
+email(email, UserCode.EMAIL_INVALID)
+    .
+
+fail();
 ```
 
 **Terminal Methods**:
 
-| Method | Description |
-| :--- | :--- |
-| `.fail()` | Standard terminal method, throws the first exception if errors exist |
+| Method                    | Description                                                                           |
+|:--------------------------|:--------------------------------------------------------------------------------------|
+| `.fail()`                 | Standard terminal method, throws the first exception if errors exist                  |
 | `.failNow(code, message)` | **Force Immediate Failure**, throws specified exception regardless of previous checks |
 
 ```java
 // Force fail example: Permission check
 Failure.begin()
-    .notNull(user, UserCode.USER_NOT_FOUND)
-    .failNow(UserCode.PERMISSION_DENIED, "Access Denied")  // Throws immediately
-    .state(user.getRole() == Role.ADMIN, UserCode.PERMISSION_DENIED)  // Will not execute
-    .fail();
+    .
+
+notNull(user, UserCode.USER_NOT_FOUND)
+    .
+
+failNow(UserCode.PERMISSION_DENIED, "Access Denied")  // Throws immediately
+    .
+
+state(user.getRole() ==Role.ADMIN,UserCode.PERMISSION_DENIED)  // Will not execute
+        .
+
+fail();
 ```
 
 ---
@@ -156,22 +196,34 @@ Failure.begin()
 ```java
 // All validations are executed, errors are collected and thrown together
 Failure.strict()
-    .notBlank(username, UserCode.USERNAME_REQUIRED, "Username cannot be empty")
-    .email(email, UserCode.EMAIL_INVALID, "Invalid email format")
-    .min(age, 18, UserCode.AGE_TOO_YOUNG, "Must be at least 18 years old")
-    .failAll();  // Must use failAll()
+    .
+
+notBlank(username, UserCode.USERNAME_REQUIRED, "Username cannot be empty")
+    .
+
+email(email, UserCode.EMAIL_INVALID, "Invalid email format")
+    .
+
+min(age, 18,UserCode.AGE_TOO_YOUNG, "Must be at least 18 years old")
+    .
+
+failAll();  // Must use failAll()
 ```
 
 **Manual Error Retrieval (No Exception)**:
 
 ```java
 var chain = Failure.strict()
-    .notBlank(username, UserCode.USERNAME_REQUIRED)
-    .email(email, UserCode.EMAIL_INVALID);
+        .notBlank(username, UserCode.USERNAME_REQUIRED)
+        .email(email, UserCode.EMAIL_INVALID);
 
-if (!chain.isValid()) {
-    var causes = chain.getCauses();  // Get all errors
-    return Result.fail("Validation failed", causes);
+if(!chain.
+
+isValid()){
+var causes = chain.getCauses();  // Get all errors
+    return Result.
+
+fail("Validation failed",causes);
 }
 ```
 
@@ -196,9 +248,9 @@ public class UserRegisterValidator implements FastValidator<UserRegisterDTO> {
     @Override
     public void validate(UserRegisterDTO dto, ValidationContext ctx) {
         Failure.with(ctx)
-            .notBlank(dto.getUsername(), UserCode.USERNAME_REQUIRED)
-            .email(dto.getEmail(), UserCode.EMAIL_INVALID)
-            .verify();  // Contextual mode uses verify()
+                .notBlank(dto.getUsername(), UserCode.USERNAME_REQUIRED)
+                .email(dto.getEmail(), UserCode.EMAIL_INVALID)
+                .verify();  // Contextual mode uses verify()
     }
 
     @Override
@@ -210,85 +262,34 @@ public class UserRegisterValidator implements FastValidator<UserRegisterDTO> {
 
 **@Validate fast parameter**:
 
-| fast Value | Behavior | Scenario |
-| :--- | :--- | :--- |
+| fast Value       | Behavior                            | Scenario             |
+|:-----------------|:------------------------------------|:---------------------|
 | `true` (Default) | Stops immediately after first error | Performance priority |
-| `false` | Executes all validation rules | Show all errors |
-
----
-
-## 🎛️ Flow Control & Lazy Evaluation
-
-### Dynamic Skip (when)
-
-Control whether to execute subsequent validations dynamically.
-
-```java
-Failure.begin()
-    .when(isVip)                // If not VIP
-    .check(vipRule)             // This line will be skipped
-    .when(true)                 // Resume execution
-    .check(commonRule);         // Continue execution
-```
-
-### Lazy Evaluation (defer)
-
-Execute expensive validation logic (via Supplier) only when strictly necessary. If previous validations failed (Fail-Fast) or were skipped, the supplier will not be executed.
-
-```java
-Failure.begin()
-    .notNull(userId)
-    // Query DB only if userId is not null
-    .defer(() -> dbService.isUserActive(userId), UserCode.USER_INACTIVE);
-```
-
-### Stop on Failure (stopOnFail)
-
-Stops subsequent checks if there are any errors (even in strict mode), until `resume()` is called. Essential for preventing NPE.
-
-```java
-Failure.strict()
-    .notNull(user, UserCode.REQUIRED)
-    .stopOnFail()                   // Stop if user is null
-    .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // Safe access
-```
-
----
-
-## 🔀 Logical Operations (OR)
-
-The `or()` operator is supported for "Condition A OR Condition B" scenarios.
-
-```java
-// Example: User is either ADMIN OR has READ permission
-Failure.begin()
-    .equals(role, Role.ADMIN)       // Condition A: Is Admin
-    .or()                           // OR
-    .hasPermission(user, "READ")    // Condition B: Has Read Permission
-    .failNow(UserCode.NO_PERMISSION); // Throws if neither A nor B is satisfied
-```
-
-Note: `or()` only applies to the immediately adjacent conditions. The default logic for chain calls is `AND`.
-`A.or().B.C` is equivalent to `(A || B) && C`.
+| `false`          | Executes all validation rules       | Show all errors      |
 
 ---
 
 ### 4.4 Exception Handling & JSR-303 Compatibility
 
-The framework provides built-in `FailFastExceptionHandler`, which not only handles its own business exceptions but also perfectly integrates with Spring's native JSR-303 (`@Valid` / `@Validated`) validation.
+The framework provides built-in `FailFastExceptionHandler`, which not only handles its own business exceptions but also
+perfectly integrates with Spring's native JSR-303 (`@Valid` / `@Validated`) validation.
 
 **Features**:
-- **Unified Format**: Whether it is an exception thrown by `Failure` or triggered by `@NotNull`, the final response format is completely consistent.
+
+- **Unified Format**: Whether it is an exception thrown by `Failure` or triggered by `@NotNull`, the final response
+  format is completely consistent.
 - **Mode Adaptation**: The `fast` attribute of the `@Validate` annotation also applies to JSR-303 exceptions.
-  - `fast=true` (Default): Even if Hibernate Validator throws multiple errors, only the first one is returned in the response.
-  - `fast=false`: Returns all errors collected by JSR-303.
+    - `fast=true` (Default): Even if Hibernate Validator throws multiple errors, only the first one is returned in the
+      response.
+    - `fast=false`: Returns all errors collected by JSR-303.
 
 To customize, inherit `FailFastExceptionHandler`:
 
 ```java
+
 @RestControllerAdvice
 public class CustomExceptionHandler extends FailFastExceptionHandler {
-    
+
     @Override
     @ExceptionHandler(Business.class)
     public ResponseEntity<?> handleBusinessException(Business e) {
@@ -302,6 +303,94 @@ public class CustomExceptionHandler extends FailFastExceptionHandler {
     }
 }
 ```
+
+---
+
+## 🎛️ Flow Control & Lazy Evaluation
+
+### Dynamic Skip (when)
+
+Control whether to execute subsequent validations dynamically.
+
+```java
+Failure.begin()
+    .
+
+when(isVip)                // If not VIP
+    .
+
+check(vipRule)             // This line will be skipped
+    .
+
+when(true)                 // Resume execution
+    .
+
+check(commonRule);         // Continue execution
+```
+
+### Lazy Evaluation (defer)
+
+Execute expensive validation logic (via Supplier) only when strictly necessary. If previous validations failed (
+Fail-Fast) or were skipped, the supplier will not be executed.
+
+```java
+Failure.begin()
+    .
+
+notNull(userId)
+// Query DB only if userId is not null
+    .
+
+defer(() ->dbService.
+
+isUserActive(userId),UserCode.USER_INACTIVE);
+```
+
+### Stop on Failure (stopOnFail)
+
+Stops subsequent checks if there are any errors (even in strict mode), until `resume()` is called. Essential for
+preventing NPE.
+
+```java
+Failure.strict()
+    .
+
+notNull(user, UserCode.REQUIRED)
+    .
+
+stopOnFail()                   // Stop if user is null
+    .
+
+defer(() ->user.
+
+isAdmin(),UserCode.NO_PERMISSION); // Safe access
+```
+
+---
+
+## 🔀 Logical Operations (OR)
+
+The `or()` operator is supported for "Condition A OR Condition B" scenarios.
+
+```java
+// Example: User is either ADMIN OR has READ permission
+Failure.begin()
+    .
+
+equals(role, Role.ADMIN)       // Condition A: Is Admin
+    .
+
+or()                           // OR
+    .
+
+hasPermission(user, "READ")    // Condition B: Has Read Permission
+    .
+
+failNow(UserCode.NO_PERMISSION); // Throws if neither A nor B is satisfied
+```
+
+Note: `or()` only applies to the immediately adjacent conditions. The default logic for chain calls is `AND`.
+`A.or().B.C` is equivalent to `(A || B) && C`.
 
 ---
 
@@ -320,8 +409,8 @@ fail-fast:
       40001: 400       # Error Code 40001 -> HTTP 400
       40100: 401
     groups:
-      auth: ["40100..40199"]      # Range mapping
-      business: ["40000..40099"]
+      auth: [ "40100..40199" ]      # Range mapping
+      business: [ "40000..40099" ]
 ```
 
 ---
