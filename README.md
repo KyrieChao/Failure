@@ -51,10 +51,20 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 本项目已发布至 Maven Central，请在 `pom.xml` 中直接添加依赖：
 
 ```xml
+<!-- Maven Central (推荐生产环境使用) -->
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
     <version>1.0.1</version>
+</dependency>
+```
+---
+```xml
+<!-- JitPack (适合快速测试或开发版) -->
+<dependency>
+    <groupId>com.github.KyrieChao</groupId>
+    <artifactId>Failure</artifactId>
+    <version>1.5.1</version>
 </dependency>
 ```
 

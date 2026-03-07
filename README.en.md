@@ -52,13 +52,22 @@ Failure is a lightweight, high-performance validation and business-exception fra
 This project is published on Maven Central. Add the dependency to your `pom.xml`:
 
 ```xml
+<!-- Maven Central (Recommended for Production) -->
 <dependency>
-    <groupId>io.github.kyriechao</groupId>
-    <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.1</version>
+  <groupId>io.github.kyriechao</groupId>
+  <artifactId>failure-spring-boot-starter</artifactId>
+  <version>1.0.1</version>
 </dependency>
 ```
-
+---
+```xml
+<!-- JitPack (Ideal for Rapid Testing & Development) -->
+<dependency>
+    <groupId>com.github.KyrieChao</groupId>
+    <artifactId>Failure</artifactId>
+    <version>1.5.1</version>
+</dependency>
+```
 ---
 
 ## 💡 Three Validation Modes
