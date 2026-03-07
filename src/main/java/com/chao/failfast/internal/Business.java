@@ -3,11 +3,13 @@ package com.chao.failfast.internal;
 import com.chao.failfast.config.CodeMappingConfig;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.util.I18n;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.regex.Matcher;
 
 /**
  * 业务异常类 - 增强版
@@ -40,6 +42,12 @@ public class Business extends RuntimeException implements Serializable {
      * HTTP状态码
      */
     private final HttpStatus httpStatus;
+
+    /**
+     * 导致异常的参数值（仅在debugSnapshot启用时记录）
+     */
+    private final Object invalidValue;
+
     /**
      * 序列化版本UID
      */
@@ -53,14 +61,17 @@ public class Business extends RuntimeException implements Serializable {
      * @param detail       详细错误描述
      * @param method       发生异常的方法名
      * @param location     发生异常的位置信息
+     * @param httpStatus   HTTP状态码
+     * @param invalidValue 导致异常的参数值
      */
-    Business(ResponseCode responseCode, String detail, String method, String location, HttpStatus httpStatus) {
-        super(responseCode != null ? responseCode.getMessage() : FailureConst.UNKNOWN_ERROR, null, true, shouldFillStackTrace(responseCode));
+    Business(ResponseCode responseCode, String detail, String method, String location, HttpStatus httpStatus, Object invalidValue) {
+        super(I18n.get(responseCode != null ? responseCode.getMessage() : FailureConst.UNKNOWN_ERROR), null, true, shouldFillStackTrace(responseCode));
         this.responseCode = responseCode;
         this.detail = detail;
         this.method = method;
         this.location = location;
         this.httpStatus = httpStatus != null ? httpStatus : HttpStatus.INTERNAL_SERVER_ERROR;
+        this.invalidValue = invalidValue;
     }
 
     private static boolean shouldFillStackTrace(ResponseCode code) {
@@ -166,6 +177,12 @@ public class Business extends RuntimeException implements Serializable {
          * 位置信息
          */
         private String location;
+
+        /**
+         * 无效值
+         */
+        private Object invalidValue;
+
         /**
          * 序列化版本UID
          */
@@ -217,6 +234,17 @@ public class Business extends RuntimeException implements Serializable {
         }
 
         /**
+         * 设置无效值
+         *
+         * @param value 导致异常的参数值
+         * @return 当前构建器实例
+         */
+        public Fabricator invalidValue(Object value) {
+            this.invalidValue = value;
+            return this;
+        }
+
+        /**
          * 构建最终的Business对象
          * 自动处理默认值和上下文信息
          *
@@ -240,13 +268,13 @@ public class Business extends RuntimeException implements Serializable {
             }
             CodeMappingConfig cfg = Ex.getContext() != null ? Ex.getContext().getCodeMappingConfig() : null;
             HttpStatus status = (cfg != null) ? cfg.resolveHttpStatus(responseCode.getCode()) : HttpStatus.INTERNAL_SERVER_ERROR;
-            return new Business(responseCode, detail, method, location, status);
+            return new Business(responseCode, detail, method, location, status, invalidValue);
         }
     }
 
     /**
      * 重写toString方法，提供格式化的异常信息输出
-     * 格式：[方法名] {code=xxx_xx, mes=消息, des=描述} (文件名:行号)
+     * 格式：[方法名] {code=xxx_xx, mes=消息, des=描述, val=快照} (文件名:行号)
      *
      * @return 格式化的字符串表示
      */
@@ -254,8 +282,16 @@ public class Business extends RuntimeException implements Serializable {
     public String toString() {
         // 格式化代码为xxx_xx格式
         String codeStr = String.valueOf(responseCode.getCode()).replaceFirst("(\\d{3})(\\d{2})", "$1_$2");
+
+        // 处理 invalidValue 快照
+        String valStr = "";
+        FailureContext ctx = Ex.getContext();
+        if (invalidValue != null && ctx != null && ctx.isDebugSnapshot()) {
+            valStr = ", val=" + maskValue(invalidValue);
+        }
+
         // 构建基础信息字符串
-        String base = "{code=%s, mes=%s, des=%s}".formatted(codeStr, responseCode.getMessage(), detail);
+        String base = "{code=%s, mes=%s, des=%s%s}".formatted(codeStr, I18n.get(responseCode.getMessage()), I18n.get(detail), valStr);
         // 根据是否有方法信息决定输出格式
         if (method == null) return base + (location != null ? " (" + extractFileLine(location) + ")" : "");
 
@@ -269,6 +305,36 @@ public class Business extends RuntimeException implements Serializable {
             }
         }
         return "[%s] %s".formatted(displayMethod, base) + (location != null ? " (" + extractFileLine(location) + ")" : "");
+    }
+
+    private String maskValue(Object value) {
+        if (value == null) return "null";
+        String str = value.toString();
+        if (str.isEmpty()) return str;
+
+        // 手机号: 138****8888
+        if (FailureConst.Mobile.matcher(str).matches()) {
+            return str.substring(0, 3) + "****" + str.substring(7);
+        }
+
+        // 邮箱: a****@gmail.com（用户名全掩码更安全）
+        Matcher emailMatcher = FailureConst.Email.matcher(str);
+        if (emailMatcher.matches()) {
+            return emailMatcher.group(1) + "****" + emailMatcher.group(3);
+        }
+
+        // 身份证/银行卡: 前4后4
+        if (FailureConst.Card.matcher(str).matches()) {
+            return str.substring(0, 4) + "****" + str.substring(str.length() - 4);
+        }
+
+        // 长文本截断（修复版）
+        if (str.length() > 50) {
+            return str.substring(0, 5) + "...(" + str.length() + "字符)..."
+                    + str.substring(str.length() - 5);
+        }
+
+        return str;
     }
 
     /**

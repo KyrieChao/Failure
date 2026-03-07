@@ -64,6 +64,15 @@ public class FailureContext {
     }
 
     /**
+     * 检查是否启用调试快照
+     *
+     * @return true表示启用快照
+     */
+    boolean isDebugSnapshot() {
+        return properties.isDebugSnapshot();
+    }
+
+    /**
      * 清理当前线程的上下文变量
      * 防止ThreadLocal内存泄漏，应在请求处理完成后调用
      */

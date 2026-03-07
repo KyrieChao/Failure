@@ -3,8 +3,10 @@ package com.chao.failfast.result;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.MultiBusiness;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.i18n.I18nExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -16,11 +18,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Results 工具类单元测试 - 100% 覆盖率
  */
 @DisplayName("Results 工具类测试")
+@ExtendWith(I18nExtension.class)
 class ResultsTest {
 
     // ==================== 测试数据 ====================
@@ -431,7 +435,7 @@ class ResultsTest {
         Result<Integer> result = Results.reduce(List.of(), Integer::sum);
 
         assertTrue(result.isFail()); // sequence返回失败，map不会执行
-        assertEquals("Cannot reduce empty list", result.getError().getDetail());
+        assertThat(result.getError().getDetail()).isIn("无法缩减空列表", "{failure.const.cannot.reduce.empty.list}");
     }
 
     // ==================== traverse ====================

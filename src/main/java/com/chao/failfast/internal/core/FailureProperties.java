@@ -29,10 +29,62 @@ public class FailureProperties {
     private boolean verbose = false;
 
     /**
+     * 是否启用调试快照（DX-2）
+     * 启用后会在异常信息中记录导致失败的参数值（自动脱敏）
+     * 默认为 false
+     */
+    private boolean debugSnapshot = false;
+
+    /**
      * 错误码映射配置
      * 包含HTTP状态码映射、分组配置和国际化设置
      */
     private CodeMapping codeMapping = new CodeMapping();
+
+    /**
+     * 国际化配置
+     * 包含默认语言、资源文件路径等配置
+     */
+    private I18n i18n = new I18n();
+
+    /**
+     * 国际化配置类
+     */
+    @Data
+    public static class I18n {
+        /**
+         * 是否启用国际化支持
+         * 默认为 true
+         */
+        private boolean enabled = true;
+
+        /**
+         * 默认语言环境
+         * 默认为 zh_CN (中文)
+         * 可选值: en_US, zh_CN 等标准 Locale 字符串
+         */
+        private String defaultLocale = "zh_CN";
+
+        /**
+         * 国际化资源文件基础路径
+         * 默认为 classpath:i18n/messages
+         * 多个路径用逗号分隔
+         */
+        private String basename = "classpath:i18n/messages";
+
+        /**
+         * 资源文件编码
+         * 默认为 UTF-8
+         */
+        private String encoding = "UTF-8";
+
+        /**
+         * 资源文件缓存时间（秒）
+         * 默认为 3600 秒
+         * -1 表示永久缓存
+         */
+        private int cacheSeconds = 3600;
+    }
 
     /**
      * 错误码映射配置类

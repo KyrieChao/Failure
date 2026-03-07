@@ -34,7 +34,7 @@ public class MultiBusiness extends Business {
                         FailureConst.SYSTEM_CODE, FailureConst.MULTIPLE_VALIDATION_ERRORS, errors.size() > MAX_ERRORS ?
                                 FailureConst.TOO_MANY_ERRORS : FailureConst.VALIDATION_ERROR_PREFIX + errors.size() + FailureConst.ERROR_ITEM_SUFFIX
                 ), FailureConst.VALIDATION_ERROR_PREFIX + errors.size() + FailureConst.ERROR_ITEM_SUFFIX,
-                null, null, HttpStatus.INTERNAL_SERVER_ERROR
+                null, null, HttpStatus.INTERNAL_SERVER_ERROR,null
         );
 
         // 限制错误数量，防止内存问题

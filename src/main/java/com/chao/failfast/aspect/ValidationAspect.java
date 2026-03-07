@@ -5,6 +5,7 @@ import com.chao.failfast.annotation.SkipValidation;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.util.I18n;
 import com.chao.failfast.validator.TypedValidator;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
@@ -152,7 +153,7 @@ public class ValidationAspect {
 
         Class<?> supportedType = getValidatorSupportedType(validator);
         if (supportedType == Object.class) {
-            log.warn("验证器 {} 无法确定支持类型，已跳过", validator.getClass().getSimpleName());
+            log.warn(I18n.get("log.validation.aspect.validator.type.unknown", validator.getClass().getSimpleName()));
             return;
         }
 

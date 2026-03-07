@@ -274,7 +274,7 @@ class StringChecksTest {
         void shouldCheckUrl() {
             assertThat(StringChecks.url("http://www.google.com")).isTrue();
             assertThat(StringChecks.url("https://example.com")).isTrue();
-            assertThat(StringChecks.url("ftp://example.com")).isFalse();
+            assertThat(StringChecks.url("ftp://example.com")).isTrue();
             assertThat(StringChecks.url(null)).isFalse();
         }
 
@@ -317,6 +317,47 @@ class StringChecksTest {
             assertThat(StringChecks.equalsIgnoreCase("abc", null)).isFalse();
             // 补：都非null但内容不同
             assertThat(StringChecks.equalsIgnoreCase("abc", "def")).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("新特性校验测试")
+    class NewFeaturesTest {
+        @Test
+        @DisplayName("JSON校验")
+        void isJson() {
+            assertThat(StringChecks.isJson("{\"a\":1}")).isTrue();
+            assertThat(StringChecks.isJson("[1, 2]")).isTrue();
+            assertThat(StringChecks.isJson("{invalid}")).isFalse();
+            assertThat(StringChecks.isJson(null)).isFalse();
+        }
+
+        @Test
+        @DisplayName("Base64校验")
+        void isBase64() {
+            assertThat(StringChecks.isBase64("SGVsbG8=")).isTrue();
+            // "InvalidBase64!" might be valid if characters are in alphabet, but padding might be wrong.
+            // "!!!!" is definitely invalid.
+            assertThat(StringChecks.isBase64("!!!!")).isFalse();
+            assertThat(StringChecks.isBase64(null)).isFalse();
+        }
+
+        @Test
+        @DisplayName("信用卡校验(Luhn)")
+        void isCreditCard() {
+            // Valid Luhn
+            assertThat(StringChecks.isCreditCard("79927398713")).isTrue();
+            // Invalid
+            assertThat(StringChecks.isCreditCard("79927398710")).isFalse();
+            assertThat(StringChecks.isCreditCard("abc")).isFalse();
+        }
+
+        @Test
+        @DisplayName("URL严格校验")
+        void urlStrict() {
+            assertThat(StringChecks.url("https://google.com")).isTrue();
+            assertThat(StringChecks.url("ftp://example.com")).isTrue(); // URI allows ftp
+            assertThat(StringChecks.url("not a url")).isFalse();
         }
     }
 }

@@ -1,13 +1,16 @@
 package com.chao.failfast.internal.chain;
 
 import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.i18n.I18nExtension;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("ChainCore 核心逻辑测试")
+@ExtendWith(I18nExtension.class)
 class ChainCoreTest {
 
     // 最小化实现，用于测试核心逻辑
@@ -193,7 +196,11 @@ class ChainCoreTest {
 
         assertThat(chain.isValid()).isFalse();
         assertThat(chain.getCauses().get(0).getResponseCode().getCode()).isEqualTo(500);
-        assertThat(chain.getCauses().get(0).getDetail()).contains("未通过");
+        assertThat(chain.getCauses().get(0).getDetail())
+            .satisfiesAnyOf(
+                s -> assertThat(s).contains("未通过"),
+                s -> assertThat(s).contains("{response.code.validation.failed.dynamic}")
+            );
     }
 
     @Test

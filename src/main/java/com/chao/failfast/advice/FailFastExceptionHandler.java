@@ -7,6 +7,7 @@ import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.MultiBusiness;
 import com.chao.failfast.internal.core.FailureProperties;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.util.I18n;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -173,16 +174,19 @@ public abstract class FailFastExceptionHandler {
             body.put(FailureConst.FIELD_ERRORS, e.getErrors().stream()
                     .map(err -> {
                         Map<String, String> item = new HashMap<>(2);
-                        item.put(FailureConst.FIELD_MESSAGE, err.getMessage());
-                        item.put(FailureConst.FIELD_DESCRIPTION, err.getResponseCode().getDescription());
-                        item.put(FailureConst.FIELD_DETAIL, err.getDetail());
+                        item.put(FailureConst.FIELD_MESSAGE, I18n.get(err.getMessage()));
+                        item.put(FailureConst.FIELD_DESCRIPTION, I18n.get(err.getResponseCode().getDescription()));
+                        item.put(FailureConst.FIELD_DETAIL, I18n.get(err.getDetail()));
                         return item;
                     })
                     .toList()
             );
         }
         // 将所有错误简要拼接到 description 中，以便前端展示
-        body.put(FailureConst.FIELD_DESCRIPTION, "共 " + e.getErrors().size() + " 项错误");
+        String description = I18n.get(FailureConst.VALIDATION_ERROR_PREFIX)
+                           + e.getErrors().size() 
+                           + I18n.get(FailureConst.ERROR_ITEM_SUFFIX);
+        body.put(FailureConst.FIELD_DESCRIPTION, description);
         return ResponseEntity.status(e.getHttpStatus()).body(body);
     }
 
@@ -243,7 +247,7 @@ public abstract class FailFastExceptionHandler {
      * @return 格式化后的位置字符串
      */
     private String formatValidationLocation(Class<?> clazz, String fieldOrPath) {
-        if (fieldOrPath == null) return FailureConst.UNKNOWN_ERROR;
+        if (fieldOrPath == null) return I18n.get(FailureConst.UNKNOWN_ERROR);
 
         String className = "";
         if (clazz != null) {
@@ -251,10 +255,13 @@ public abstract class FailFastExceptionHandler {
             if (clazz.getName().contains("$$")) clazz = clazz.getSuperclass();
             className = clazz.getSimpleName();
         }
+        
+        String at = I18n.get(FailureConst.AT);
+        
         // 如果是方法参数校验 (e.g. annoSimple.name)，将最后一个点替换为 " at "
         if (fieldOrPath.contains(".")) {
             int lastDot = fieldOrPath.lastIndexOf('.');
-            String methodAndArg = fieldOrPath.substring(0, lastDot) + FailureConst.AT + fieldOrPath.substring(lastDot + 1);
+            String methodAndArg = fieldOrPath.substring(0, lastDot) + at + fieldOrPath.substring(lastDot + 1);
             if (!className.isEmpty()) {
                 return className + "." + methodAndArg;
             }
@@ -263,7 +270,7 @@ public abstract class FailFastExceptionHandler {
 
         // 如果是 Bean 校验 (e.g. UserDTO 的 age 字段)
         if (!className.isEmpty()) {
-            return className + FailureConst.AT + fieldOrPath;
+            return className + at + fieldOrPath;
         }
 
         return fieldOrPath;
@@ -330,8 +337,8 @@ public abstract class FailFastExceptionHandler {
     private Map<String, Object> buildMap(Business e) {
         Map<String, Object> body = new HashMap<>();
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
-        body.put(FailureConst.FIELD_MESSAGE, e.getResponseCode().getMessage());
-        body.put(FailureConst.FIELD_DESCRIPTION, e.getDetail());
+        body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
+        body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
         String format = ZonedDateTime.now(FailureConst.CST).format(FailureConst.DEFAULT_DATETIME_FORMATTER);
         body.put(FailureConst.FIELD_TIMESTAMP, format);
         return body;

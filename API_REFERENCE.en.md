@@ -123,8 +123,11 @@ Failure.begin()
 | `match(str, regex)` | Matches regular expression |
 | `email(str)` | Email format validation |
 | `mobile(str)` | Mobile phone number format validation (Mainland China) |
-| `url(str)` | URL format validation |
+| `url(str)` | URL format validation (java.net.URI) |
 | `ipAddress(str)` | IPv4 address format validation |
+| `isJson(str)` | JSON format validation (Jackson) |
+| `isBase64(str)` | Base64 encoding validation |
+| `isCreditCard(str)` | Credit card number validation (Luhn algorithm) |
 | `uuid(str)` | UUID format validation |
 | `isNumeric(str)` | Contains only numbers |
 | `isAlpha(str)` | Contains only letters |
@@ -617,6 +620,8 @@ public Result<OrderDTO> getOrder(Long userId, Long orderId) {
 fail-fast:
   # Debug configuration
   shadow-trace: true        # Include class name and line number of validation point in exception
+  debug:
+    snapshot: true          # Enable debug snapshot to include invalid values (default: false)
   verbose: true             # Include detailed errors list in multi-error response
   
   # Error code mapping

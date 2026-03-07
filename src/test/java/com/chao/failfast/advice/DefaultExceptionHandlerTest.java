@@ -1,5 +1,7 @@
 package com.chao.failfast.advice;
 
+import com.chao.failfast.config.FailFastAutoConfiguration;
+import com.chao.failfast.i18n.I18nPropertiesIntegrationTest;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.MultiBusiness;
 import com.chao.failfast.model.TestResponseCode;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import com.chao.failfast.internal.Ex;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +30,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @DisplayName("DefaultExceptionHandler 异常处理器测试")
+@SpringBootTest(
+        classes = {FailFastAutoConfiguration.class, I18nPropertiesIntegrationTest.TestController.class},
+        properties = {
+                "fail-fast.i18n.default-locale=zh_CN",
+                "fail-fast.i18n.basename=classpath:i18n/messages"
+        }
+)
 class DefaultExceptionHandlerTest {
 
     private final DefaultExceptionHandler handler = new DefaultExceptionHandler();
@@ -71,7 +81,7 @@ class DefaultExceptionHandlerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> body = (Map<String, Object>) response.getBody();
         assert body != null;
-        assertThat(body.get("description").toString()).contains("共 2 项错误");
+        assertThat(body.get("description").toString()).contains("共2项问题");
     }
 
     @Test
@@ -143,7 +153,7 @@ class DefaultExceptionHandlerTest {
         assertThat(body).containsEntry("description", "message");
     }
     @Test
-    @DisplayName("处理 BindException 无错误时返回 Unknown error")
+    @DisplayName("处理 BindException 无错误时返回 未知错误")
     void handleBindExceptionEmptyErrors() {
         BindException ex = new BindException(new Object(), "target");
         // 不添加任何错误，保持 empty
@@ -154,6 +164,6 @@ class DefaultExceptionHandlerTest {
         Map<String, Object> body = (Map<String, Object>) response.getBody();
         assertThat(body).containsEntry("code", 500);
         assertThat(body).containsEntry("message", "参数绑定失败");
-        assertThat(body).containsEntry("description", "Unknown error");  // ← 覆盖空分支
+        assertThat(body).containsEntry("description", "未知错误");  // ← 覆盖空分支
     }
 }

@@ -1,14 +1,13 @@
 package com.chao.failfast.result;
 
+import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -39,7 +38,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         this.code = code;
         this.message = message;
         this.description = description;
-        this.timestamp = ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        this.timestamp = ZonedDateTime.now(FailureConst.CST).format(FailureConst.DEFAULT_DATETIME_FORMATTER);
     }
 
     /**

@@ -20,27 +20,27 @@ public interface StringTerm<S extends ChainCore<S>> {
     }
 
     default S blank(String str) {
-        return core().check(StringChecks.blank(str), FailureConst.BLANK_ERROR, null);
+        return core().check(StringChecks.blank(str), FailureConst.BLANK_ERROR, null, str);
     }
 
     default S blank(String str, ResponseCode code) {
-        return core().check(StringChecks.blank(str), code, null);
+        return core().check(StringChecks.blank(str), code, null, str);
     }
 
     default S blank(String str, ResponseCode code, String detail) {
-        return core().check(StringChecks.blank(str), code, detail);
+        return core().check(StringChecks.blank(str), code, detail, str);
     }
 
     default S notBlank(String str) {
-        return core().check(StringChecks.notBlank(str), FailureConst.NOT_BLANK_ERROR, null);
+        return core().check(StringChecks.notBlank(str), FailureConst.NOT_BLANK_ERROR, null, str);
     }
 
     default S notBlank(String str, ResponseCode code) {
-        return core().check(StringChecks.notBlank(str), code, null);
+        return core().check(StringChecks.notBlank(str), code, null, str);
     }
 
     default S notBlank(String str, ResponseCode code, String detail) {
-        return core().check(StringChecks.notBlank(str), code, detail);
+        return core().check(StringChecks.notBlank(str), code, detail, str);
     }
 
     default S lengthBetween(String str, int min, int max) {
@@ -68,15 +68,15 @@ public interface StringTerm<S extends ChainCore<S>> {
     }
 
     default S email(String email) {
-        return core().check(StringChecks.email(email), FailureConst.EMAIL_ERROR, null);
+        return core().check(StringChecks.email(email), FailureConst.EMAIL_ERROR, null, email);
     }
 
     default S email(String email, ResponseCode code) {
-        return core().check(StringChecks.email(email), code, null);
+        return core().check(StringChecks.email(email), code, null, email);
     }
 
     default S email(String email, ResponseCode code, String detail) {
-        return core().check(StringChecks.email(email), code, detail);
+        return core().check(StringChecks.email(email), code, detail, email);
     }
 
     default S equalsIgnoreCase(String str1, String str2) {
@@ -224,27 +224,27 @@ public interface StringTerm<S extends ChainCore<S>> {
     }
 
     default S mobile(String str) {
-        return core().check(StringChecks.mobile(str), FailureConst.MOBILE_ERROR, null);
+        return core().check(StringChecks.mobile(str), FailureConst.MOBILE_ERROR, null, str);
     }
 
     default S mobile(String str, ResponseCode code) {
-        return core().check(StringChecks.mobile(str), code, null);
+        return core().check(StringChecks.mobile(str), code, null, str);
     }
 
     default S mobile(String str, ResponseCode code, String detail) {
-        return core().check(StringChecks.mobile(str), code, detail);
+        return core().check(StringChecks.mobile(str), code, detail, str);
     }
 
     default S url(String str) {
-        return core().check(StringChecks.url(str), FailureConst.URL_ERROR, null);
+        return core().check(StringChecks.url(str), FailureConst.URL_ERROR, null, str);
     }
 
     default S url(String str, ResponseCode code) {
-        return core().check(StringChecks.url(str), code, null);
+        return core().check(StringChecks.url(str), code, null, str);
     }
 
     default S url(String str, ResponseCode code, String detail) {
-        return core().check(StringChecks.url(str), code, detail);
+        return core().check(StringChecks.url(str), code, detail, str);
     }
 
     default S ipAddress(String str) {
@@ -269,6 +269,42 @@ public interface StringTerm<S extends ChainCore<S>> {
 
     default S uuid(String str, ResponseCode code, String detail) {
         return core().check(StringChecks.uuid(str), code, detail);
+    }
+
+    default S isJson(String str) {
+        return core().check(StringChecks.isJson(str), FailureConst.IS_JSON_ERROR, null, str);
+    }
+
+    default S isJson(String str, ResponseCode code) {
+        return core().check(StringChecks.isJson(str), code, null, str);
+    }
+
+    default S isJson(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.isJson(str), code, detail, str);
+    }
+
+    default S isCreditCard(String str) {
+        return core().check(StringChecks.isCreditCard(str), FailureConst.IS_CREDIT_CARD_ERROR, null, str);
+    }
+
+    default S isCreditCard(String str, ResponseCode code) {
+        return core().check(StringChecks.isCreditCard(str), code, null, str);
+    }
+
+    default S isCreditCard(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.isCreditCard(str), code, detail, str);
+    }
+
+    default S isBase64(String str) {
+        return core().check(StringChecks.isBase64(str), FailureConst.IS_BASE64_ERROR, null, str);
+    }
+
+    default S isBase64(String str, ResponseCode code) {
+        return core().check(StringChecks.isBase64(str), code, null, str);
+    }
+
+    default S isBase64(String str, ResponseCode code, String detail) {
+        return core().check(StringChecks.isBase64(str), code, detail, str);
     }
 
 }

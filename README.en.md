@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Java 17+](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/technologies/downloads/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.kyriechao/failure-spring-boot-starter)
 [![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
 
 [中文版本](./README.md)
@@ -23,6 +24,7 @@ Fail-Fast is a lightweight, high-performance validation and business-exception f
 - **Context Integration**: Supports `TypedValidator` pattern to decouple validation logic from business logic.
 - **Annotation-Driven**: Provides `@Validate` annotation and `FastValidator` interface for AOP-based validation.
 - **Functional Results**: Provides `Result<T>` monad with `map`, `flatMap`, `recover` operations.
+- **Smart Debug Snapshot**: Captures invalid values in exceptions (with auto-masking & truncation), making errors actionable.
 - **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes, with `shadow-trace` for quick debugging.
 
 ---
@@ -34,6 +36,7 @@ Fail-Fast is a lightweight, high-performance validation and business-exception f
 | [Quick Start](#%EF%B8%8F-quick-start) | Installation, basic usage, and three modes introduction |
 | [API Reference](./API_REFERENCE.en.md) | Complete API list, method details, and best practices |
 | [Configuration](#%EF%B8%8F-configuration) | application.yml configuration details |
+| [I18n Guide](./docs/I18N_GUIDE.md) | Internationalization configuration and key reference |
 
 ---
 
@@ -46,20 +49,13 @@ Fail-Fast is a lightweight, high-performance validation and business-exception f
 
 ### 2. Dependency
 
-This project is published on JitPack. Add the repository and dependency to your `pom.xml`:
+This project is published on Maven Central. Add the dependency to your `pom.xml`:
 
 ```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-
 <dependency>
-    <groupId>com.github.KyrieChao</groupId>
-    <artifactId>Failure</artifactId>
-    <version>1.3.1</version>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-spring-boot-starter</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -260,6 +256,8 @@ Configure framework behavior in `application.yml`:
 ```yaml
 fail-fast:
   shadow-trace: true   # Include class name and line number of the validation point in exception stack trace
+  debug:
+    snapshot: true     # Enable debug snapshot to include invalid values (default: false)
   verbose: true        # Include detailed errors list in multi-error response
   code-mapping:
     http-status:

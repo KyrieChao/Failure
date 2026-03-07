@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Java 17+](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/technologies/downloads/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.kyriechao/failure-spring-boot-starter)
 [![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
 
 [English Version](./README.en.md)
@@ -23,18 +24,19 @@ Fail-Fast 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数�
 - **上下文集成**: 支持 `TypedValidator` 模式，将校验逻辑与业务逻辑解耦
 - **注解驱动**: 提供 `@Validate` 注解与 `FastValidator` 接口，支持 AOP 切面校验
 - **函数式结果**: 提供 `Result<T>` 单子类型，支持 `map`, `flatMap`, `recover` 等函数式操作
+- **智能调试快照**: 异常信息包含导致失败的参数值（支持自动脱敏与截断），让报错即线索
 - **智能异常处理**: 自动映射业务错误码到 HTTP 状态码，支持影子追踪 (`shadow-trace`) 快速定位问题
 
 ---
 
 ## 📚 文档导航
 
-| 文档                            | 内容                                |
-| ------------------------------- | ----------------------------------- |
-| [快速开始](#-快速开始)          | 安装、基础用法、三种模式入门        |
-| [API 参考](./API_REFERENCE.md)  | 完整的 API 列表、方法详解、最佳实践 |
-| [配置说明](#%EF%B8%8F-配置说明) | application.yml 配置项详解          |
-
+| 文档                         | 内容                            |
+|----------------------------| ----------------------------------- |
+| [快速开始](#-快速开始)             | 安装、基础用法、三种模式入门   |
+| [API 参考](./API_REFERENCE.md) | 完整的 API 列表、方法详解、最佳实践 |
+| [配置说明](#%EF%B8%8F-配置说明)    | application.yml 配置项详解  |
+| [国际化指南](./docs/I18N_GUIDE.md) | 国际化配置及键值参考 |
 ---
 
 ## 🛠️ 快速开始
@@ -46,20 +48,13 @@ Fail-Fast 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数�
 
 ### 引入依赖
 
-本项目发布在 JitPack，请在 `pom.xml` 中添加：
+本项目已发布至 Maven Central，请在 `pom.xml` 中直接添加依赖：
 
 ```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-
 <dependency>
-    <groupId>com.github.KyrieChao</groupId>
-    <artifactId>Failure</artifactId>
-    <version>1.3.1</version>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-spring-boot-starter</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -270,6 +265,8 @@ Failure.begin()
 ```yaml
 fail-fast:
   shadow-trace: true   # 异常中包含校验点的类名与行号（调试推荐开启）
+  debug:
+    snapshot: true     # 开启调试快照，异常包含失败值（默认 false）
   verbose: true        # 多错误响应是否包含详细的 errors 列表
   code-mapping:
     http-status:

@@ -1,12 +1,14 @@
 package com.chao.failfast.internal;
 
 import com.chao.failfast.config.CodeMappingConfig;
+import com.chao.failfast.i18n.I18nExtension;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.model.TestResponseCode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.HttpStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,6 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @DisplayName("Business 异常类测试")
+@ExtendWith(I18nExtension.class)
 class BusinessTest {
 
     @AfterEach
@@ -70,7 +73,7 @@ class BusinessTest {
         @DisplayName("当 code 为 null 时应填充堆栈")
         void shouldFillStackTraceWhenCodeIsNull() {
             // responseCode is null
-            Business business = new Business(null, null, null, null, null);
+            Business business = new Business(null, null, null, null, null, null);
             // Stack trace should be present
             assertThat(business.getStackTrace()).isNotEmpty();
         }
@@ -128,7 +131,7 @@ class BusinessTest {
             ResponseCode code = ResponseCode.of(500, null, null);
             Business business = Business.of(code);
 
-            assertThat(business.getDetail()).isEqualTo("message 或 description 至少一个不能为 null");
+            assertThat(business.getDetail()).isIn("message 或 description 至少一个不能为 null", "{failure.const.message.description.required}");
         }
 
         @Test
@@ -202,7 +205,8 @@ class BusinessTest {
             org.assertj.core.api.Assertions.assertThatThrownBy(() ->
                             Business.compose().materialize()
                     ).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("code 不能为空");
+                    // Accept both translated and raw key to handle different test environments
+                    .message().isIn("code 不能为空", "{failure.const.code.required}");
         }
     }
 

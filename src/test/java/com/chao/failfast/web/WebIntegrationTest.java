@@ -4,6 +4,7 @@ import com.chao.failfast.Failure;
 import com.chao.failfast.annotation.FastValidator;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.config.FailFastAutoConfiguration;
+import com.chao.failfast.i18n.I18nPropertiesIntegrationTest;
 import com.chao.failfast.internal.core.ResponseCode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -36,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(WebIntegrationTest.ExampleController.class)
 @Import(FailFastAutoConfiguration.class) // 导入 Fail-Fast 自动配置
 @EnableAspectJAutoProxy
+@org.springframework.test.context.TestPropertySource(properties = "fail-fast.i18n.default-locale=zh_CN")
 class WebIntegrationTest {
 
     @Autowired
@@ -79,7 +82,7 @@ class WebIntegrationTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value(500)) // MultiBusiness 默认映射为 500
                 // 验证 description 包含了所有错误信息
-                .andExpect(jsonPath("$.description", containsString("共 2 项错误")));
+                .andExpect(jsonPath("$.description", containsString("共2项问题")));
         // 验证 errors 字段已被移除
         // .andExpect(jsonPath("$.errors").doesNotExist()); // 确保没有 errors 字段
     }
@@ -123,7 +126,7 @@ class WebIntegrationTest {
                 .andDo(print())
                 .andExpect(status().isInternalServerError())
                 // 验证 description 包含了所有错误信息
-                .andExpect(jsonPath("$.description", containsString("共 2 项错误")));
+                .andExpect(jsonPath("$.description", containsString("共2项问题")));
     }
 
     // ================== 示例 Controller 和 DTO ==================

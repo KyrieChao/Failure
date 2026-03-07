@@ -1,7 +1,9 @@
 package com.chao.failfast.internal;
 
+import com.chao.failfast.i18n.I18nExtension;
 import com.chao.failfast.model.TestResponseCode;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -11,7 +13,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("MultiBusiness 异常类测试")
+@DisplayName("MultiBusiness 批量异常测试")
+@ExtendWith(I18nExtension.class)
 class MultiBusinessTest {
 
     @Nested
@@ -137,8 +140,11 @@ class MultiBusinessTest {
             MultiBusiness multiBusiness = new MultiBusiness(errors);
 
             assertThat(multiBusiness.getErrors()).hasSize(50);
-            // description 应该是 "校验失败，错误过多"
-            assertThat(multiBusiness.getResponseCode().getDescription()).contains("错误过多");
+            // 校验失败，错误过多 (Translation) or {failure.const.too.many.errors} (Key)
+            assertThat(multiBusiness.getResponseCode().getDescription()).satisfiesAnyOf(
+                s -> assertThat(s).contains("错误过多"),
+                s -> assertThat(s).contains("{failure.const.too.many.errors}")
+            );
         }
 
         @Test

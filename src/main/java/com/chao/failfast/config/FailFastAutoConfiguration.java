@@ -6,6 +6,7 @@ import com.chao.failfast.aspect.ValidationAspect;
 import com.chao.failfast.internal.Ex;
 import com.chao.failfast.internal.FailureContext;
 import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.util.I18n;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.*;
 import jakarta.validation.Validator;
@@ -19,6 +20,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 
 import java.io.IOException;
@@ -32,6 +34,7 @@ import java.io.IOException;
 @AutoConfiguration
 @EnableConfigurationProperties(FailureProperties.class)
 @ConditionalOnClass(Validator.class)
+@Import({I18nConfig.class, I18n.class})
 public class FailFastAutoConfiguration {
 
     /**
@@ -172,7 +175,7 @@ public class FailFastAutoConfiguration {
          */
         @PostConstruct
         public void init() {
-            log.info("Fail-Fast 调试模式已启用 - 将打印方法名和位置信息");
+            log.info(I18n.get("log.fail.fast.auto.config.debug.enabled"));
         }
     }
 }

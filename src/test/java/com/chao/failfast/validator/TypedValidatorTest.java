@@ -1,14 +1,17 @@
 package com.chao.failfast.validator;
 
 import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.i18n.I18nExtension;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("TypedValidator 类型校验器测试")
+@ExtendWith(I18nExtension.class)
 class TypedValidatorTest {
 
     static class TestValidator extends TypedValidator {
@@ -57,7 +60,7 @@ class TypedValidatorTest {
         assertThat(ctx.isValid()).isFalse();
         Business error = ctx.hasCauses().get(0);
         assertThat(error.getResponseCode().getCode()).isEqualTo(500);
-        assertThat(error.getResponseCode().getMessage()).isEqualTo("Validation Error");
+        assertThat(error.getResponseCode().getMessage()).isIn("参数校验失败", "{response.code.validation.error}");
     }
 
     @Test
@@ -70,7 +73,10 @@ class TypedValidatorTest {
         assertThat(ctx.isValid()).isFalse();
         Business error = ctx.hasCauses().get(0);
         assertThat(error.getResponseCode().getCode()).isEqualTo(400);
-        assertThat(error.getDetail()).contains("不支持的校验类型");
+        assertThat(error.getDetail()).satisfiesAnyOf(
+            s -> assertThat(s).contains("不支持的校验类型"),
+            s -> assertThat(s).contains("{failure.const.unsupported.validation.type}")
+        );
     }
     @Test
     @DisplayName("getSupportedType: 单一类型返回该类型，多类型返回 Object")

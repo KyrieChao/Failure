@@ -126,8 +126,11 @@ Failure.begin()
 | `match(str, regex)`               | 符合正则表达式               |
 | `email(str)`                      | 邮箱格式校验                |
 | `mobile(str)`                     | 中国大陆手机号格式校验           |
-| `url(str)`                        | URL 格式校验              |
+| `url(str)`                        | URL 格式校验 (java.net.URI) |
 | `ipAddress(str)`                  | IPv4 地址格式校验           |
+| `isJson(str)`                     | JSON 格式校验 (Jackson)   |
+| `isBase64(str)`                   | Base64 编码校验           |
+| `isCreditCard(str)`               | 信用卡号校验 (Luhn 算法)     |
 | `uuid(str)`                       | UUID 格式校验             |
 | `isNumeric(str)`                  | 仅包含数字                 |
 | `isAlpha(str)`                    | 仅包含字母                 |
@@ -667,6 +670,8 @@ public Result<OrderDTO> getOrder(Long userId, Long orderId) {
 fail-fast:
   # 调试配置
   shadow-trace: true        # 异常中包含校验点的类名与行号
+  debug:
+    snapshot: true          # 开启调试快照，异常包含失败值（默认 false）
   verbose: true             # 多错误响应包含详细 errors 列表
 
   # 错误码映射

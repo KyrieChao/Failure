@@ -3,6 +3,7 @@ package com.chao.failfast.advice;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.util.I18n;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -92,9 +93,9 @@ public final class DefaultExceptionHandler extends FailFastExceptionHandler {
     public ResponseEntity<?> handleBindException(BindException e) {
         Map<String, Object> body = new HashMap<>();
         body.put(FailureConst.FIELD_CODE, FailureConst.SYSTEM_CODE);
-        body.put(FailureConst.FIELD_MESSAGE, FailureConst.DEFAULT_MESSAGE);
-        String description = e.getAllErrors().isEmpty() ? FailureConst.UNKNOWN_ERROR : e.getAllErrors().get(0).getDefaultMessage();
-        body.put(FailureConst.FIELD_DESCRIPTION, description);
+        body.put(FailureConst.FIELD_MESSAGE, I18n.get(FailureConst.DEFAULT_MESSAGE));
+        String description = e.getAllErrors().isEmpty() ? I18n.get(FailureConst.UNKNOWN_ERROR) : e.getAllErrors().get(0).getDefaultMessage();
+        body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(description));
         String format = ZonedDateTime.now(FailureConst.CST).format(FailureConst.DEFAULT_DATETIME_FORMATTER);
         body.put(FailureConst.FIELD_TIMESTAMP, format);
         return ResponseEntity.badRequest().body(body);

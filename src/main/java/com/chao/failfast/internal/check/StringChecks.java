@@ -1,22 +1,25 @@
 package com.chao.failfast.internal.check;
 
-import java.util.regex.Pattern;
+import com.chao.failfast.constant.FailureConst;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.net.URI;
+import java.util.Base64;
 
 /**
  * 字符串校验工具类
  * 提供各种常用的字符串校验方法，如空值校验、长度校验、格式校验等
  */
 public final class StringChecks {
-    // 正则表达式
-    private static final Pattern UUID = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
-    private static final Pattern IP4 = Pattern.compile("^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$");
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
-    private static final Pattern URL = Pattern.compile("^(http|https)://.*$");
-    private static final Pattern Mobile = Pattern.compile("^1[3-9]\\d{9}$");
-
 
     // 私有构造方法，防止实例化工具类
     private StringChecks() {
+    }
+
+    // Lazy initialization holder for Jackson ObjectMapper
+    private static class JsonHolder {
+        static final ObjectMapper MAPPER = new ObjectMapper();
+
     }
 
     /**
@@ -69,7 +72,7 @@ public final class StringChecks {
      * @return 如果字符串是有效的邮箱格式返回true，否则返回false
      */
     public static boolean email(String email) {
-        return email != null && EMAIL_PATTERN.matcher(email).matches();
+        return email != null && FailureConst.Email_Pattern.matcher(email).matches();
     }
 
     /**
@@ -230,26 +233,89 @@ public final class StringChecks {
      * @return 如果字符串是有效的手机号码格式返回true，否则返回false
      */
     public static boolean mobile(String str) {
-        return str != null && Mobile.matcher(str).matches();
+        return str != null && FailureConst.Mobile.matcher(str).matches();
     }
 
     /**
-     * 检查字符串是否为有效的URL格式
+     * 检查字符串是否为有效的 URL 格式
+     * 使用 java.net.URI 进行严格校验
      *
      * @param str 要检查的字符串
-     * @return 如果字符串是有效的URL格式返回true，否则返回false
+     * @return 如果字符串是有效的 URL 格式返回 true，否则返回 false
      */
     public static boolean url(String str) {
-        // Simple regex for URL validation
-        return str != null && URL.matcher(str).matches();
+        if (str == null || str.isBlank()) return false;
+        try {
+            URI uri = new URI(str);
+            // 验证 URI 可以转换为 URL 且协议有效
+            return uri.getScheme() != null && uri.getHost() != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * 检查字符串是否为有效的JSON格式
+     *
+     * @param str 要检查的字符串
+     * @return 如果字符串是有效的JSON格式返回true，否则返回false
+     */
+    public static boolean isJson(String str) {
+        if (str == null || str.isBlank()) return false;
+        try {
+            JsonHolder.MAPPER.readTree(str);
+            return true;
+        } catch (Throwable e) {
+            return false;
+        }
+    }
+
+    /**
+     * 检查字符串是否为有效的 Base64 编码
+     *
+     * @param str 要检查的字符串
+     * @return 如果字符串是有效的 Base64 编码返回true，否则返回false
+     */
+    public static boolean isBase64(String str) {
+        if (str == null || str.isBlank()) return false;
+        try {
+            Base64.getDecoder().decode(str);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
+     * 检查字符串是否为有效的信用卡号 (Luhn 算法)
+     *
+     * @param str 要检查的字符串
+     * @return 如果字符串是有效的信用卡号返回true，否则返回false
+     */
+    public static boolean isCreditCard(String str) {
+        if (str == null || !str.matches("\\d+")) return false;
+        int sum = 0;
+        boolean alternate = false;
+        for (int i = str.length() - 1; i >= 0; i--) {
+            int n = Integer.parseInt(str.substring(i, i + 1));
+            if (alternate) {
+                n *= 2;
+                if (n > 9) {
+                    n = (n % 10) + 1;
+                }
+            }
+            sum += n;
+            alternate = !alternate;
+        }
+        return (sum % 10 == 0);
     }
 
     public static boolean ipAddress(String str) {
         // Simple regex for IPv4
-        return str != null && IP4.matcher(str).matches();
+        return str != null && FailureConst.IP4.matcher(str).matches();
     }
 
     public static boolean uuid(String str) {
-        return str != null && UUID.matcher(str).matches();
+        return str != null && FailureConst.UUID.matcher(str).matches();
     }
 }

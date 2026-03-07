@@ -81,6 +81,13 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      * 统一校验入口 - 支持配置
      */
     public S check(boolean condition, ResponseCode code, String detail) {
+        return check(condition, code, detail, null);
+    }
+
+    /**
+     * 统一校验入口 - 支持配置和值快照
+     */
+    public S check(boolean condition, ResponseCode code, String detail, Object value) {
         if (shouldSkip()) return self();
 
         if (orMode) {
@@ -90,7 +97,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
 
             if (!finalSuccess) {
                 // 左右都失败，报错
-                addError(code, detail);
+                addError(code, detail, value);
                 if (failFast) alive = false;
             } else {
                 // 有一个成功，整个or通过，清除错误
@@ -100,7 +107,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         } else {
             // 普通模式
             if (!condition) {
-                addError(code, detail);
+                addError(code, detail, value);
                 if (failFast) alive = false;
             }
         }
@@ -114,8 +121,8 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         return check(condition, null, null);
     }
 
-    private void addError(ResponseCode code, String detail) {
-        Business business = buildBusiness(code, detail);
+    private void addError(ResponseCode code, String detail, Object value) {
+        Business business = buildBusiness(code, detail, value);
 
         if (context != null) {
             context.reportError(business);
@@ -125,11 +132,12 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         }
     }
 
-    private Business buildBusiness(ResponseCode code, String detail) {
+    private Business buildBusiness(ResponseCode code, String detail, Object value) {
+        Business.Fabricator fabricator = Business.compose().invalidValue(value);
         if (code != null && detail != null) {
-            return Business.of(code, detail);
+            return fabricator.responseCode(code).detail(detail).materialize();
         }
-        return Business.of(Objects.requireNonNullElse(code, ResponseCode.VALIDATION_ERROR_500_DYNAMIC));
+        return fabricator.responseCode(Objects.requireNonNullElse(code, ResponseCode.VALIDATION_ERROR_500_DYNAMIC)).materialize();
     }
 
     /**

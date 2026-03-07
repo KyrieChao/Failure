@@ -1,5 +1,6 @@
 package com.chao.failfast.config;
 
+import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.core.FailureProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -7,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -20,7 +20,6 @@ public class CodeMappingConfig {
     private final FailureProperties properties;
     private final Map<Integer, HttpStatus> DEFAULT_MAPPINGS;
     private final Map<String, List<CodeRange>> groupRanges = new HashMap<>();
-    private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(\\d+)\\s*\\.\\.\\s*(\\d+)\\s*$|^\\s*(\\d+)\\s*-\\s*(\\d+)\\s*$");
 
     /**
      * 构造函数，用于初始化CodeMappingConfig实例
@@ -134,7 +133,7 @@ public class CodeMappingConfig {
      */
     private CodeRange parseRange(String input) {
         // 使用正则表达式模式匹配输入字符串
-        Matcher matcher = RANGE_PATTERN.matcher(input.trim());
+        Matcher matcher = FailureConst.Range.matcher(input.trim());
         if (matcher.matches()) {
             // 解析起始行号，如果第一个捕获组不为null则使用它，否则使用第三个捕获组
             int start = matcher.group(1) != null

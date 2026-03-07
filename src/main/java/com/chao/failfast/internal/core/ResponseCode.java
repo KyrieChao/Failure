@@ -11,34 +11,34 @@ public interface ResponseCode {
     /**
      * 通用校验错误（500）
      */
-    ResponseCode VALIDATION_ERROR = of(500, "Validation Error");
+    ResponseCode VALIDATION_ERROR = of(500, "{response.code.validation.error}");
 
     /**
      * 参数校验失败（400）
      */
-    ResponseCode VALIDATION_ERROR_400 = of(400, "Validation Error", "参数校验失败");
+    ResponseCode VALIDATION_ERROR_400 = of(400, "{response.code.validation.error}", "{response.code.validation.error}");
 
     /**
      * 校验对象不能为空（500）
      */
-    ResponseCode VALIDATION_ERROR_NULL = of(500, "Validation Error", "校验对象不能为空");
+    ResponseCode VALIDATION_ERROR_NULL = of(500, "{response.code.validation.error}", "{response.code.validation.error.null}");
 
 
     /**
      * 重试被中断（500）
      */
-    ResponseCode INTERRUPTED_ERROR = of(500, "Retry Interrupted", "重试被中断");
+    ResponseCode INTERRUPTED_ERROR = of(500, "{response.code.interrupted.error}", "{response.code.interrupted.error}");
 
     /**
      * 非法参数（500）
      */
-    ResponseCode ILLEGAL_ARGUMENT = of(500, "Illegal Argument", "非法参数");
+    ResponseCode ILLEGAL_ARGUMENT = of(500, "{response.code.illegal.argument}", "{response.code.illegal.argument}");
 
     /**
      * 默认校验失败（500）
      */
-    ResponseCode VALIDATION_ERROR_500 = of(500, "Validation failed", "验证失败，缺少具体错误配置");
-    ResponseCode VALIDATION_ERROR_500_DYNAMIC = of(500, "Validation failed", "链式验证未通过，请使用 ViolationSpec 配置具体错误信息");
+    ResponseCode VALIDATION_ERROR_500 = of(500, "{response.code.validation.failed}", "{response.code.validation.failed}");
+    ResponseCode VALIDATION_ERROR_500_DYNAMIC = of(500, "{response.code.validation.failed}", "{response.code.validation.failed.dynamic}");
 
     /**
      * 获取错误码数值

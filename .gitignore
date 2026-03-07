@@ -49,3 +49,10 @@ desktop.ini
 # Java
 hs_err_pid*
 replay_pid*
+
+#other
+other/
+
+
+#scripts
+scripts/

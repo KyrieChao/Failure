@@ -7,11 +7,6 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-      </profile>
-      <profile name="Annotation profile for Fail-Fast Spring Boot Starter" enabled="true">
-        <sourceOutputDir name="target/stripped-src" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
         <module name="fail-fast-spring-boot-starter" />
       </profile>
     </annotationProcessing>
