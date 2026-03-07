@@ -34,6 +34,47 @@ Failure is a lightweight, high-performance validation and business-exception fra
 
 ---
 
+## ⚡ 30-Second Comparison
+
+**No More Boilerplate, Just Fluent Flow**
+
+<table>
+<tr>
+<th width="50%">Traditional "if-throw" Hell</th>
+<th width="50%">Failure "Fluent" Style</th>
+</tr>
+<tr>
+<td>
+
+```java
+if (user == null) {
+    throw new BusinessException(Code.USER_NULL);
+}
+if (StringUtils.isBlank(user.getName())) {
+    throw new BusinessException(Code.NAME_EMPTY);
+}
+if (user.getAge() < 18) {
+    throw new BusinessException(Code.TOO_YOUNG);
+}
+```
+
+</td>
+<td>
+
+```java
+Failure.begin()
+    .notNull(user, Code.USER_NULL)
+    .notBlank(user.getName(), Code.NAME_EMPTY)
+    .min(user.getAge(), 18, Code.TOO_YOUNG)
+    .fail();
+```
+
+</td>
+</tr>
+</table>
+
+---
+
 ## 📚 Documentation
 
 | Document | Content |

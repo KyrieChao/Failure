@@ -29,7 +29,48 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 - **注解驱动**: 提供 `@Validate` 注解与 `FastValidator` 接口，支持 AOP 切面校验
 - **函数式结果**: 提供 `Result<T>` 单子类型，支持 `map`, `flatMap`, `recover` 等函数式操作
 - **智能调试快照**: 异常信息包含导致失败的参数值（支持自动脱敏与截断），让报错即线索
-- **智能异常处理**: 自动映射业务错误码到 HTTP 状态码，支持影子追踪 (`shadow-trace`) 快速定位问题
+- 智能异常处理: 自动映射业务错误码到 HTTP 状态码，支持影子追踪 (`shadow-trace`) 快速定位问题
+
+---
+
+## ⚡ 快速对比
+
+**拒绝样板代码，拥抱流畅体验**
+
+<table>
+<tr>
+<th width="50%">传统 "if-throw" 地狱</th>
+<th width="50%">Failure "Fluent" 风格</th>
+</tr>
+<tr>
+<td>
+
+```java
+if (user == null) {
+    throw new BusinessException(Code.USER_NULL);
+}
+if (StringUtils.isBlank(user.getName())) {
+    throw new BusinessException(Code.NAME_EMPTY);
+}
+if (user.getAge() < 18) {
+    throw new BusinessException(Code.TOO_YOUNG);
+}
+```
+
+</td>
+<td>
+
+```java
+Failure.begin()
+    .notNull(user, Code.USER_NULL)
+    .notBlank(user.getName(), Code.NAME_EMPTY)
+    .min(user.getAge(), 18, Code.TOO_YOUNG)
+    .fail();
+```
+
+</td>
+</tr>
+</table>
 
 ---
 
