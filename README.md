@@ -117,44 +117,6 @@ Failure.begin()
 
 ---
 
-## 🎛️ 流程控制与延迟校验
-
-### 动态跳过 (when)
-
-根据条件动态决定是否执行后续的校验逻辑。
-
-```java
-Failure.begin()
-    .when(isVip)                // 如果不是 VIP
-    .check(vipRule)             // 这一行会被跳过
-    .when(true)                 // 恢复执行
-    .check(commonRule);         // 继续执行
-```
-
-### 延迟校验 (defer)
-
-仅在真正需要时才执行开销较大的校验逻辑（支持 Supplier）。如果前面的校验已经失败（Fail-Fast）或被跳过，则不会执行。
-
-```java
-Failure.begin()
-    .notNull(userId)
-    // 只有 userId 不为 null 时，才会执行数据库查询
-    .defer(() -> dbService.isUserActive(userId), UserCode.USER_INACTIVE);
-```
-
-### 失败截断 (stopOnFail)
-
-如果当前链中存在错误（即使是 strict 模式），则停止后续所有校验（直到调用 `resume()`）。通常用于防止空指针异常（NPE）。
-
-```java
-Failure.strict()
-    .notNull(user, UserCode.REQUIRED)
-    .stopOnFail()                   // 如果 user 为空，停止后续校验
-    .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // 安全访问
-```
-
----
-
 ### 模式二：Fail-Strict（全量收集）
 
 **适用场景**: 表单提交、批量导入等需要一次性返回所有错误的场景。
@@ -220,6 +182,44 @@ public class UserRegisterValidator implements FastValidator<UserRegisterDTO> {
 | ------------- | -------------------- | ---------------- |
 | `true` (默认) | 第一个错误后立即停止 | 性能优先         |
 | `false`       | 执行所有校验规则     | 需要展示所有错误 |
+
+---
+
+## 🎛️ 流程控制与延迟校验
+
+### 动态跳过 (when)
+
+根据条件动态决定是否执行后续的校验逻辑。
+
+```java
+Failure.begin()
+    .when(isVip)                // 如果不是 VIP
+    .check(vipRule)             // 这一行会被跳过
+    .when(true)                 // 恢复执行
+    .check(commonRule);         // 继续执行
+```
+
+### 延迟校验 (defer)
+
+仅在真正需要时才执行开销较大的校验逻辑（支持 Supplier）。如果前面的校验已经失败（Fail-Fast）或被跳过，则不会执行。
+
+```java
+Failure.begin()
+    .notNull(userId)
+    // 只有 userId 不为 null 时，才会执行数据库查询
+    .defer(() -> dbService.isUserActive(userId), UserCode.USER_INACTIVE);
+```
+
+### 失败截断 (stopOnFail)
+
+如果当前链中存在错误（即使是 strict 模式），则停止后续所有校验（直到调用 `resume()`）。通常用于防止空指针异常（NPE）。
+
+```java
+Failure.strict()
+    .notNull(user, UserCode.REQUIRED)
+    .stopOnFail()                   // 如果 user 为空，停止后续校验
+    .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // 安全访问
+```
 
 ---
 
