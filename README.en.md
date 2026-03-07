@@ -68,6 +68,7 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
     <version>1.5.1</version>
 </dependency>
 ```
+
 ---
 
 ## 💡 Three Validation Modes

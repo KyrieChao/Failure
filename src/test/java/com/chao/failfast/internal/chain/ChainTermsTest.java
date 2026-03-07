@@ -60,6 +60,84 @@ class ChainTermsTest {
         assertThat(chain.getCauses().get(0).getDetail()).isEqualTo(DETAIL);
     }
 
-    // ChainTest.java 已经包含了对所有 Term 接口所有方法的详细测试（包括 detail 重载）。
-    // 这里只作为补充验证 ChainCore 和 Term 接口的集成。
+    @Test
+    @DisplayName("verify new StringTerm methods (isJson, isCreditCard, isBase64)")
+    void testNewStringTermMethods() {
+        AllTermsChain chain = AllTermsChain.create();
+
+        // 1. isJson
+        // Valid
+        chain.isJson("{\"a\":1}");
+        assertThat(chain.isValid()).isTrue();
+
+        // Invalid
+        chain.isJson("{invalid}", ERR, "Invalid JSON");
+        assertThat(chain.isValid()).isFalse();
+        assertThat(chain.getCauses().get(0).getDetail()).isEqualTo("Invalid JSON");
+
+        // Reset
+        chain = AllTermsChain.create();
+
+        // 2. isCreditCard
+        // Valid
+        chain.isCreditCard("79927398713");
+        assertThat(chain.isValid()).isTrue();
+
+        // Invalid
+        chain.isCreditCard("123", ERR, "Invalid Card");
+        assertThat(chain.isValid()).isFalse();
+        assertThat(chain.getCauses().get(0).getDetail()).isEqualTo("Invalid Card");
+
+        // Reset
+        chain = AllTermsChain.create();
+
+        // 3. isBase64
+        // Valid
+        chain.isBase64("SGVsbG8=");
+        assertThat(chain.isValid()).isTrue();
+
+        // Invalid
+        chain.isBase64("!!!!", ERR, "Invalid Base64");
+        assertThat(chain.isValid()).isFalse();
+        assertThat(chain.getCauses().get(0).getDetail()).isEqualTo("Invalid Base64");
+    }
+    @Test
+    @DisplayName("verify new StringTerm methods (isJson, isCreditCard, isBase64)")
+    void testNewStringTermMethods2() {
+        AllTermsChain chain = AllTermsChain.create();
+
+        // 1. isJson
+        // Valid
+        chain.isJson("{\"a\":1}");
+        assertThat(chain.isValid()).isTrue();
+
+        // Invalid
+        chain.isJson("{invalid}", ERR);
+        assertThat(chain.isValid()).isFalse();
+
+        // Reset
+        chain = AllTermsChain.create();
+
+        // 2. isCreditCard
+        // Valid
+        chain.isCreditCard("79927398713");
+        assertThat(chain.isValid()).isTrue();
+
+        // Invalid
+        chain.isCreditCard("123", ERR);
+        assertThat(chain.isValid()).isFalse();
+
+        // Reset
+        chain = AllTermsChain.create();
+
+        // 3. isBase64
+        // Valid
+        chain.isBase64("SGVsbG8=");
+        assertThat(chain.isValid()).isTrue();
+
+        // Invalid
+        chain.isBase64("!!!!", ERR);
+        assertThat(chain.isValid()).isFalse();
+    }
+
 }
