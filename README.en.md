@@ -10,6 +10,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
 
+
 [中文版本](./README.md)
 
 Failure is a lightweight, high-performance validation and business-exception framework designed for Spring Boot 3.x.
@@ -51,23 +52,13 @@ validation experience.
 
 ```java
 if(user ==null){
-        throw new
-
-BusinessException(Code.USER_NULL);
+    throw new BusinessException(Code.USER_NULL);
 }
-        if(StringUtils.
-
-isBlank(user.getName())){
-        throw new
-
-BusinessException(Code.NAME_EMPTY);
+if(StringUtils.isBlank(user.getName())){
+    throw new BusinessException(Code.NAME_EMPTY);
 }
-        if(user.
-
-getAge() < 18){
-        throw new
-
-BusinessException(Code.TOO_YOUNG);
+if(user.getAge() < 18){
+    throw new BusinessException(Code.TOO_YOUNG);
 }
 ```
 
@@ -76,18 +67,10 @@ BusinessException(Code.TOO_YOUNG);
 
 ```java
 Failure.begin()
-    .
-
-notNull(user, Code.USER_NULL)
-    .
-
-notBlank(user.getName(),Code.NAME_EMPTY)
-        .
-
-min(user.getAge(), 18,Code.TOO_YOUNG)
-        .
-
-fail();
+    .notNull(user, Code.USER_NULL)
+    .notBlank(user.getName(),Code.NAME_EMPTY)
+    .min(user.getAge(), 18,Code.TOO_YOUNG)
+    .fail();
 ```
 
 </td>
@@ -150,15 +133,9 @@ parameter.
 ```java
 // Throws exception immediately if notBlank fails, subsequent checks will not be executed
 Failure.begin()
-    .
-
-notBlank(username, UserCode.USERNAME_REQUIRED)
-    .
-
-email(email, UserCode.EMAIL_INVALID)
-    .
-
-fail();
+    .notBlank(username, UserCode.USERNAME_REQUIRED)
+    .email(email, UserCode.EMAIL_INVALID)
+    .fail();
 ```
 
 **Terminal Methods**:
@@ -171,18 +148,10 @@ fail();
 ```java
 // Force fail example: Permission check
 Failure.begin()
-    .
-
-notNull(user, UserCode.USER_NOT_FOUND)
-    .
-
-failNow(UserCode.PERMISSION_DENIED, "Access Denied")  // Throws immediately
-    .
-
-state(user.getRole() ==Role.ADMIN,UserCode.PERMISSION_DENIED)  // Will not execute
-        .
-
-fail();
+    .notNull(user, UserCode.USER_NOT_FOUND)
+    .failNow(UserCode.PERMISSION_DENIED, "Access Denied")  // Throws immediately
+    .state(user.getRole() ==Role.ADMIN,UserCode.PERMISSION_DENIED)  // Will not execute
+    .fail();
 ```
 
 ---
@@ -194,18 +163,10 @@ fail();
 ```java
 // All validations are executed, errors are collected and thrown together
 Failure.strict()
-    .
-
-notBlank(username, UserCode.USERNAME_REQUIRED, "Username cannot be empty")
-    .
-
-email(email, UserCode.EMAIL_INVALID, "Invalid email format")
-    .
-
-min(age, 18,UserCode.AGE_TOO_YOUNG, "Must be at least 18 years old")
-    .
-
-failAll();  // Must use failAll()
+    .notBlank(username, UserCode.USERNAME_REQUIRED, "Username cannot be empty")
+    .email(email, UserCode.EMAIL_INVALID, "Invalid email format")
+    .min(age, 18,UserCode.AGE_TOO_YOUNG, "Must be at least 18 years old")
+    .failAll();  // Must use failAll()
 ```
 
 **Manual Error Retrieval (No Exception)**:
@@ -215,13 +176,9 @@ var chain = Failure.strict()
         .notBlank(username, UserCode.USERNAME_REQUIRED)
         .email(email, UserCode.EMAIL_INVALID);
 
-if(!chain.
-
-isValid()){
+if(!chain.isValid()){
 var causes = chain.getCauses();  // Get all errors
-    return Result.
-
-fail("Validation failed",causes);
+    return Result.fail("Validation failed",causes);
 }
 ```
 
@@ -312,18 +269,10 @@ Control whether to execute subsequent validations dynamically.
 
 ```java
 Failure.begin()
-    .
-
-when(isVip)                // If not VIP
-    .
-
-check(vipRule)             // This line will be skipped
-    .
-
-when(true)                 // Resume execution
-    .
-
-check(commonRule);         // Continue execution
+    .when(isVip)                // If not VIP
+    .check(vipRule)             // This line will be skipped
+    .when(true)                 // Resume execution
+    .check(commonRule);         // Continue execution
 ```
 
 ### Lazy Evaluation (defer)
@@ -333,15 +282,9 @@ Fail-Fast) or were skipped, the supplier will not be executed.
 
 ```java
 Failure.begin()
-    .
-
-notNull(userId)
-// Query DB only if userId is not null
-    .
-
-defer(() ->dbService.
-
-isUserActive(userId),UserCode.USER_INACTIVE);
+    .notNull(userId)// Query DB only if userId is not null
+    .defer(() ->dbService
+    .isUserActive(userId),UserCode.USER_INACTIVE);
 ```
 
 ### Stop on Failure (stopOnFail)
@@ -351,17 +294,9 @@ preventing NPE.
 
 ```java
 Failure.strict()
-    .
-
-notNull(user, UserCode.REQUIRED)
-    .
-
-stopOnFail()                   // Stop if user is null
-    .
-
-defer(() ->user.
-
-isAdmin(),UserCode.NO_PERMISSION); // Safe access
+    .notNull(user, UserCode.REQUIRED)
+    .stopOnFail()      // Stop if user is null
+    .defer(() ->user.isAdmin(),UserCode.NO_PERMISSION); // Safe access
 ```
 
 ---
@@ -373,18 +308,10 @@ The `or()` operator is supported for "Condition A OR Condition B" scenarios.
 ```java
 // Example: User is either ADMIN OR has READ permission
 Failure.begin()
-    .
-
-equals(role, Role.ADMIN)       // Condition A: Is Admin
-    .
-
-or()                           // OR
-    .
-
-hasPermission(user, "READ")    // Condition B: Has Read Permission
-    .
-
-failNow(UserCode.NO_PERMISSION); // Throws if neither A nor B is satisfied
+    .equals(role, Role.ADMIN)       // Condition A: Is Admin
+    .or()                           // OR
+    .hasPermission(user, "READ")    // Condition B: Has Read Permission
+    .failNow(UserCode.NO_PERMISSION); // Throws if neither A nor B is satisfied
 ```
 
 Note: `or()` only applies to the immediately adjacent conditions. The default logic for chain calls is `AND`.
