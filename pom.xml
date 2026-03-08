@@ -11,18 +11,15 @@
         <relativePath/>
     </parent>
 
-    <!-- 修改 groupId 为验证通过的 namespace -->
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
 
-    <!-- 必须：名称和描述 -->
     <name>Failure - Fail-Fast Validation Framework</name>
     <description>A Spring Boot starter for fail-fast validation with chain API</description>
     <url>https://github.com/KyrieChao/Failure</url>
 
-    <!-- 必须：许可证 -->
     <licenses>
         <license>
             <name>Apache-2.0</name>
@@ -30,7 +27,6 @@
         </license>
     </licenses>
 
-    <!-- 必须：开发者信息 -->
     <developers>
         <developer>
             <id>kyriechao</id>
@@ -40,7 +36,6 @@
         </developer>
     </developers>
 
-    <!-- 必须：SCM 信息 -->
     <scm>
         <connection>scm:git:git://github.com/KyrieChao/Failure.git</connection>
         <developerConnection>scm:git:ssh://github.com:KyrieChao/Failure.git</developerConnection>
@@ -55,8 +50,7 @@
     </properties>
 
     <dependencies>
-        <!-- 去掉 mybatis-plus 和 mysql，这是业务依赖，starter 不应该强制引入 -->
-
+        <!-- 你的依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -92,36 +86,7 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <profiles>
-        <!-- 发布专用 profile -->
-        <profile>
-            <id>release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.1.0</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                                <configuration>
-                                    <gpgArguments>
-                                        <arg>--pinentry-mode</arg>
-                                        <arg>loopback</arg>
-                                    </gpgArguments>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+
     <build>
         <plugins>
             <plugin>
@@ -151,7 +116,7 @@
                 </configuration>
             </plugin>
 
-            <!-- 新增：Central Portal 发布插件 -->
+            <!-- Central Portal 发布插件 -->
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
@@ -163,45 +128,7 @@
                 </configuration>
             </plugin>
 
-            <!-- 新增：Source -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- 新增：Javadoc -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.6.3</version>
-                <configuration>
-                    <!-- 👇 关键配置：禁用严格检查，允许警告存在 -->
-                    <doclint>none</doclint>
-                    <failOnError>false</failOnError>
-                    <!-- 可选：设置编码，防止中文乱码 -->
-                    <charset>UTF-8</charset>
-                    <encoding>UTF-8</encoding>
-                    <docencoding>UTF-8</docencoding>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
+            <!-- JaCoCo 测试覆盖率 -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -229,4 +156,73 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- 发布专用 profile：source + javadoc + gpg -->
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <!-- Source -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Javadoc -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.6.3</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                            <failOnError>false</failOnError>
+                            <charset>UTF-8</charset>
+                            <encoding>UTF-8</encoding>
+                            <docencoding>UTF-8</docencoding>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- GPG 签名 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

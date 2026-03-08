@@ -1,6 +1,6 @@
-# Contributing to Fail-Fast
+# Contributing to Failure
 
-感谢您对 Fail-Fast 项目感兴趣！我们需要您的帮助来使这个项目变得更好。
+感谢您对 Failure 项目感兴趣！我们需要您的帮助来使这个项目变得更好。
 
 ## 行为准则 (Code of Conduct)
 
