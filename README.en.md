@@ -8,8 +8,6 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.kyriechao/failure-spring-boot-starter)
 [![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
 [![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
-[![Latest Release](https://img.shields.io/github/release-date/KyrieChao/Failure?logo=github&color=purple)](https://github.com/KyrieChao/Failure/releases)
-[![Repo Size](https://img.shields.io/github/repo-size/KyrieChao/Failure?logo=git&color=lightgrey)](https://github.com/KyrieChao/Failure)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
 
 [中文版本](./README.md)
