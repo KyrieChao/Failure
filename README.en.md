@@ -24,17 +24,12 @@ validation experience.
 ## 🚀 Core Features
 
 - **Fluent Validation Chain**: Supports `Fail-Fast` (immediate fail) and `Fail-Strict` (collect all errors) modes.
-- **Rich Assertions**: Built-in 50+ validation methods for Objects, Strings, Numbers, Collections, Date/Time, Enums,
-  Optionals, etc.
-- **Default Localization**: Provides out-of-the-box localized error messages (e.g., Chinese support) without manual
-  configuration.
-- **Context Integration**: Supports `TypedValidator` pattern to decouple validation logic from business logic.
-- **Annotation-Driven**: Provides `@Validate` annotation and `FastValidator` interface for AOP-based validation.
+- **Rich Assertions**: Built-in 50+ validation methods for Objects, Strings, Numbers, Collections, Date/Time, Enums, Optionals, etc.
+- **Default Localization**: Provides out-of-the-box localized error messages (e.g., Chinese support) without manual configuration.
+- **Annotation-Driven & Type Dispatch**: Provides `@Validate` annotation and `FastValidator` interface for AOP validation; supports `TypedValidator` pattern for automatic type dispatch and decoupling.
 - **Functional Results**: Provides `Result<T>` monad with `map`, `flatMap`, `recover` operations.
-- **Smart Debug Snapshot**: Captures invalid values in exceptions (with auto-masking & truncation), making errors
-  actionable.
-- **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes, with `shadow-trace` for
-  quick debugging.
+- **Smart Debug Snapshot**: Captures invalid values in exceptions (with auto-masking & truncation), making errors actionable.
+- **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes, with `shadow-trace` for quick debugging.
 
 ---
 
@@ -106,7 +101,7 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.1</version> <!-- Make sure it's up to date. -->
 </dependency>
 ```
 
@@ -117,7 +112,7 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
 <dependency>
     <groupId>com.github.KyrieChao</groupId>
     <artifactId>Failure</artifactId>
-    <version>1.5.1</version>
+    <version>1.5.1</version> <!-- Make sure it's up to date. -->
 </dependency>
 ```
 

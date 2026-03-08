@@ -23,11 +23,10 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 - **流式校验链**: 支持 `Fail-Fast` (快速失败) 与 `Fail-Strict` (全量收集) 双模式
 - **丰富的断言库**: 内置对象、字符串、数值、集合、日期时间、枚举、Optional 等 50+ 种校验方法
 - **默认本地化**: 提供开箱即用的中文错误提示（如 "当前值 不能为空"），无需手动配置
-- **上下文集成**: 支持 `TypedValidator` 模式，将校验逻辑与业务逻辑解耦
-- **注解驱动**: 提供 `@Validate` 注解与 `FastValidator` 接口，支持 AOP 切面校验
+- **注解驱动与类型分发**: 提供 `@Validate` 注解与 `FastValidator` 接口实现 AOP 切面校验；内置 `TypedValidator` 模式支持多类型参数的自动分发与业务解耦
 - **函数式结果**: 提供 `Result<T>` 单子类型，支持 `map`, `flatMap`, `recover` 等函数式操作
 - **智能调试快照**: 异常信息包含导致失败的参数值（支持自动脱敏与截断），让报错即线索
-- 智能异常处理: 自动映射业务错误码到 HTTP 状态码，支持影子追踪 (`shadow-trace`) 快速定位问题
+- **智能异常处理**: 自动映射业务错误码到 HTTP 状态码，支持影子追踪 (`shadow-trace`) 快速定位问题
 
 ---
 
@@ -98,7 +97,7 @@ Failure.begin()
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.1</version> <!-- 确保这里是最新版 -->
 </dependency>
 ```
 ---
@@ -107,7 +106,7 @@ Failure.begin()
 <dependency>
     <groupId>com.github.KyrieChao</groupId>
     <artifactId>Failure</artifactId>
-    <version>1.5.1</version>
+    <version>1.5.1</version> <!-- 确保这里是最新版 -->
 </dependency>
 ```
 
