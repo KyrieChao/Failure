@@ -33,6 +33,7 @@ class CodeMappingConfigTest {
         void shouldResolveDefaultMappings() {
             assertThat(config.resolveHttpStatus(40000)).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(config.resolveHttpStatus(50000)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(config.resolveHttpStatus(99)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         @Test
@@ -77,6 +78,7 @@ class CodeMappingConfigTest {
         void shouldResolveUnknownToInternalServerError() {
             assertThat(config.resolveHttpStatus(99999)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
         @Test
         @DisplayName("标准HTTP边界值应正确解析")
         void shouldResolveHttpStatusBoundaryValues() {

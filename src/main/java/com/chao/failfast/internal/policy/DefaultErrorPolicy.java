@@ -17,7 +17,6 @@ public final class DefaultErrorPolicy implements ErrorPolicy {
 
     @Override
     public String defaultDetail(ResponseCode code) {
-        if (code == null) return null;
         String detail = code.getDescription();
         if (detail == null) detail = code.getMessage();
         return detail;

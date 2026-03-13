@@ -50,10 +50,10 @@ class ResultsCoverageTest {
     @DisplayName("whenOrFail: 异常且无detail时使用异常消息")
     void whenOrFail_exceptionNoDetail() {
         Result<String> result = Results.whenOrFail(true, () -> {
-            throw new RuntimeException("oops");
+            throw new RuntimeException();
         }, CODE);
 
         assertTrue(result.isFail());
-        assertEquals("oops", result.getError().getDetail());
+        assertEquals("参数错误", result.getError().getDetail());
     }
 }

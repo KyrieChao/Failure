@@ -524,6 +524,11 @@ public class ChainTest {
     @Test
     @DisplayName("测试 url() 所有重载")
     void testUrlAllVariants() {
+        assertThrows(Business.class, () -> Failure.begin().url("").fail());
+        assertThrows(Business.class, () -> Failure.begin().url(null).fail());
+        assertThrows(Business.class, () -> Failure.begin().url("https").fail());
+        assertThrows(Business.class, () -> Failure.begin().url("example.com").fail());
+        assertThrows(Business.class, () -> Failure.begin().url("example.com", TEST_CODE).fail());
         assertDoesNotThrow(() -> Failure.begin().url("https://example.com").fail());
         assertDoesNotThrow(() -> Failure.begin().url("https://example.com", TEST_CODE).fail());
         assertDoesNotThrow(() -> Failure.begin().url("https://example.com", TEST_CODE, TEST_DETAIL).fail());

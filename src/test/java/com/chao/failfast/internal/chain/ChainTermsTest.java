@@ -101,6 +101,7 @@ class ChainTermsTest {
         assertThat(chain.isValid()).isFalse();
         assertThat(chain.getCauses().get(0).getDetail()).isEqualTo("Invalid Base64");
     }
+
     @Test
     @DisplayName("verify new StringTerm methods (isJson, isCreditCard, isBase64)")
     void testNewStringTermMethods2() {
@@ -137,6 +138,35 @@ class ChainTermsTest {
 
         // Invalid
         chain.isBase64("!!!!", ERR);
+        assertThat(chain.isValid()).isFalse();
+    }
+
+    @Test
+    @DisplayName("isJson")
+    void testIsJson() {
+        AllTermsChain chain = AllTermsChain.create();
+        chain.isJson("");
+        assertThat(chain.isValid()).isFalse();
+        chain.isJson(null);
+        assertThat(chain.isValid()).isFalse();
+    }
+
+    @Test
+    @DisplayName("isBase64")
+    void testIsBase64() {
+        AllTermsChain chain = AllTermsChain.create();
+        chain.isBase64("");
+        assertThat(chain.isValid()).isFalse();
+        chain.isBase64(null);
+        assertThat(chain.isValid()).isFalse();
+    }
+    @Test
+    @DisplayName("isCreditCard")
+    void testIsCreditCard() {
+        AllTermsChain chain = AllTermsChain.create();
+        chain.isCreditCard("s");
+        assertThat(chain.isValid()).isFalse();
+        chain.isCreditCard(null);
         assertThat(chain.isValid()).isFalse();
     }
 

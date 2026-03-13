@@ -58,9 +58,11 @@ class TypedValidatorOptimizationTest {
 
         boolean ok1 = v.validateIfRegistered("x", ctx);
         boolean ok2 = v.validateIfRegistered(1, ctx);
+        boolean ok3 = v.validateIfRegistered(null, ctx);
 
         assertThat(ok1).isTrue();
         assertThat(ok2).isFalse();
+        assertThat(ok3).isFalse();
         assertThat(v.calls.get()).isEqualTo(1);
         assertThat(ctx.isValid()).isTrue();
     }

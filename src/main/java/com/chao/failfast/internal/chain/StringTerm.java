@@ -24,9 +24,11 @@ public interface StringTerm<S extends ChainCore<S>> {
     default S notEmpty(String str) {
         return notBlank(str, FailureConst.NOT_EMPTY_ERROR);
     }
+
     default S notEmpty(String str, ResponseCode code) {
         return notBlank(str, code);
     }
+
     default S notEmpty(String str, ResponseCode code, String detail) {
         return notBlank(str, code, detail);
     }
@@ -294,6 +296,7 @@ public interface StringTerm<S extends ChainCore<S>> {
     default S isJson(String str, ResponseCode code, String detail) {
         return core().check(StringChecks.isJson(str), code, detail, str);
     }
+
 
     default S isCreditCard(String str) {
         return isCreditCard(str, FailureConst.IS_CREDIT_CARD_ERROR, null);

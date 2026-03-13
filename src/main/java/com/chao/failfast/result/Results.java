@@ -36,9 +36,10 @@ public final class Results {
         try {
             return Result.ok(supplier.get());
         } catch (Business e) {
-            return Result.fail(e);
+            String des = getBusinessMessage(errorCode, detail);
+            return Result.fail(Business.of(errorCode, des));
         } catch (Exception e) {
-            String des = detail != null ? detail : e.getMessage() != null ? e.getMessage() : errorCode.getDescription();
+            String des = getBusinessMessage(errorCode, detail);
             return Result.fail(errorCode, des);
         }
     }
@@ -55,9 +56,10 @@ public final class Results {
             runnable.run();
             return Result.ok(null);
         } catch (Business e) {
-            return Result.fail(e);
+            String des = getBusinessMessage(errorCode, detail);
+            return Result.fail(Business.of(errorCode, des));
         } catch (Exception e) {
-            String des = detail != null ? detail : e.getMessage() != null ? e.getMessage() : errorCode.getDescription();
+            String des = getBusinessMessage(errorCode, detail);
             return Result.fail(errorCode, des);
         }
     }
@@ -111,16 +113,18 @@ public final class Results {
         return whenOrFail(condition, supplier, failCode, null);
     }
 
-    public static <T> Result<T> whenOrFail(boolean condition, Supplier<T> supplier, ResponseCode failCode, String detail) {
+    public static <T> Result<T> whenOrFail(boolean condition, Supplier<T> supplier, ResponseCode errorCode, String detail) {
         if (!condition) {
-            return Result.fail(failCode, detail);
+            return Result.fail(errorCode, detail);
         }
         try {
             return Result.ok(supplier.get());
         } catch (Business e) {
-            return Result.fail(e);
+            String des = getBusinessMessage(errorCode, detail);
+            return Result.fail(Business.of(errorCode, des));
         } catch (Exception e) {
-            return Result.fail(failCode, detail != null ? detail : e.getMessage());
+            String des = getBusinessMessage(errorCode, detail);
+            return Result.fail(errorCode, des);
         }
     }
 
@@ -444,7 +448,7 @@ public final class Results {
                 return lastResult;
             }
         }
-        return lastResult != null ? lastResult : Result.ok(null);
+        return lastResult;
     }
 
     /**
@@ -541,5 +545,9 @@ public final class Results {
     @FunctionalInterface
     public interface Function3<A, B, C, R> {
         R apply(A a, B b, C c);
+    }
+
+    private static String getBusinessMessage(ResponseCode errorCode, String detail) {
+        return detail != null ? detail : errorCode.getDescription() != null ? errorCode.getDescription() : errorCode.getMessage();
     }
 }

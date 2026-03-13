@@ -1,9 +1,10 @@
 package com.chao.failfast.result;
 
+import com.chao.failfast.i18n.I18nExtension;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.MultiBusiness;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.i18n.I18nExtension;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,17 +13,19 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Results 工具类单元测试 - 100% 覆盖率
  */
+@Slf4j
 @DisplayName("Results 工具类测试")
 @ExtendWith(I18nExtension.class)
 class ResultsTest {
@@ -64,7 +67,10 @@ class ResultsTest {
         }, TEST_CODE);
 
         assertTrue(result.isFail());
-        assertSame(TEST_BUSINESS, result.getError());
+        ResponseCode code = result.getError().getResponseCode();
+        assertEquals(TEST_CODE.getCode(), code.getCode());
+        assertEquals(TEST_CODE.getMessage(), code.getMessage());
+        assertEquals(TEST_CODE.getDescription(), code.getDescription());
     }
 
     @Test
@@ -93,6 +99,17 @@ class ResultsTest {
     void tryRun_exception() {
         Result<Void> result = Results.tryRun(() -> {
             throw new RuntimeException();
+        }, TEST_CODE, "run failed");
+
+        assertTrue(result.isFail());
+        assertEquals("run failed", result.getError().getDetail());
+    }
+
+    @Test
+    @DisplayName("tryRun: 捕获异常")
+    void tryRun_Business() {
+        Result<Void> result = Results.tryRun(() -> {
+            throw Business.of(TEST_CODE);
         }, TEST_CODE, "run failed");
 
         assertTrue(result.isFail());
@@ -223,7 +240,10 @@ class ResultsTest {
             throw TEST_BUSINESS;
         }, TEST_CODE);
 
-        assertSame(TEST_BUSINESS, result.getError());
+        ResponseCode code = result.getError().getResponseCode();
+        assertEquals(TEST_CODE.getCode(), code.getCode());
+        assertEquals(TEST_CODE.getMessage(), code.getMessage());
+        assertEquals(TEST_CODE.getDescription(), code.getDescription());
     }
 
     @Test
@@ -486,6 +506,23 @@ class ResultsTest {
         assertTrue(result.getError() instanceof MultiBusiness);
     }
 
+    @Test
+    @DisplayName("traverseAll: 收集所有错误 成功")
+    void traverseAll_collectErrors2() {
+        Result<List<Integer>> result = Results.traverseAll(
+                List.of("1", "2", "3", "4"),
+                s -> {
+                    try {
+                        return Result.ok(Integer.parseInt(s));
+                    } catch (NumberFormatException e) {
+                        return Result.fail(TEST_CODE);
+                    }
+                }
+        );
+
+        assertTrue(result.isSuccess());
+    }
+
     // ==================== traverseIndexed ====================
 
     @Test
@@ -520,6 +557,17 @@ class ResultsTest {
 
         assertTrue(result.isFail());
         // 索引1失败
+    }
+
+    @Test
+    @DisplayName("traverseAllIndexed: 全量收集 成功")
+    void traverseAllIndexed_all2() {
+        Result<List<String>> result = Results.traverseAllIndexed(
+                List.of("a", "b", "c"),
+                (idx, val) -> Result.ok(val)
+        );
+
+        assertTrue(result.isSuccess());
     }
 
     // ==================== zip ====================
@@ -594,7 +642,7 @@ class ResultsTest {
                 Result.ok(2),
                 Result.ok(3),
                 Result.ok(4),
-                (a, b, c, d) ->  a + b + c + d
+                (a, b, c, d) -> a + b + c + d
         );
 
         assertEquals("1234", result.get());
@@ -607,6 +655,33 @@ class ResultsTest {
                 Result.ok(1),
                 Result.ok(2),
                 Result.ok(3),
+                Result.fail(TEST_CODE),
+                (a, b, c, d) -> "never"
+        );
+
+        assertTrue(result.isFail());
+    }
+
+    @Test
+    @DisplayName("zip 全失败")
+    void zip4Fail() {
+        Result<String> result = Results.zip(
+                Result.fail(TEST_CODE),
+                Result.fail(TEST_CODE),
+                Result.fail(TEST_CODE),
+                Result.fail(TEST_CODE),
+                (a, b, c, d) -> "never"
+        );
+
+        assertTrue(result.isFail());
+    }
+    @Test
+    @DisplayName("zip")
+    void zipFail() {
+        Result<String> result = Results.zip(
+                Result.fail(TEST_CODE),
+                Result.ok("1"),
+                Result.ok("2"),
                 Result.fail(TEST_CODE),
                 (a, b, c, d) -> "never"
         );
@@ -905,6 +980,42 @@ class ResultsTest {
         Result<Integer> r2 = deferred.get();
         assertEquals(1, count.get()); // 不会重复执行
         assertEquals(42, r2.get());
+    }
+
+    @Test
+    @DisplayName("defer: 并发场景只执行一次")
+    void defer_concurrent() throws InterruptedException, ExecutionException {
+        AtomicInteger count = new AtomicInteger(0);
+        Supplier<Result<Integer>> deferred = Results.defer(() -> {
+            count.incrementAndGet();
+            // 模拟耗时，增加并发竞争概率
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ignored) {
+            }
+            return Result.ok(42);
+        });
+
+        int threads = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        CountDownLatch latch = new CountDownLatch(threads);
+        List<Future<Result<Integer>>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threads; i++) {
+            futures.add(executor.submit(() -> {
+                latch.countDown();
+                latch.await();  // 同时触发
+                return deferred.get();
+            }));
+        }
+
+        // 等待全部完成
+        for (Future<Result<Integer>> f : futures) {
+            assertEquals(42, f.get().get());
+        }
+
+        assertEquals(1, count.get());  // 只执行一次
+        executor.shutdown();
     }
 
     @Test
