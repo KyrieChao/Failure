@@ -7,6 +7,7 @@
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.kyriechao/failure-spring-boot-starter)
 [![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
+[![爱发电](https://img.shields.io/badge/爱发电-支持作者-946ce6?style=flat-square)](https://ifdian.net/a/chao242702)
 [![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
 
@@ -340,6 +341,13 @@ fail-fast:
 
 ---
 
+## ☕ 支持作者
+
+如果这个项目对你有帮助，可以考虑[在爱发电支持我](https://ifdian.net/a/chao242702)，用于持续维护 Failure
+
+或者简单地给我一个 ⭐ Star，让更多人发现这个项目！
+
+---
 ## 🤝 贡献指南
 
 欢迎提交 Issue 或 Pull Request！请确保：

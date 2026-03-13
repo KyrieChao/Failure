@@ -148,6 +148,22 @@ class ResultTest {
             Result<Integer> filtered = result.filter(i -> i > 5, TestResponseCode.PARAM_ERROR, "detail");
             assertThat(filtered.isSuccess()).isTrue();
         }
+        @Test
+        @DisplayName("filter: 当 Result 已是失败时应直接返回自身，不执行 predicate")
+        void filterWhenAlreadyFailShouldReturnSelf() {
+            Result<Integer> fail = Result.fail(TestResponseCode.PARAM_ERROR, "原始错误");
+
+            // 即使 predicate 会抛异常，也不应该执行，因为已经是 Fail 了
+            Result<Integer> filtered = fail.filter(
+                    i -> { throw new RuntimeException("不应执行"); },
+                    TestResponseCode.PARAM_ERROR,
+                    "新详情"
+            );
+
+            assertThat(filtered.isFail()).isTrue();
+            assertThat(filtered.getError().getResponseCode()).isEqualTo(TestResponseCode.PARAM_ERROR);
+            assertThat(filtered.getError().getDetail()).isEqualTo("原始错误");
+        }
 
         @Test
         @DisplayName("filter 当条件不满足时应转为失败")
@@ -605,6 +621,16 @@ class ResultTest {
             assertThat(success.getMessage()).isEqualTo("Success");
             assertThat(success.getDescription()).isEqualTo("操作成功");
             assertThat(success.getTimestamp()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("getError: 当 Result 是 Success 时应抛出异常")
+        void getError_whenSuccess_shouldThrow() {
+            Result<String> success = Result.ok("data");
+
+            assertThatThrownBy(success::getError)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Result is success");
         }
 
         @Test

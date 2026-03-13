@@ -313,7 +313,6 @@ public class Business extends RuntimeException implements Serializable {
     }
 
     private String maskValue(Object value) {
-        if (value == null) return "null";
         String str = value.toString();
         if (str.isEmpty()) return str;
 

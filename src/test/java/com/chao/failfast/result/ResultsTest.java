@@ -35,6 +35,7 @@ class ResultsTest {
     private static final ResponseCode TEST_CODE = ResponseCode.of(40001, "TEST_ERROR", "Test error");
     private static final ResponseCode TEST_CODE_2 = ResponseCode.of(40002, "TEST_ERROR_2", "Test error 2");
     private static final Business TEST_BUSINESS = Business.of(TEST_CODE, "detail");
+    private static final ResponseCode TEST_CODE3 = ResponseCode.of(40003, "TEST_ERROR");
 
     // ==================== tryOf / tryRun ====================
 
@@ -114,6 +115,20 @@ class ResultsTest {
 
         assertTrue(result.isFail());
         assertEquals("run failed", result.getError().getDetail());
+    }
+
+    @Test
+    @DisplayName("tryRun: getBusinessMessage")
+    void tryRun_getBusinessMessage() {
+        Result<Void> result = Results.tryRun(() -> {
+            throw new RuntimeException();
+        }, TEST_CODE3);
+
+        Result<Void> result2 = Results.tryRun(() -> {
+            throw new RuntimeException();
+        }, TEST_CODE3, "run failed");
+        assertTrue(result.isFail());
+        assertTrue(result2.isFail());
     }
 
     @Test
@@ -675,6 +690,7 @@ class ResultsTest {
 
         assertTrue(result.isFail());
     }
+
     @Test
     @DisplayName("zip")
     void zipFail() {
@@ -687,6 +703,36 @@ class ResultsTest {
         );
 
         assertTrue(result.isFail());
+    }
+
+    @Test
+    @DisplayName("zip 4: 第二个失败 - 覆盖 r2")
+    void zip4_secondFail() {
+        Result<String> result = Results.zip(
+                Result.ok(1),           // r1 成功
+                Result.fail(TEST_CODE), // r2 失败 ← 覆盖这行
+                Result.ok(3),           // r3 任意
+                Result.ok(4),           // r4 任意
+                (a, b, c, d) -> "never"
+        );
+
+        assertTrue(result.isFail());
+        assertEquals(40001, result.getError().getResponseCode().getCode());
+    }
+
+    @Test
+    @DisplayName("zip 4: 第三个失败 - 覆盖 r3")
+    void zip4_thirdFail() {
+        Result<String> result = Results.zip(
+                Result.ok(1),           // r1 成功
+                Result.ok(2),           // r2 成功
+                Result.fail(TEST_CODE), // r3 失败 ← 覆盖这行
+                Result.ok(4),           // r4 任意
+                (a, b, c, d) -> "never"
+        );
+
+        assertTrue(result.isFail());
+        assertEquals(40001, result.getError().getResponseCode().getCode());
     }
 
     // ==================== tap ====================

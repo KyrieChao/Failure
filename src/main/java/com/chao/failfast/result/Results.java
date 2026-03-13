@@ -35,9 +35,6 @@ public final class Results {
     public static <T> Result<T> tryOf(Supplier<T> supplier, ResponseCode errorCode, String detail) {
         try {
             return Result.ok(supplier.get());
-        } catch (Business e) {
-            String des = getBusinessMessage(errorCode, detail);
-            return Result.fail(Business.of(errorCode, des));
         } catch (Exception e) {
             String des = getBusinessMessage(errorCode, detail);
             return Result.fail(errorCode, des);
@@ -55,9 +52,6 @@ public final class Results {
         try {
             runnable.run();
             return Result.ok(null);
-        } catch (Business e) {
-            String des = getBusinessMessage(errorCode, detail);
-            return Result.fail(Business.of(errorCode, des));
         } catch (Exception e) {
             String des = getBusinessMessage(errorCode, detail);
             return Result.fail(errorCode, des);
@@ -119,9 +113,6 @@ public final class Results {
         }
         try {
             return Result.ok(supplier.get());
-        } catch (Business e) {
-            String des = getBusinessMessage(errorCode, detail);
-            return Result.fail(Business.of(errorCode, des));
         } catch (Exception e) {
             String des = getBusinessMessage(errorCode, detail);
             return Result.fail(errorCode, des);

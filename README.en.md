@@ -6,6 +6,8 @@
 [![Java 17+](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/technologies/downloads/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.kyriechao/failure-spring-boot-starter)
+[![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
+[![Sponsor](https://img.shields.io/badge/Sponsor-Aifadian-946ce6?style=flat-square)](https://ifdian.net/a/chao242702)
 [![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
 
@@ -341,6 +343,14 @@ For advanced customization of default response code, default detail generation, 
 - **[API_REFERENCE.en.md](./API_REFERENCE.en.md)** - Complete API Reference, Design Patterns
 - **[Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)** - Live Demo Project
 
+---
+## ☕ Support the Author
+
+If you find this project helpful, consider [supporting me on Aifadian](https://ifdian.net/a/chao242702) to help maintain Failure.
+
+Or simply give it a ⭐ Star to help more people discover this project!
+
+---
 ## 🤝 Contributing
 
 Issues and Pull Requests are welcome! Please run `mvn test` before submitting and follow the existing code style.
