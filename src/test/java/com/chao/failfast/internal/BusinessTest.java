@@ -2,8 +2,10 @@ package com.chao.failfast.internal;
 
 import com.chao.failfast.config.CodeMappingConfig;
 import com.chao.failfast.i18n.I18nExtension;
+import com.chao.failfast.internal.core.FailureProperties;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.model.TestResponseCode;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,6 +18,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@Slf4j
 @DisplayName("Business 异常类测试")
 @ExtendWith(I18nExtension.class)
 class BusinessTest {
@@ -401,4 +404,21 @@ class BusinessTest {
         }
     }
 
+    @Test
+    @DisplayName("Card")
+    void testCard() {
+        FailureProperties props = new FailureProperties();
+        props.setDebugSnapshot(true);
+
+        FailureContext ctx = new FailureContext(props, new CodeMappingConfig(props), null);
+        Ex.setContext(ctx);
+
+        Business business = Business.compose()
+                .responseCode(TestResponseCode.PARAM_ERROR)
+                .invalidValue("152222200501154332")
+                .detail("Invalid card number")
+                .materialize();
+        assertThat(business.getInvalidValue()).isEqualTo("152222200501154332");
+        log.info(business.toString());
+    }
 }

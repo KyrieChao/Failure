@@ -32,11 +32,11 @@ public interface ObjectTerm<S extends ChainCore<S>> {
     }
 
     default S exists(Object obj) {
-        return core().check(ObjectChecks.exists(obj), FailureConst.EXISTS_ERROR, null);
+        return exists(obj, FailureConst.EXISTS_ERROR, null);
     }
 
     default S exists(Object obj, ResponseCode code) {
-        return core().check(ObjectChecks.exists(obj), code, null);
+        return exists(obj, code, null);
     }
 
     default S exists(Object obj, ResponseCode code, String detail) {
@@ -44,11 +44,11 @@ public interface ObjectTerm<S extends ChainCore<S>> {
     }
 
     default S isNull(Object obj) {
-        return core().check(ObjectChecks.isNull(obj), FailureConst.IS_NULL_ERROR, null);
+        return isNull(obj, FailureConst.IS_NULL_ERROR, null);
     }
 
     default S isNull(Object obj, ResponseCode code) {
-        return core().check(ObjectChecks.isNull(obj), code, null);
+        return isNull(obj, code, null);
     }
 
     default S isNull(Object obj, ResponseCode code, String detail) {
@@ -56,11 +56,11 @@ public interface ObjectTerm<S extends ChainCore<S>> {
     }
 
     default S instanceOf(Object obj, Class<?> type) {
-        return core().check(ObjectChecks.instanceOf(obj, type), FailureConst.INSTANCE_OF_ERROR, null);
+        return instanceOf(obj, type, FailureConst.INSTANCE_OF_ERROR, null);
     }
 
     default S instanceOf(Object obj, Class<?> type, ResponseCode code) {
-        return core().check(ObjectChecks.instanceOf(obj, type), code, null);
+        return instanceOf(obj, type, code, null);
     }
 
     default S instanceOf(Object obj, Class<?> type, ResponseCode code, String detail) {
@@ -68,11 +68,11 @@ public interface ObjectTerm<S extends ChainCore<S>> {
     }
 
     default S notInstanceOf(Object obj, Class<?> type) {
-        return core().check(ObjectChecks.notInstanceOf(obj, type), FailureConst.NOT_INSTANCE_OF_ERROR, null);
+        return notInstanceOf(obj, type, FailureConst.NOT_INSTANCE_OF_ERROR, null);
     }
 
     default S notInstanceOf(Object obj, Class<?> type, ResponseCode code) {
-        return core().check(ObjectChecks.notInstanceOf(obj, type), code, null);
+        return notInstanceOf(obj, type, code, null);
     }
 
     default S notInstanceOf(Object obj, Class<?> type, ResponseCode code, String detail) {
@@ -80,11 +80,11 @@ public interface ObjectTerm<S extends ChainCore<S>> {
     }
 
     default S allNotNull(Object... objs) {
-        return core().check(ObjectChecks.allNotNull(objs), FailureConst.ALL_NOT_NULL_ERROR, null);
+        return allNotNull(FailureConst.ALL_NOT_NULL_ERROR, null, objs);
     }
 
     default S allNotNull(ResponseCode code, Object... objs) {
-        return core().check(ObjectChecks.allNotNull(objs), code, null);
+        return allNotNull(code, null, objs);
     }
 
     default S allNotNull(ResponseCode code, String detail, Object... objs) {

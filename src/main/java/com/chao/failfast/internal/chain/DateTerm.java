@@ -28,11 +28,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     S core();
 
     default S after(Date date1, Date date2) {
-        return core().check(DateChecks.after(date1, date2), FailureConst.AFTER_ERROR, null);
+        return after(date1, date2, FailureConst.AFTER_ERROR, null);
     }
 
     default S after(Date date1, Date date2, ResponseCode code) {
-        return core().check(DateChecks.after(date1, date2), code, null);
+        return after(date1, date2, code, null);
     }
 
     default S after(Date date1, Date date2, ResponseCode code, String detail) {
@@ -40,11 +40,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S before(Date date1, Date date2) {
-        return core().check(DateChecks.before(date1, date2), FailureConst.BEFORE_ERROR, null);
+        return before(date1, date2, FailureConst.BEFORE_ERROR, null);
     }
 
     default S before(Date date1, Date date2, ResponseCode code) {
-        return core().check(DateChecks.before(date1, date2), code, null);
+        return before(date1, date2, code, null);
     }
 
     default S before(Date date1, Date date2, ResponseCode code, String detail) {
@@ -52,11 +52,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Comparable<T>> S after(T t1, T t2) {
-        return core().check(DateChecks.after(t1, t2), FailureConst.AFTER_ERROR, null);
+        return after(t1, t2, FailureConst.AFTER_ERROR, null);
     }
 
     default <T extends Comparable<T>> S after(T t1, T t2, ResponseCode code) {
-        return core().check(DateChecks.after(t1, t2), code, null);
+        return after(t1, t2, code, null);
     }
 
     default <T extends Comparable<T>> S after(T t1, T t2, ResponseCode code, String detail) {
@@ -64,11 +64,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Comparable<T>> S afterOrEqual(T t1, T t2) {
-        return core().check(DateChecks.afterOrEqual(t1, t2), FailureConst.AFTER_OR_EQUAL_ERROR, null);
+        return afterOrEqual(t1, t2, FailureConst.AFTER_OR_EQUAL_ERROR, null);
     }
 
     default <T extends Comparable<T>> S afterOrEqual(T t1, T t2, ResponseCode code) {
-        return core().check(DateChecks.afterOrEqual(t1, t2), code, null);
+        return afterOrEqual(t1, t2, code, null);
     }
 
     default <T extends Comparable<T>> S afterOrEqual(T t1, T t2, ResponseCode code, String detail) {
@@ -76,11 +76,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Comparable<T>> S before(T t1, T t2) {
-        return core().check(DateChecks.before(t1, t2), FailureConst.BEFORE_ERROR, null);
+        return before(t1, t2, FailureConst.BEFORE_ERROR, null);
     }
 
     default <T extends Comparable<T>> S before(T t1, T t2, ResponseCode code) {
-        return core().check(DateChecks.before(t1, t2), code, null);
+        return before(t1, t2, code, null);
     }
 
     default <T extends Comparable<T>> S before(T t1, T t2, ResponseCode code, String detail) {
@@ -88,11 +88,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Comparable<T>> S beforeOrEqual(T t1, T t2) {
-        return core().check(DateChecks.beforeOrEqual(t1, t2), FailureConst.BEFORE_OR_EQUAL_ERROR, null);
+        return beforeOrEqual(t1, t2, FailureConst.BEFORE_OR_EQUAL_ERROR, null);
     }
 
     default <T extends Comparable<T>> S beforeOrEqual(T t1, T t2, ResponseCode code) {
-        return core().check(DateChecks.beforeOrEqual(t1, t2), code, null);
+        return beforeOrEqual(t1, t2, code, null);
     }
 
     default <T extends Comparable<T>> S beforeOrEqual(T t1, T t2, ResponseCode code, String detail) {
@@ -100,11 +100,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Comparable<T>> S between(T value, T start, T end) {
-        return core().check(DateChecks.between(value, start, end), FailureConst.BETWEEN_ERROR, null);
+        return between(value, start, end, FailureConst.BETWEEN_ERROR, null);
     }
 
     default <T extends Comparable<T>> S between(T value, T start, T end, ResponseCode code) {
-        return core().check(DateChecks.between(value, start, end), code, null);
+        return between(value, start, end, code, null);
     }
 
     default <T extends Comparable<T>> S between(T value, T start, T end, ResponseCode code, String detail) {
@@ -112,11 +112,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isPast(Date date) {
-        return core().check(DateChecks.isPast(date), FailureConst.IS_PAST_ERROR, null);
+        return isPast(date, FailureConst.IS_PAST_ERROR, null);
     }
 
     default S isPast(Date date, ResponseCode code) {
-        return core().check(DateChecks.isPast(date), code, null);
+        return isPast(date, code, null);
     }
 
     default S isPast(Date date, ResponseCode code, String detail) {
@@ -124,11 +124,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isFuture(Date date) {
-        return core().check(DateChecks.isFuture(date), FailureConst.IS_FUTURE_ERROR, null);
+        return isFuture(date, FailureConst.IS_FUTURE_ERROR, null);
     }
 
     default S isFuture(Date date, ResponseCode code) {
-        return core().check(DateChecks.isFuture(date), code, null);
+        return isFuture(date, code, null);
     }
 
     default S isFuture(Date date, ResponseCode code, String detail) {
@@ -136,11 +136,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isPast(ChronoLocalDate date) {
-        return core().check(DateChecks.isPast(date), FailureConst.IS_PAST_ERROR, null);
+        return isPast(date, FailureConst.IS_PAST_ERROR, null);
     }
 
     default S isPast(ChronoLocalDate date, ResponseCode code) {
-        return core().check(DateChecks.isPast(date), code, null);
+        return isPast(date, code, null);
     }
 
     default S isPast(ChronoLocalDate date, ResponseCode code, String detail) {
@@ -148,11 +148,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isFuture(ChronoLocalDate date) {
-        return core().check(DateChecks.isFuture(date), FailureConst.IS_FUTURE_ERROR, null);
+        return isFuture(date, FailureConst.IS_FUTURE_ERROR, null);
     }
 
     default S isFuture(ChronoLocalDate date, ResponseCode code) {
-        return core().check(DateChecks.isFuture(date), code, null);
+        return isFuture(date, code, null);
     }
 
     default S isFuture(ChronoLocalDate date, ResponseCode code, String detail) {
@@ -160,11 +160,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isPast(ChronoLocalDateTime<?> dateTime) {
-        return core().check(DateChecks.isPast(dateTime), FailureConst.IS_PAST_ERROR, null);
+        return isPast(dateTime, FailureConst.IS_PAST_ERROR, null);
     }
 
     default S isPast(ChronoLocalDateTime<?> dateTime, ResponseCode code) {
-        return core().check(DateChecks.isPast(dateTime), code, null);
+        return isPast(dateTime, code, null);
     }
 
     default S isPast(ChronoLocalDateTime<?> dateTime, ResponseCode code, String detail) {
@@ -172,11 +172,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isFuture(ChronoLocalDateTime<?> dateTime) {
-        return core().check(DateChecks.isFuture(dateTime), FailureConst.IS_FUTURE_ERROR, null);
+        return isFuture(dateTime, FailureConst.IS_FUTURE_ERROR, null);
     }
 
     default S isFuture(ChronoLocalDateTime<?> dateTime, ResponseCode code) {
-        return core().check(DateChecks.isFuture(dateTime), code, null);
+        return isFuture(dateTime, code, null);
     }
 
     default S isFuture(ChronoLocalDateTime<?> dateTime, ResponseCode code, String detail) {
@@ -184,11 +184,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isPast(Instant instant) {
-        return core().check(DateChecks.isPast(instant), FailureConst.IS_PAST_ERROR, null);
+        return isPast(instant, FailureConst.IS_PAST_ERROR, null);
     }
 
     default S isPast(Instant instant, ResponseCode code) {
-        return core().check(DateChecks.isPast(instant), code, null);
+        return isPast(instant, code, null);
     }
 
     default S isPast(Instant instant, ResponseCode code, String detail) {
@@ -196,11 +196,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isFuture(Instant instant) {
-        return core().check(DateChecks.isFuture(instant), FailureConst.IS_FUTURE_ERROR, null);
+        return isFuture(instant, FailureConst.IS_FUTURE_ERROR, null);
     }
 
     default S isFuture(Instant instant, ResponseCode code) {
-        return core().check(DateChecks.isFuture(instant), code, null);
+        return isFuture(instant, code, null);
     }
 
     default S isFuture(Instant instant, ResponseCode code, String detail) {
@@ -208,11 +208,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isPast(ChronoZonedDateTime<?> zonedDateTime) {
-        return core().check(DateChecks.isPast(zonedDateTime), FailureConst.IS_PAST_ERROR, null);
+        return isPast(zonedDateTime, FailureConst.IS_PAST_ERROR, null);
     }
 
     default S isPast(ChronoZonedDateTime<?> zonedDateTime, ResponseCode code) {
-        return core().check(DateChecks.isPast(zonedDateTime), code, null);
+        return isPast(zonedDateTime, code, null);
     }
 
     default S isPast(ChronoZonedDateTime<?> zonedDateTime, ResponseCode code, String detail) {
@@ -220,11 +220,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isFuture(ChronoZonedDateTime<?> zonedDateTime) {
-        return core().check(DateChecks.isFuture(zonedDateTime), FailureConst.IS_FUTURE_ERROR, null);
+        return isFuture(zonedDateTime, FailureConst.IS_FUTURE_ERROR, null);
     }
 
     default S isFuture(ChronoZonedDateTime<?> zonedDateTime, ResponseCode code) {
-        return core().check(DateChecks.isFuture(zonedDateTime), code, null);
+        return isFuture(zonedDateTime, code, null);
     }
 
     default S isFuture(ChronoZonedDateTime<?> zonedDateTime, ResponseCode code, String detail) {
@@ -232,11 +232,11 @@ public interface DateTerm<S extends ChainCore<S>> {
     }
 
     default S isToday(LocalDate date) {
-        return core().check(DateChecks.isToday(date), FailureConst.IS_TODAY_ERROR, null);
+        return isToday(date, FailureConst.IS_TODAY_ERROR, null);
     }
 
     default S isToday(LocalDate date, ResponseCode code) {
-        return core().check(DateChecks.isToday(date), code, null);
+        return isToday(date, code, null);
     }
 
     default S isToday(LocalDate date, ResponseCode code, String detail) {

@@ -34,7 +34,7 @@ Failure.begin()
 **特点**:
 
 - 遇到第一个错误立即停止
-- 抛出 `BusinessException`
+- 抛出 `Business`
 - 性能最优
 
 ---
@@ -54,7 +54,7 @@ Failure.strict()
 **特点**:
 
 - 执行所有校验规则
-- 抛出 `MultiBusinessException`（包含所有错误）
+- 抛出 `MultiBusiness`（包含所有错误）
 - 适合前端表单一次性展示所有错误
 
 ---
@@ -86,6 +86,7 @@ Failure.with(ctx)
 1. `notNull(obj)` - 使用**内置默认错误码**与**中文描述** (例如: "当前值 不能为空")
 2. `notNull(obj, code)` - 指定 `ResponseCode`
 3. `notNull(obj, code, detail)` - 指定 `ResponseCode` 和详细描述
+4.（高级）`check(condition, CheckSpec)` - 用参数对象统一承载 `code/detail/invalidValue`
 
 ```java
 // 示例：三种重载方式
@@ -93,6 +94,14 @@ Failure.begin()
     .notNull(obj)                                    // 方式 1: 默认 "当前值 不能为空" (Code: 500)
     .notNull(obj, UserCode.REQUIRED)                 // 方式 2: 指定错误码
     .notNull(obj, UserCode.REQUIRED, "必须填写")      // 方式 3: 指定错误码 + 详情
+    .fail();
+```
+
+延迟 invalidValue 快照：
+
+```java
+Failure.begin()
+    .check(user != null, UserCode.USER_NOT_FOUND, "用户不能为空", () -> user)
     .fail();
 ```
 
@@ -670,8 +679,7 @@ public Result<OrderDTO> getOrder(Long userId, Long orderId) {
 fail-fast:
   # 调试配置
   shadow-trace: true        # 异常中包含校验点的类名与行号
-  debug:
-    snapshot: true          # 开启调试快照，异常包含失败值（默认 false）
+  debug-snapshot: true      # 开启调试快照，异常包含失败值（默认 false）
   verbose: true             # 多错误响应包含详细 errors 列表
 
   # 错误码映射
@@ -689,6 +697,13 @@ fail-fast:
       business: [ "40000..40099" ]
       system: [ "50000..59999" ]
 ```
+
+### ErrorPolicy（高级）
+
+提供一个 `ErrorPolicy` Spring Bean 可自定义：
+- 未指定 code 时的默认 ResponseCode
+- 未指定 detail 时的默认 detail 生成规则
+- 是否在异常中采集 invalidValue（建议只在 debug-snapshot 开启时采集）
 
 ---
 

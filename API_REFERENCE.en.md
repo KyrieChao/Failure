@@ -33,7 +33,7 @@ Failure.begin()
 
 **Features**:
 - Stops immediately on the first error
-- Throws `BusinessException`
+- Throws `Business`
 - Best performance
 
 ---
@@ -52,7 +52,7 @@ Failure.strict()
 
 **Features**:
 - Executes all validation rules
-- Throws `MultiBusinessException` (contains all errors)
+- Throws `MultiBusiness` (contains all errors)
 - Suitable for frontend forms displaying all errors at once
 
 ---
@@ -83,6 +83,7 @@ All validation methods support the following three overload forms (using `notNul
 1. `notNull(obj)` - Uses **built-in default error code** and **localized message**
 2. `notNull(obj, code)` - Specify `ResponseCode`
 3. `notNull(obj, code, detail)` - Specify `ResponseCode` and detailed description
+4. (Advanced) `check(condition, CheckSpec)` - Parameter object form for `code/detail/invalidValue`
 
 ```java
 // Example: Three overload forms
@@ -90,6 +91,14 @@ Failure.begin()
     .notNull(obj)                                    // Form 1: Default message (e.g., "Current value notNull")
     .notNull(obj, UserCode.REQUIRED)                 // Form 2: Specify code
     .notNull(obj, UserCode.REQUIRED, "Must be set")  // Form 3: Specify code + detail
+    .fail();
+```
+
+Lazy invalidValue snapshot:
+
+```java
+Failure.begin()
+    .check(user != null, UserCode.USER_NULL, "User required", () -> user)
     .fail();
 ```
 
@@ -620,8 +629,7 @@ public Result<OrderDTO> getOrder(Long userId, Long orderId) {
 fail-fast:
   # Debug configuration
   shadow-trace: true        # Include class name and line number of validation point in exception
-  debug:
-    snapshot: true          # Enable debug snapshot to include invalid values (default: false)
+  debug-snapshot: true      # Enable debug snapshot to include invalid values (default: false)
   verbose: true             # Include detailed errors list in multi-error response
   
   # Error code mapping
@@ -639,6 +647,13 @@ fail-fast:
       business: ["40000..40099"]
       system: ["50000..59999"]
 ```
+
+### ErrorPolicy (Advanced)
+
+Provide an `ErrorPolicy` Spring bean to customize:
+- Default response code when `code` is omitted
+- Default detail generation
+- Whether to capture invalid values in exceptions (recommended: only when `debug-snapshot` is enabled)
 
 ---
 

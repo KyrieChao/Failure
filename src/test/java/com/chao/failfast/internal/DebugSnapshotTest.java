@@ -20,7 +20,7 @@ class DebugSnapshotTest {
         originalContext = Ex.getContext();
         FailureProperties properties = new FailureProperties();
         properties.setDebugSnapshot(true); // Enable debug snapshot
-        FailureContext context = new FailureContext(properties, new CodeMappingConfig(properties));
+        FailureContext context = new FailureContext(properties, new CodeMappingConfig(properties), null);
         Ex.setContext(context);
     }
 

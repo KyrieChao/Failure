@@ -55,7 +55,7 @@ public final class Ex {
      *
      * @return Current FailFast context object, may be null
      */
-    static FailureContext getContext() {
+    public static FailureContext getContext() {
         return context;
     }
 

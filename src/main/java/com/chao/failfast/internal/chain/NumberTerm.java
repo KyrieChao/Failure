@@ -21,11 +21,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     S core();
 
     default S positive(Number value) {
-        return core().check(NumberChecks.positive(value), FailureConst.POSITIVE_ERROR, null);
+        return positive(value, FailureConst.POSITIVE_ERROR, null);
     }
 
     default S positive(Number value, ResponseCode code) {
-        return core().check(NumberChecks.positive(value), code, null);
+        return positive(value, code, null);
     }
 
     default S positive(Number value, ResponseCode code, String detail) {
@@ -33,11 +33,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Number & Comparable<T>> S inRange(T value, T min, T max) {
-        return core().check(NumberChecks.inRange(value, min, max), FailureConst.IN_RANGE_ERROR, null);
+        return inRange(value, min, max, FailureConst.IN_RANGE_ERROR, null);
     }
 
     default <T extends Number & Comparable<T>> S inRange(T value, T min, T max, ResponseCode code) {
-        return core().check(NumberChecks.inRange(value, min, max), code, null);
+        return inRange(value, min, max, code, null);
     }
 
     default <T extends Number & Comparable<T>> S inRange(T value, T min, T max, ResponseCode code, String detail) {
@@ -45,11 +45,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default S inRangeNumber(Number v, Number min, Number max) {
-        return core().check(NumberChecks.inRangeNumber(v, min, max), FailureConst.IN_RANGE_NUMBER_ERROR, null);
+        return inRangeNumber(v, min, max, FailureConst.IN_RANGE_NUMBER_ERROR, null);
     }
 
     default S inRangeNumber(Number v, Number min, Number max, ResponseCode code) {
-        return core().check(NumberChecks.inRangeNumber(v, min, max), code, null);
+        return inRangeNumber(v, min, max, code, null);
     }
 
     default S inRangeNumber(Number v, Number min, Number max, ResponseCode code, String detail) {
@@ -57,11 +57,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default S nonNegative(Number value) {
-        return core().check(NumberChecks.nonNegative(value), FailureConst.NON_NEGATIVE_ERROR, null);
+        return nonNegative(value, FailureConst.NON_NEGATIVE_ERROR, null);
     }
 
     default S nonNegative(Number value, ResponseCode code) {
-        return core().check(NumberChecks.nonNegative(value), code, null);
+        return nonNegative(value, code, null);
     }
 
     default S nonNegative(Number value, ResponseCode code, String detail) {
@@ -69,11 +69,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Number & Comparable<T>> S greaterThan(T value, T threshold) {
-        return core().check(NumberChecks.greaterThan(value, threshold), FailureConst.GREATER_THAN_ERROR, null);
+        return greaterThan(value, threshold, FailureConst.GREATER_THAN_ERROR, null);
     }
 
     default <T extends Number & Comparable<T>> S greaterThan(T value, T threshold, ResponseCode code) {
-        return core().check(NumberChecks.greaterThan(value, threshold), code, null);
+        return greaterThan(value, threshold, code, null);
     }
 
     default <T extends Number & Comparable<T>> S greaterThan(T value, T threshold, ResponseCode code, String detail) {
@@ -81,11 +81,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Number & Comparable<T>> S greaterOrEqual(T value, T threshold) {
-        return core().check(NumberChecks.greaterOrEqual(value, threshold), FailureConst.GREATER_OR_EQUAL_ERROR, null);
+        return greaterOrEqual(value, threshold, FailureConst.GREATER_OR_EQUAL_ERROR, null);
     }
 
     default <T extends Number & Comparable<T>> S greaterOrEqual(T value, T threshold, ResponseCode code) {
-        return core().check(NumberChecks.greaterOrEqual(value, threshold), code, null);
+        return greaterOrEqual(value, threshold, code, null);
     }
 
     default <T extends Number & Comparable<T>> S greaterOrEqual(T value, T threshold, ResponseCode code, String detail) {
@@ -93,11 +93,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Number & Comparable<T>> S lessThan(T value, T threshold) {
-        return core().check(NumberChecks.lessThan(value, threshold), FailureConst.LESS_THAN_ERROR, null);
+        return lessThan(value, threshold, FailureConst.LESS_THAN_ERROR, null);
     }
 
     default <T extends Number & Comparable<T>> S lessThan(T value, T threshold, ResponseCode code) {
-        return core().check(NumberChecks.lessThan(value, threshold), code, null);
+        return lessThan(value, threshold, code, null);
     }
 
     default <T extends Number & Comparable<T>> S lessThan(T value, T threshold, ResponseCode code, String detail) {
@@ -105,11 +105,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default <T extends Number & Comparable<T>> S lessOrEqual(T value, T threshold) {
-        return core().check(NumberChecks.lessOrEqual(value, threshold), FailureConst.LESS_OR_EQUAL_ERROR, null);
+        return lessOrEqual(value, threshold, FailureConst.LESS_OR_EQUAL_ERROR, null);
     }
 
     default <T extends Number & Comparable<T>> S lessOrEqual(T value, T threshold, ResponseCode code) {
-        return core().check(NumberChecks.lessOrEqual(value, threshold), code, null);
+        return lessOrEqual(value, threshold, code, null);
     }
 
     default <T extends Number & Comparable<T>> S lessOrEqual(T value, T threshold, ResponseCode code, String detail) {
@@ -117,11 +117,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default S notZero(Number value) {
-        return core().check(NumberChecks.notZero(value), FailureConst.NOT_ZERO_ERROR, null);
+        return notZero(value, FailureConst.NOT_ZERO_ERROR, null);
     }
 
     default S notZero(Number value, ResponseCode code) {
-        return core().check(NumberChecks.notZero(value), code, null);
+        return notZero(value, code, null);
     }
 
     default S notZero(Number value, ResponseCode code, String detail) {
@@ -129,11 +129,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default S isZero(Number value) {
-        return core().check(NumberChecks.isZero(value), FailureConst.IS_ZERO_ERROR, null);
+        return isZero(value, FailureConst.IS_ZERO_ERROR, null);
     }
 
     default S isZero(Number value, ResponseCode code) {
-        return core().check(NumberChecks.isZero(value), code, null);
+        return isZero(value, code, null);
     }
 
     default S isZero(Number value, ResponseCode code, String detail) {
@@ -141,11 +141,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default S negative(Number value) {
-        return core().check(NumberChecks.negative(value), FailureConst.NEGATIVE_ERROR, null);
+        return negative(value, FailureConst.NEGATIVE_ERROR, null);
     }
 
     default S negative(Number value, ResponseCode code) {
-        return core().check(NumberChecks.negative(value), code, null);
+        return negative(value, code, null);
     }
 
     default S negative(Number value, ResponseCode code, String detail) {
@@ -153,11 +153,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default S multipleOf(Number value, Number divisor) {
-        return core().check(NumberChecks.multipleOf(value, divisor), FailureConst.MULTIPLE_OF_ERROR, null);
+        return multipleOf(value, divisor, FailureConst.MULTIPLE_OF_ERROR, null);
     }
 
     default S multipleOf(Number value, Number divisor, ResponseCode code) {
-        return core().check(NumberChecks.multipleOf(value, divisor), code, null);
+        return multipleOf(value, divisor, code, null);
     }
 
     default S multipleOf(Number value, Number divisor, ResponseCode code, String detail) {
@@ -165,11 +165,11 @@ public interface NumberTerm<S extends ChainCore<S>> {
     }
 
     default S decimalScale(java.math.BigDecimal value, int scale) {
-        return core().check(NumberChecks.decimalScale(value, scale), FailureConst.DECIMAL_SCALE_ERROR, null);
+        return decimalScale(value, scale, FailureConst.DECIMAL_SCALE_ERROR, null);
     }
 
     default S decimalScale(java.math.BigDecimal value, int scale, ResponseCode code) {
-        return core().check(NumberChecks.decimalScale(value, scale), code, null);
+        return decimalScale(value, scale, code, null);
     }
 
     default S decimalScale(java.math.BigDecimal value, int scale, ResponseCode code, String detail) {

@@ -6,6 +6,8 @@ import com.chao.failfast.aspect.ValidationAspect;
 import com.chao.failfast.internal.Ex;
 import com.chao.failfast.internal.FailureContext;
 import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.internal.policy.DefaultErrorPolicy;
+import com.chao.failfast.internal.policy.ErrorPolicy;
 import com.chao.failfast.util.I18n;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.*;
@@ -60,7 +62,7 @@ public class FailFastAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public FailureContext failFastContext() {
-        return new FailureContext(properties, codeMappingConfig());
+        return new FailureContext(properties, codeMappingConfig(), errorPolicy());
     }
 
     /**
@@ -72,6 +74,12 @@ public class FailFastAutoConfiguration {
     @ConditionalOnMissingBean
     public CodeMappingConfig codeMappingConfig() {
         return new CodeMappingConfig(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ErrorPolicy errorPolicy() {
+        return DefaultErrorPolicy.INSTANCE;
     }
 
 

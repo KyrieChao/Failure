@@ -15,6 +15,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.GenericTypeResolver;
@@ -48,6 +49,7 @@ public class ValidationAspect {
      * Use ConcurrentHashMap as cache to store validator instances.
      */
     private static final ConcurrentHashMap<Class<? extends FastValidator<Object>>, FastValidator<Object>> VALIDATOR_CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Class<? extends FastValidator<Object>>, ValidatorFactory> VALIDATOR_FACTORY_CACHE = new ConcurrentHashMap<>();
 
     /**
      * Define an immutable Set containing types to skip validation.
@@ -109,8 +111,8 @@ public class ValidationAspect {
      * Execute all validators and collect errors.
      *
      * @param validatorClasses Validator classes
-     * @param args Arguments to validate
-     * @param failFast Whether to fail fast
+     * @param args             Arguments to validate
+     * @param failFast         Whether to fail fast
      * @return List of Business errors
      */
     private List<Business> executeValidators(Class<? extends FastValidator>[] validatorClasses, List<Object> args, boolean failFast) {
@@ -130,8 +132,8 @@ public class ValidationAspect {
      * Execute single validator.
      *
      * @param validator Validator instance
-     * @param args Arguments to validate
-     * @param failFast Whether to fail fast
+     * @param args      Arguments to validate
+     * @param failFast  Whether to fail fast
      * @return List of Business errors
      */
     private List<Business> executeSingleValidator(FastValidator<Object> validator, List<Object> args, boolean failFast) {
@@ -150,15 +152,12 @@ public class ValidationAspect {
      * Execute TypedValidator.
      *
      * @param validator TypedValidator instance
-     * @param args Arguments to validate
-     * @param ctx Validation context
+     * @param args      Arguments to validate
+     * @param ctx       Validation context
      */
     private void executeTypedValidator(TypedValidator validator, List<Object> args, FastValidator.ValidationContext ctx) {
-        Set<Class<?>> registeredTypes = validator.getRegisteredTypes();
-
         for (Object arg : args) {
-            if (!registeredTypes.contains(arg.getClass())) continue;
-            validator.validate(arg, ctx);
+            validator.validateIfRegistered(arg, ctx);
             if (ctx.isStopped()) break;
         }
     }
@@ -167,8 +166,8 @@ public class ValidationAspect {
      * Execute plain FastValidator.
      *
      * @param validator FastValidator instance
-     * @param args Arguments to validate
-     * @param ctx Validation context
+     * @param args      Arguments to validate
+     * @param ctx       Validation context
      */
     private void executePlainValidator(FastValidator<Object> validator, List<Object> args, FastValidator.ValidationContext ctx) {
 
@@ -194,18 +193,40 @@ public class ValidationAspect {
      */
     @SuppressWarnings("unchecked")
     private FastValidator<Object> getOrCreateValidator(Class<? extends FastValidator> clazz) {
-        if (applicationContext.getBeanNamesForType(clazz).length > 0) {
-            return applicationContext.getBean(clazz);
+        Class<? extends FastValidator<Object>> type = (Class<? extends FastValidator<Object>>) clazz;
+        ValidatorFactory factory = VALIDATOR_FACTORY_CACHE.computeIfAbsent(type, this::buildValidatorFactory);
+        return factory.get();
+    }
+
+    private ValidatorFactory buildValidatorFactory(Class<? extends FastValidator<Object>> type) {
+        ObjectProvider<FastValidator<Object>> provider = applicationContext != null
+                ? (ObjectProvider<FastValidator<Object>>) applicationContext.getBeanProvider((Class<?>) type)
+                : null;
+        if (provider != null) {
+            FastValidator<Object> bean = provider.getIfAvailable();
+            if (bean != null) {
+                return provider::getObject;
+            }
         }
-        return VALIDATOR_CACHE.computeIfAbsent(
-                (Class<? extends FastValidator<Object>>) clazz,  // 类型转换，确保类型安全
-                key -> {
-                    try {
-                        return key.getDeclaredConstructor().newInstance();
-                    } catch (Exception e) {
-                        throw new RuntimeException("Failed to instantiate validator: " + key.getName(), e);
-                    }
-                });
+        if (applicationContext != null) {
+            String[] names = applicationContext.getBeanNamesForType(type);
+            if (names != null && names.length > 0) {
+                return () -> applicationContext.getBean(type);
+            }
+        }
+        return () -> VALIDATOR_CACHE.computeIfAbsent(type, this::newValidatorInstance);
+    }
+
+    private FastValidator<Object> newValidatorInstance(Class<? extends FastValidator<Object>> key) {
+        try {
+            return key.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to instantiate validator: " + key.getName(), e);
+        }
+    }
+
+    private interface ValidatorFactory {
+        FastValidator<Object> get();
     }
 
     /**

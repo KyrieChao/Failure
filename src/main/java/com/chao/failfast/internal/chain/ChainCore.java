@@ -2,7 +2,11 @@ package com.chao.failfast.internal.chain;
 
 import com.chao.failfast.annotation.FastValidator.ValidationContext;
 import com.chao.failfast.internal.Business;
+import com.chao.failfast.internal.Ex;
+import com.chao.failfast.internal.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.internal.policy.DefaultErrorPolicy;
+import com.chao.failfast.internal.policy.ErrorPolicy;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -88,6 +92,11 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         return check(conditionSupplier.get(), code, detail);
     }
 
+    public S check(Supplier<Boolean> conditionSupplier, CheckSpec spec) {
+        if (shouldSkip()) return self();
+        return check(conditionSupplier.get(), spec);
+    }
+
     /**
      * Unified validation entry - Support configuration.
      *
@@ -98,6 +107,33 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      */
     public S check(boolean condition, ResponseCode code, String detail) {
         return check(condition, code, detail, null);
+    }
+
+    public S check(boolean condition, CheckSpec spec) {
+        if (spec == null) return check(condition, null, null, null);
+        return check(condition, spec.code(), spec.detail(), spec.invalidValue());
+    }
+
+    public S check(boolean condition, ResponseCode code, String detail, Supplier<Object> invalidValueSupplier) {
+        if (shouldSkip()) return self();
+
+        if (orMode) {
+            orMode = false;
+            boolean finalSuccess = orHasSuccess || condition;
+
+            if (!finalSuccess) {
+                addError(code, detail, resolveInvalidValue(invalidValueSupplier));
+                if (failFast) alive = false;
+            } else {
+                alive = true;
+            }
+        } else {
+            if (!condition) {
+                addError(code, detail, resolveInvalidValue(invalidValueSupplier));
+                if (failFast) alive = false;
+            }
+        }
+        return self();
     }
 
     /**
@@ -136,6 +172,14 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         return self();
     }
 
+    private Object resolveInvalidValue(Supplier<Object> invalidValueSupplier) {
+        if (invalidValueSupplier == null) return null;
+        FailureContext ctx = Ex.getContext();
+        ErrorPolicy policy = ctx != null ? ctx.getErrorPolicy() : DefaultErrorPolicy.INSTANCE;
+        if (!policy.captureInvalidValue(ctx)) return null;
+        return invalidValueSupplier.get();
+    }
+
     /**
      * No configuration validation - Use default error.
      *
@@ -158,11 +202,17 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     private Business buildBusiness(ResponseCode code, String detail, Object value) {
-        Business.Fabricator fabricator = Business.compose().invalidValue(value);
+        FailureContext ctx = Ex.getContext();
+        ErrorPolicy policy = ctx != null ? ctx.getErrorPolicy() : DefaultErrorPolicy.INSTANCE;
+
+        Business.Fabricator fabricator = Business.compose();
+        if (value != null && policy.captureInvalidValue(ctx)) {
+            fabricator.invalidValue(value);
+        }
         if (code != null && detail != null) {
             return fabricator.responseCode(code).detail(detail).materialize();
         }
-        return fabricator.responseCode(Objects.requireNonNullElse(code, ResponseCode.VALIDATION_ERROR_500_DYNAMIC)).materialize();
+        return fabricator.responseCode(Objects.requireNonNullElse(code, policy.defaultCode())).materialize();
     }
 
     /**

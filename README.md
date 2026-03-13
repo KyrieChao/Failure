@@ -6,7 +6,6 @@
 [![Java 17+](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/technologies/downloads/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.kyriechao/failure-spring-boot-starter)
-[![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
 [![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
 
@@ -25,7 +24,7 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 - **默认本地化**: 提供开箱即用的中文错误提示（如 "当前值 不能为空"），无需手动配置
 - **注解驱动与类型分发**: 提供 `@Validate` 注解与 `FastValidator` 接口实现 AOP 切面校验；内置 `TypedValidator` 模式支持多类型参数的自动分发与业务解耦
 - **函数式结果**: 提供 `Result<T>` 单子类型，支持 `map`, `flatMap`, `recover` 等函数式操作
-- **智能调试快照**: 异常信息包含导致失败的参数值（支持自动脱敏与截断），让报错即线索
+- **智能调试快照**: 当 `fail-fast.debug-snapshot=true`（默认 false）时，异常信息可包含失败参数值（自动脱敏与截断），让报错即线索
 - **智能异常处理**: 自动映射业务错误码到 HTTP 状态码，支持影子追踪 (`shadow-trace`) 快速定位问题
 
 ---
@@ -97,16 +96,7 @@ Failure.begin()
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.1</version> <!-- 确保这里是最新版 -->
-</dependency>
-```
----
-```xml
-<!-- JitPack (适合快速测试或开发版) -->
-<dependency>
-    <groupId>com.github.KyrieChao</groupId>
-    <artifactId>Failure</artifactId>
-    <version>1.5.1</version> <!-- 确保这里是最新版 -->
+    <version>1.0.2</version> <!-- 确保这里是最新版 -->
 </dependency>
 ```
 
@@ -281,6 +271,16 @@ Failure.begin()
     .defer(() -> dbService.isUserActive(userId), UserCode.USER_INACTIVE);
 ```
 
+### 延迟 invalidValue 快照（Supplier）
+
+当失败值快照生成开销较大（序列化/脱敏/拼接）时，可用 Supplier 版本：仅在失败且启用 debug-snapshot 时才计算。
+
+```java
+Failure.begin()
+    .check(user != null, UserCode.USER_NOT_FOUND, "用户不能为空", () -> user)
+    .fail();
+```
+
 ### 失败截断 (stopOnFail)
 
 如果当前链中存在错误（即使是 strict 模式），则停止后续所有校验（直到调用 `resume()`）。通常用于防止空指针异常（NPE）。
@@ -319,8 +319,7 @@ Failure.begin()
 ```yaml
 fail-fast:
   shadow-trace: true   # 异常中包含校验点的类名与行号（调试推荐开启）
-  debug:
-    snapshot: true     # 开启调试快照，异常包含失败值（默认 false）
+  debug-snapshot: true # 开启调试快照，异常包含失败值（默认 false）
   verbose: true        # 多错误响应是否包含详细的 errors 列表
   code-mapping:
     http-status:

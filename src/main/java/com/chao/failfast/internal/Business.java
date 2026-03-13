@@ -3,6 +3,7 @@ package com.chao.failfast.internal;
 import com.chao.failfast.config.CodeMappingConfig;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.internal.policy.ErrorPolicy;
 import com.chao.failfast.util.I18n;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
@@ -256,7 +257,12 @@ public class Business extends RuntimeException implements Serializable {
             if (responseCode == null) throw new IllegalArgumentException(FailureConst.CODE_REQUIRED);
             // 设置默认详细描述
             if (detail == null) {
-                detail = responseCode.getDescription();
+                FailureContext ctx = Ex.getContext();
+                ErrorPolicy policy = ctx != null ? ctx.getErrorPolicy() : null;
+                if (policy != null) {
+                    detail = policy.defaultDetail(responseCode);
+                }
+                if (detail == null) detail = responseCode.getDescription();
                 if (detail == null) detail = responseCode.getMessage();
                 if (detail == null) detail = FailureConst.MESSAGE_OR_DESCRIPTION_REQUIRED;
             }
@@ -329,7 +335,7 @@ public class Business extends RuntimeException implements Serializable {
 
         // 长文本截断（修复版）
         if (str.length() > 50) {
-            return str.substring(0, 5) + "...(" + str.length() + "字符)..."
+            return str.substring(0, 5) + "...(" + str.length() + "char)..."
                     + str.substring(str.length() - 5);
         }
 

@@ -31,13 +31,9 @@ public class I18nConfig {
     @Bean
     public MessageSource messageSource() {
         ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
-        // 指定资源文件路径
         messageSource.setBasename(properties.getI18n().getBasename());
-        // 设置默认编码
         messageSource.setDefaultEncoding(properties.getI18n().getEncoding());
-        // 缓存时间
         messageSource.setCacheSeconds(properties.getI18n().getCacheSeconds());
-        // 如果找不到 key，直接返回 key 本身，而不是抛出异常
         messageSource.setUseCodeAsDefaultMessage(true);
         return messageSource;
     }
@@ -46,11 +42,8 @@ public class I18nConfig {
     @ConditionalOnMissingBean(LocaleResolver.class)
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
-        // 设置默认语言
         Locale defaultLocale = StringUtils.parseLocaleString(properties.getI18n().getDefaultLocale());
         localeResolver.setDefaultLocale(defaultLocale != null ? defaultLocale : Locale.CHINA);
-
-        // 设置支持的语言列表 (这里简单列举常用的，也可以做成配置)
         localeResolver.setSupportedLocales(Arrays.asList(
                 Locale.CHINA,
                 Locale.US,

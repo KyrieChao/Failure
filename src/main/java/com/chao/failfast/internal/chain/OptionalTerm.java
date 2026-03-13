@@ -22,11 +22,11 @@ public interface OptionalTerm<S extends ChainCore<S>> {
     S core();
 
     default S isPresent(Optional<?> opt) {
-        return core().check(OptionalChecks.isPresent(opt), FailureConst.IS_PRESENT_ERROR, null);
+        return isPresent(opt, FailureConst.IS_PRESENT_ERROR, null);
     }
 
     default S isPresent(Optional<?> opt, ResponseCode code) {
-        return core().check(OptionalChecks.isPresent(opt), code, null);
+        return isPresent(opt, code, null);
     }
 
     default S isPresent(Optional<?> opt, ResponseCode code, String detail) {
@@ -34,11 +34,11 @@ public interface OptionalTerm<S extends ChainCore<S>> {
     }
 
     default S isEmpty(Optional<?> opt) {
-        return core().check(OptionalChecks.isEmpty(opt), FailureConst.IS_EMPTY_ERROR, null);
+        return isEmpty(opt, FailureConst.IS_EMPTY_ERROR, null);
     }
 
     default S isEmpty(Optional<?> opt, ResponseCode code) {
-        return core().check(OptionalChecks.isEmpty(opt), code, null);
+        return isEmpty(opt, code, null);
     }
 
     default S isEmpty(Optional<?> opt, ResponseCode code, String detail) {

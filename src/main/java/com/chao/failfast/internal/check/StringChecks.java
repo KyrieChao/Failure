@@ -20,7 +20,6 @@ public final class StringChecks {
     // Lazy initialization holder for Jackson ObjectMapper
     private static class JsonHolder {
         static final ObjectMapper MAPPER = new ObjectMapper();
-
     }
 
     /**

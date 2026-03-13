@@ -21,11 +21,11 @@ public interface BooleanTerm<S extends ChainCore<S>> {
     S core();
 
     default S state(boolean condition) {
-        return core().check(BooleanChecks.state(condition), FailureConst.STATE_ERROR, null);
+        return state(condition, FailureConst.STATE_ERROR, null);
     }
 
     default S state(boolean condition, ResponseCode code) {
-        return core().check(BooleanChecks.state(condition), code, null);
+        return state(condition, code, null);
     }
 
     default S state(boolean condition, ResponseCode code, String detail) {
@@ -33,11 +33,11 @@ public interface BooleanTerm<S extends ChainCore<S>> {
     }
 
     default S isTrue(boolean cond) {
-        return core().check(BooleanChecks.isTrue(cond), FailureConst.IS_TRUE_ERROR, null);
+        return isTrue(cond, FailureConst.IS_TRUE_ERROR, null);
     }
 
     default S isTrue(boolean cond, ResponseCode code) {
-        return core().check(BooleanChecks.isTrue(cond), code, null);
+        return isTrue(cond, code, null);
     }
 
     default S isTrue(boolean cond, ResponseCode code, String detail) {
@@ -45,11 +45,11 @@ public interface BooleanTerm<S extends ChainCore<S>> {
     }
 
     default S isFalse(boolean cond) {
-        return core().check(BooleanChecks.isFalse(cond), FailureConst.IS_FALSE_ERROR, null);
+        return isFalse(cond, FailureConst.IS_FALSE_ERROR, null);
     }
 
     default S isFalse(boolean cond, ResponseCode code) {
-        return core().check(BooleanChecks.isFalse(cond), code, null);
+        return isFalse(cond, code, null);
     }
 
     default S isFalse(boolean cond, ResponseCode code, String detail) {

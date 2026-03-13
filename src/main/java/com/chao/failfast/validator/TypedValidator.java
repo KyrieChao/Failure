@@ -21,6 +21,7 @@ public abstract class TypedValidator implements FastValidator<Object> {
      * Store validators for different types using ConcurrentHashMap.
      */
     private final Map<Class<?>, BiConsumer<Object, ValidationContext>> validators = new ConcurrentHashMap<>();
+    private volatile Set<Class<?>> registeredTypesCache;
 
     /**
      * Constructor.
@@ -45,6 +46,7 @@ public abstract class TypedValidator implements FastValidator<Object> {
      */
     protected final <T> void register(Class<T> type, BiConsumer<T, ValidationContext> validator) {
         validators.put(type, (obj, ctx) -> validator.accept(type.cast(obj), ctx));
+        registeredTypesCache = null;
     }
 
 
@@ -54,7 +56,24 @@ public abstract class TypedValidator implements FastValidator<Object> {
      * @return Set of registered types
      */
     public Set<Class<?>> getRegisteredTypes() {
-        return Set.copyOf(validators.keySet());
+        Set<Class<?>> cached = registeredTypesCache;
+        if (cached != null) return cached;
+        Set<Class<?>> computed = Set.copyOf(validators.keySet());
+        registeredTypesCache = computed;
+        return computed;
+    }
+
+    public final boolean isRegisteredType(Class<?> type) {
+        return validators.containsKey(type);
+    }
+
+
+    public final boolean validateIfRegistered(Object object, ValidationContext context) {
+        if (object == null) return false;
+        BiConsumer<Object, ValidationContext> handler = validators.get(object.getClass());
+        if (handler == null) return false;
+        handler.accept(object, context);
+        return true;
     }
 
     @Override

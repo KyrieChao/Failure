@@ -21,7 +21,7 @@ class FailContextTest {
     void setUp() {
         properties = mock(FailureProperties.class);
         CodeMappingConfig config = mock(CodeMappingConfig.class);
-        context = new FailureContext(properties, config);
+        context = new FailureContext(properties, config, null);
     }
 
     @Test

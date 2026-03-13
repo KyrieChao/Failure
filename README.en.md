@@ -6,7 +6,6 @@
 [![Java 17+](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/technologies/downloads/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.kyriechao/failure-spring-boot-starter)
-[![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
 [![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
 
@@ -28,7 +27,7 @@ validation experience.
 - **Default Localization**: Provides out-of-the-box localized error messages (e.g., Chinese support) without manual configuration.
 - **Annotation-Driven & Type Dispatch**: Provides `@Validate` annotation and `FastValidator` interface for AOP validation; supports `TypedValidator` pattern for automatic type dispatch and decoupling.
 - **Functional Results**: Provides `Result<T>` monad with `map`, `flatMap`, `recover` operations.
-- **Smart Debug Snapshot**: Captures invalid values in exceptions (with auto-masking & truncation), making errors actionable.
+- **Smart Debug Snapshot**: Optionally includes invalid values in exceptions (auto-masking & truncation) when `fail-fast.debug-snapshot=true` (default: false).
 - **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes, with `shadow-trace` for quick debugging.
 
 ---
@@ -101,18 +100,7 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.1</version> <!-- Make sure it's up to date. -->
-</dependency>
-```
-
----
-
-```xml
-<!-- JitPack (Ideal for Rapid Testing & Development) -->
-<dependency>
-    <groupId>com.github.KyrieChao</groupId>
-    <artifactId>Failure</artifactId>
-    <version>1.5.1</version> <!-- Make sure it's up to date. -->
+    <version>1.0.2</version> <!-- Make sure it's up to date. -->
 </dependency>
 ```
 
@@ -282,6 +270,16 @@ Failure.begin()
     .isUserActive(userId),UserCode.USER_INACTIVE);
 ```
 
+### Lazy invalidValue snapshot (Supplier)
+
+When the invalid value snapshot is expensive (e.g., serialization / masking), use the Supplier overload so it is computed only on failure and only when debug snapshot is enabled.
+
+```java
+Failure.begin()
+    .check(user != null, UserCode.USER_NULL, "User required", () -> user)
+    .fail();
+```
+
 ### Stop on Failure (stopOnFail)
 
 Stops subsequent checks if there are any errors (even in strict mode), until `resume()` is called. Essential for
@@ -321,8 +319,7 @@ Configure framework behavior in `application.yml`:
 ```yaml
 fail-fast:
   shadow-trace: true   # Include class name and line number of the validation point in exception stack trace
-  debug:
-    snapshot: true     # Enable debug snapshot to include invalid values (default: false)
+  debug-snapshot: true # Enable debug snapshot to include invalid values (default: false)
   verbose: true        # Include detailed errors list in multi-error response
   code-mapping:
     http-status:
@@ -332,6 +329,10 @@ fail-fast:
       auth: [ "40100..40199" ]      # Range mapping
       business: [ "40000..40099" ]
 ```
+
+### Custom default rules (ErrorPolicy)
+
+For advanced customization of default response code, default detail generation, and whether to capture invalid values, provide an `ErrorPolicy` Spring bean.
 
 ---
 

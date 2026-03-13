@@ -10,7 +10,6 @@ import java.lang.reflect.Method;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @DisplayName("Ex 工具类测试")
@@ -187,7 +186,7 @@ class ExTest {
         @Test
         @DisplayName("应处理 lambda 方法名")
         void shouldHandleLambdaMethodName() {
-            Supplier<String> lambda = () -> Ex.method();
+            Supplier<String> lambda = Ex::method;
             String method = lambda.get();
             assertThat(method).isNotNull();
             assertThat(method).doesNotContain("lambda$");
@@ -388,16 +387,55 @@ class ExTest {
 
     private StackWalker.StackFrame createMockFrame(String className, String methodName, int lineNumber) {
         return new StackWalker.StackFrame() {
-            @Override public String getClassName() { return className; }
-            @Override public String getMethodName() { return methodName; }
-            @Override public int getLineNumber() { return lineNumber; }
-            @Override public int getByteCodeIndex() { return 0; }
-            @Override public String getFileName() { return null; }
-            @Override public boolean isNativeMethod() { return false; }
-            @Override public StackTraceElement toStackTraceElement() { return null; }
-            @Override public Class<?> getDeclaringClass() { return null; }
-            @Override public java.lang.invoke.MethodType getMethodType() { return null; }
-            @Override public String getDescriptor() { return null; }
+            @Override
+            public String getClassName() {
+                return className;
+            }
+
+            @Override
+            public String getMethodName() {
+                return methodName;
+            }
+
+            @Override
+            public int getLineNumber() {
+                return lineNumber;
+            }
+
+            @Override
+            public int getByteCodeIndex() {
+                return 0;
+            }
+
+            @Override
+            public String getFileName() {
+                return null;
+            }
+
+            @Override
+            public boolean isNativeMethod() {
+                return false;
+            }
+
+            @Override
+            public StackTraceElement toStackTraceElement() {
+                return null;
+            }
+
+            @Override
+            public Class<?> getDeclaringClass() {
+                return null;
+            }
+
+            @Override
+            public java.lang.invoke.MethodType getMethodType() {
+                return null;
+            }
+
+            @Override
+            public String getDescriptor() {
+                return null;
+            }
         };
     }
 }

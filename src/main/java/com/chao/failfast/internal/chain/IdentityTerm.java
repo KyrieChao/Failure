@@ -21,11 +21,11 @@ public interface IdentityTerm<S extends ChainCore<S>> {
     S core();
 
     default S same(Object obj1, Object obj2) {
-        return core().check(IdentityChecks.same(obj1, obj2), FailureConst.SAME_ERROR, null);
+        return same(obj1, obj2, FailureConst.SAME_ERROR, null);
     }
 
     default S same(Object obj1, Object obj2, ResponseCode code) {
-        return core().check(IdentityChecks.same(obj1, obj2), code, null);
+        return same(obj1, obj2, code, null);
     }
 
     default S same(Object obj1, Object obj2, ResponseCode code, String detail) {
@@ -33,11 +33,11 @@ public interface IdentityTerm<S extends ChainCore<S>> {
     }
 
     default S notSame(Object obj1, Object obj2) {
-        return core().check(IdentityChecks.notSame(obj1, obj2), FailureConst.NOT_SAME_ERROR, null);
+        return notSame(obj1, obj2, FailureConst.NOT_SAME_ERROR, null);
     }
 
     default S notSame(Object obj1, Object obj2, ResponseCode code) {
-        return core().check(IdentityChecks.notSame(obj1, obj2), code, null);
+        return notSame(obj1, obj2, code, null);
     }
 
     default S notSame(Object obj1, Object obj2, ResponseCode code, String detail) {
@@ -45,11 +45,11 @@ public interface IdentityTerm<S extends ChainCore<S>> {
     }
 
     default S equals(Object obj1, Object obj2) {
-        return core().check(IdentityChecks.equals(obj1, obj2), FailureConst.EQUALS_ERROR, null);
+        return equals(obj1, obj2, FailureConst.EQUALS_ERROR, null);
     }
 
     default S equals(Object obj1, Object obj2, ResponseCode code) {
-        return core().check(IdentityChecks.equals(obj1, obj2), code, null);
+        return equals(obj1, obj2, code, null);
     }
 
     default S equals(Object obj1, Object obj2, ResponseCode code, String detail) {
@@ -57,11 +57,11 @@ public interface IdentityTerm<S extends ChainCore<S>> {
     }
 
     default S notEquals(Object obj1, Object obj2) {
-        return core().check(IdentityChecks.notEquals(obj1, obj2), FailureConst.NOT_EQUALS_ERROR, null);
+        return notEquals(obj1, obj2, FailureConst.NOT_EQUALS_ERROR, null);
     }
 
     default S notEquals(Object obj1, Object obj2, ResponseCode code) {
-        return core().check(IdentityChecks.notEquals(obj1, obj2), code, null);
+        return notEquals(obj1, obj2, code, null);
     }
 
     default S notEquals(Object obj1, Object obj2, ResponseCode code, String detail) {

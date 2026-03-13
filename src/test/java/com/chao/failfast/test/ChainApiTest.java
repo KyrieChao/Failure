@@ -40,9 +40,11 @@ class ChainApiTest {
                     .failAll();                  // 抛出记录的错误
         });
 
+
         assertEquals(ERR_NULL.getCode(), ex.getResponseCode().getCode());
         System.out.println("Fail-Fast 演示成功: " + ex.getMessage());
     }
+
 
     @Test
     @DisplayName("严格模式 (Strict/Collect) - 收集所有错误一次性抛出")

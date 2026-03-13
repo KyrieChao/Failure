@@ -96,6 +96,18 @@ class ChainTerminatorTest {
                 .isInstanceOf(Business.class)
                 .isNotInstanceOf(MultiBusiness.class);
     }
+    @Test
+    @DisplayName("failAll: 验证失败但无原因时应抛出通用异常")
+    void failAllShouldThrowGenericWhenNoCauses() {
+        TestTerminator chain = TestTerminator.create(false);
+        chain.setAlive(false); // 强制失败，无错误原因
+
+        assertThatThrownBy(chain::failAll)
+                .isInstanceOf(Business.class)
+                .isNotInstanceOf(MultiBusiness.class)
+                .extracting(e -> ((Business) e).getResponseCode().getCode())
+                .isEqualTo(500);
+    }
 
     @Test
     @DisplayName("failNow(Code): 当活跃时返回自身，不活跃时抛出")

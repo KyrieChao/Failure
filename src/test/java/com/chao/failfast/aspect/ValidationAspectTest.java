@@ -28,7 +28,9 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -190,7 +192,17 @@ class ValidationAspectTest {
 
     @BeforeEach
     void setUp() {
-        // Common setup if needed
+        try {
+            Field cache = ValidationAspect.class.getDeclaredField("VALIDATOR_CACHE");
+            cache.setAccessible(true);
+            ((ConcurrentHashMap<?, ?>) cache.get(null)).clear();
+
+            Field factoryCache = ValidationAspect.class.getDeclaredField("VALIDATOR_FACTORY_CACHE");
+            factoryCache.setAccessible(true);
+            ((ConcurrentHashMap<?, ?>) factoryCache.get(null)).clear();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Nested
@@ -658,8 +670,7 @@ class ValidationAspectTest {
             // Second call
             validationAspect.around(joinPoint, validate);
 
-            // getBeanNamesForType called twice (once per around execution check)
-            verify(applicationContext, times(2)).getBeanNamesForType(StringValidator.class);
+            verify(applicationContext, times(1)).getBeanNamesForType(StringValidator.class);
 
             // Reflection instantiation happens internally in computeIfAbsent, 
             // verifying it is hard without spying the map, but functionality is covered.

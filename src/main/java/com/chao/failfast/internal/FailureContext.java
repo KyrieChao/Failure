@@ -2,6 +2,8 @@ package com.chao.failfast.internal;
 
 import com.chao.failfast.config.CodeMappingConfig;
 import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.internal.policy.DefaultErrorPolicy;
+import com.chao.failfast.internal.policy.ErrorPolicy;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +27,8 @@ public class FailureContext {
      */
     @Getter
     private final CodeMappingConfig codeMappingConfig;
+    @Getter
+    private final ErrorPolicy errorPolicy;
 
     /**
      * Thread-local method enabled override.
@@ -41,9 +45,10 @@ public class FailureContext {
      *
      * @param properties FailFast configuration properties
      */
-    public FailureContext(FailureProperties properties, CodeMappingConfig codeMappingConfig) {
+    public FailureContext(FailureProperties properties, CodeMappingConfig codeMappingConfig, ErrorPolicy errorPolicy) {
         this.properties = properties;
         this.codeMappingConfig = codeMappingConfig;
+        this.errorPolicy = errorPolicy != null ? errorPolicy : DefaultErrorPolicy.INSTANCE;
     }
 
     /**
@@ -66,7 +71,7 @@ public class FailureContext {
      *
      * @return True if snapshot is enabled
      */
-    boolean isDebugSnapshot() {
+    public boolean isDebugSnapshot() {
         return properties.isDebugSnapshot();
     }
 
