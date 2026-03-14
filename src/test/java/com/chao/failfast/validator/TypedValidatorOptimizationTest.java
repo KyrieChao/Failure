@@ -1,8 +1,10 @@
 package com.chao.failfast.validator;
 
 import com.chao.failfast.annotation.FastValidator;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,8 +24,18 @@ class TypedValidatorOptimizationTest {
     static class ExtensibleValidator extends TypedValidator {
         @Override
         protected void registerValidators() {
-            register(String.class, (s, ctx) -> {
-            });
+            register(String.class, (s, ctx) -> {});
+            register(Character.class, (i, ctx) -> {});
+            register(Boolean.class, (b, ctx) -> {});
+            register(Byte.class, (b, ctx) -> {});
+            register(Short.class, (s, ctx) -> {});
+            register(Long.class, (l, ctx) -> {});
+            register(Float.class, (f, ctx) -> {});
+            register(Double.class, (d, ctx) -> {});
+            register(CharSequence.class, (cs, ctx) -> {});
+            register(Number.class, (n, ctx) -> {});
+            register(Iterable.class, (i, ctx) -> {});
+            register(Map.class, (m, ctx) -> {});
         }
 
         public void addInteger() {
@@ -48,6 +60,7 @@ class TypedValidatorOptimizationTest {
         v.addInteger();
         Set<Class<?>> b = v.getRegisteredTypes();
         assertThat(b).contains(String.class, Integer.class);
+        Assertions.assertEquals(13, v.size());
         assertThat(b).isNotSameAs(a);
     }
 
