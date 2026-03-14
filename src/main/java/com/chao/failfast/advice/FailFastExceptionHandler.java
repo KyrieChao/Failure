@@ -272,13 +272,13 @@ public abstract class FailFastExceptionHandler {
      * @param methodName Method name
      * @return Constructed Business exception object
      */
-    @ToImprove(value = "默认使用500错误码 待完善")
+    @ToImprove(value = "默认使用400错误码 待完善")
     private Business parseError(String message, String location, String methodName) {
         Business business;
 
         // 处理空消息情况
         if (message == null) {
-            business = Business.of(ResponseCode.INTERRUPTED_ERROR, FailureConst.INVALID_PARAMETER);
+            business = Business.of(ResponseCode.VALIDATION_ERROR_400, FailureConst.INVALID_PARAMETER);
         } else {
             // 解析 "code:message" 格式，支持自定义错误码
             String[] parts = message.split(":", 2);
@@ -287,8 +287,8 @@ public abstract class FailFastExceptionHandler {
                 String msg = parts[1].trim();
                 business = Business.of(ResponseCode.of(code, msg), msg);
             } else {
-                // 默认使用500错误码 (参数校验错误通常是客户端问题)
-                business = Business.of(ResponseCode.INTERRUPTED_ERROR, message);
+                // 默认使用400错误码 (参数校验错误通常是客户端问题)
+                business = Business.of(ResponseCode.VALIDATION_ERROR_400, message);
             }
         }
 
