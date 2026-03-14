@@ -1,6 +1,7 @@
 package com.chao.failfast.internal;
 
 import com.chao.failfast.constant.FailureConst;
+import lombok.Getter;
 
 import java.util.Set;
 
@@ -35,9 +36,7 @@ public final class Ex {
             "sun."                          // Sun Microsystems遗留类
     );
 
-    /**
-     * FailFast context object.
-     */
+    @Getter
     private static FailureContext context;
 
     /**
@@ -47,16 +46,6 @@ public final class Ex {
      */
     public static void setContext(FailureContext ctx) {
         Ex.context = ctx;
-    }
-
-
-    /**
-     * Get current FailFast context.
-     *
-     * @return Current FailFast context object, may be null
-     */
-    public static FailureContext getContext() {
-        return context;
     }
 
 
@@ -99,18 +88,12 @@ public final class Ex {
      * @return Formatted location string, or null if failed
      */
     static String captureLocation() {
-        // 首先检查是否启用方法打印功能
         if (!isShadowTrace()) return null;
 
-        // 使用StackWalker遍历调用栈
         return WALKER.walk(stream -> stream
-                // 过滤掉不需要的调用帧（框架、系统类等）
                 .filter(Ex::isNotSkipped)
-                // 获取第一个有效的业务调用帧
                 .findFirst()
-                // 将栈帧格式化为位置字符串
                 .map(Ex::formatLocation)
-                // 如果找不到有效帧，返回默认值
                 .orElse(FailureConst.UNKNOWN));
     }
 
@@ -124,9 +107,6 @@ public final class Ex {
 
         return WALKER.walk(stream -> stream
                 .filter(Ex::isNotSkipped)
-                // 额外过滤验证器类，以便定位到调用验证器的业务方法 (e.g. Controller/Service)
-                // 1. 过滤 com.chao.failfast.validator 包下的类
-                // 2. 过滤类名以 Validator 或 Validators 结尾的类
                 .filter(f -> !f.getClassName().startsWith("com.chao.failfast.validator")
                         && !f.getClassName().endsWith("Validator")
                         && !f.getClassName().endsWith("Validators"))
@@ -156,8 +136,6 @@ public final class Ex {
         String full = f.getClassName();
         String simple = full.substring(full.lastIndexOf('.') + 1);
         int line = f.getLineNumber();
-        // 如果行号有效(>0)，显示文件名:行号；否则仅显示文件名（避免出现 -1 导致无法跳转）
-        // CGLIB 代理类或 Native 方法通常没有行号信息
         String fileInfo = (line > 0) ? simple + ".java:" + line : simple + ".java";
         return simple + "." + f.getMethodName() + "(" + fileInfo + ")";
     }
@@ -173,7 +151,6 @@ public final class Ex {
         String simple = cls.substring(cls.lastIndexOf('.') + 1);
         String methodName = f.getMethodName();
 
-        // 处理 Lambda 表达式生成的方法名: lambda$resultsUtils$9 -> resultsUtils
         if (methodName.startsWith("lambda$")) {
             int firstDollar = methodName.indexOf('$');
             int lastDollar = methodName.lastIndexOf('$');

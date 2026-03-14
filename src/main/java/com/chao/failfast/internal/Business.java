@@ -253,9 +253,7 @@ public class Business extends RuntimeException implements Serializable {
          * @throws IllegalArgumentException Thrown when code is null
          */
         public Business materialize() {
-            // 校验必要参数
             if (responseCode == null) throw new IllegalArgumentException(FailureConst.CODE_REQUIRED);
-            // 设置默认详细描述
             if (detail == null) {
                 FailureContext ctx = Ex.getContext();
                 ErrorPolicy policy = ctx != null ? ctx.getErrorPolicy() : null;
@@ -266,7 +264,6 @@ public class Business extends RuntimeException implements Serializable {
                 if (detail == null) detail = responseCode.getMessage();
                 if (detail == null) detail = FailureConst.MESSAGE_OR_DESCRIPTION_REQUIRED;
             }
-            // 根据上下文自动填充方法和位置信息
             FailureContext ctx = Ex.getContext();
             if (ctx != null && ctx.isShadowTrace()) {
                 if (method == null) method = Ex.method();
@@ -285,22 +282,17 @@ public class Business extends RuntimeException implements Serializable {
      */
     @Override
     public String toString() {
-        // 格式化代码为xxx_xx格式
         String codeStr = String.valueOf(responseCode.getCode()).replaceFirst("(\\d{3})(\\d{2})", "$1_$2");
 
-        // 处理 invalidValue 快照
         String valStr = "";
         FailureContext ctx = Ex.getContext();
         if (invalidValue != null && ctx != null && ctx.isDebugSnapshot()) {
             valStr = ", val=" + maskValue(invalidValue);
         }
 
-        // 构建基础信息字符串
         String base = "{code=%s, mes=%s, des=%s%s}".formatted(codeStr, I18n.get(responseCode.getMessage()), I18n.get(detail), valStr);
-        // 根据是否有方法信息决定输出格式
         if (method == null) return base + (location != null ? " (" + extractFileLine(location) + ")" : "");
 
-        // 处理内部类方法名 (如 TestController$AdvancedUserValidator#validate -> TestController#validate)
         String displayMethod = method;
         int dollarIndex = method.indexOf('$');
         if (dollarIndex > 0) {
@@ -316,28 +308,23 @@ public class Business extends RuntimeException implements Serializable {
         String str = value.toString();
         if (str.isEmpty()) return str;
 
-        // 手机号: 138****8888
         if (FailureConst.Mobile.matcher(str).matches()) {
             return str.substring(0, 3) + "****" + str.substring(7);
         }
 
-        // 邮箱: a****@gmail.com（用户名全掩码更安全）
         Matcher emailMatcher = FailureConst.Email.matcher(str);
         if (emailMatcher.matches()) {
             return emailMatcher.group(1) + "****" + emailMatcher.group(3);
         }
 
-        // 身份证/银行卡: 前4后4
         if (FailureConst.Card.matcher(str).matches()) {
             return str.substring(0, 4) + "****" + str.substring(str.length() - 4);
         }
 
-        // 长文本截断（修复版）
         if (str.length() > 50) {
             return str.substring(0, 5) + "...(" + str.length() + "char)..."
                     + str.substring(str.length() - 5);
         }
-
         return str;
     }
 
@@ -348,16 +335,12 @@ public class Business extends RuntimeException implements Serializable {
      * @return Extracted filename and line number
      */
     private String extractFileLine(String loc) {
-        // 查找左括号位置
         int start = loc.indexOf("(");
-        if (start < 0) return loc;  // 如果没有找到括号，返回原字符串
-        // 提取括号内的内容（去除右括号）
+        if (start < 0) return loc;
         String content = loc.substring(start + 1, loc.length() - 1);
 
-        // 处理内部类文件名包含 $ 的情况 (如 TestController$AdvancedUserValidator.java:103)
         int dollarIndex = content.indexOf('$');
         if (dollarIndex > 0) {
-            // 查找文件名结束的点号 (如 .java)
             int dotIndex = content.indexOf('.', dollarIndex);
             if (dotIndex > 0) {
                 return content.substring(0, dollarIndex) + content.substring(dotIndex);

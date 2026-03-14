@@ -46,7 +46,11 @@ public abstract class TypedValidator implements FastValidator<Object> {
      */
     protected final <T> void register(Class<T> type, BiConsumer<T, ValidationContext> validator) {
         validators.put(type, (obj, ctx) -> validator.accept(type.cast(obj), ctx));
-        registeredTypesCache = null;
+        if (validators.size() > 10) {
+            registeredTypesCache = Set.copyOf(validators.keySet());
+        } else {
+            registeredTypesCache = null;
+        }
     }
 
 
@@ -78,8 +82,14 @@ public abstract class TypedValidator implements FastValidator<Object> {
 
     @Override
     public Class<?> getSupportedType() {
-        // Return type directly if single type, otherwise return Object
         return validators.size() == 1 ? validators.keySet().iterator().next() : Object.class;
+    }
+
+    /**
+     * 或直接用 size()
+     */
+    public int size() {
+        return validators.size();
     }
 
     /**
@@ -94,12 +104,10 @@ public abstract class TypedValidator implements FastValidator<Object> {
             context.reportError(ResponseCode.VALIDATION_ERROR_NULL);
             return;
         }
-        // Find and execute validation handler for corresponding type
         BiConsumer<Object, ValidationContext> handler = validators.get(object.getClass());
         if (handler != null) {
             handler.accept(object, context);
         } else {
-            // Handle unregistered types
             String s = FailureConst.UNSUPPORTED_VALIDATION_TYPE + object.getClass().getSimpleName();
             context.reportError(ResponseCode.of(400, s));
         }

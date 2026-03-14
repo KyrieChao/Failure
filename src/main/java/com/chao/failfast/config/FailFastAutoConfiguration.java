@@ -140,7 +140,7 @@ public class FailFastAutoConfiguration {
     public FilterRegistrationBean<FailFastCleanupFilter> failFastCleanupFilter(FailureContext context) {
         FilterRegistrationBean<FailFastCleanupFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new FailFastCleanupFilter(context));
-        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 10); // 尽量早执行，但不干扰其他高优先级 filter
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
         registration.addUrlPatterns("/*");
         return registration;
     }
@@ -157,11 +157,10 @@ public class FailFastAutoConfiguration {
             try {
                 chain.doFilter(request, response);
             } finally {
-                context.clearThreadContext();  // 保证每次请求结束都清理
+                context.clearThreadContext();
             }
         }
     }
-    // ============ 内部配置类 ============
 
     /**
      * Debug configuration class.

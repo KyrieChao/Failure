@@ -139,6 +139,22 @@ class ChainCoreBranchTest {
 
     @Test
     void shouldNotCaptureInvalidValueWhenPolicyDisablesIt() {
+        FailureContext ctx = getFailureContext();
+        Ex.setContext(ctx);
+
+        AtomicInteger calls = new AtomicInteger();
+        TestChain chain = new TestChain(true, null);
+        chain.check(false, ResponseCode.of(400, "m"), "d", () -> {
+            calls.incrementAndGet();
+            return "secret";
+        });
+
+        assertThat(calls.get()).isEqualTo(0);
+        assertThat(chain.getCauses()).hasSize(1);
+        assertThat(chain.getCauses().get(0).getInvalidValue()).isNull();
+    }
+
+    private static FailureContext getFailureContext() {
         FailureProperties props = new FailureProperties();
         props.setDebugSnapshot(true);
         ErrorPolicy policy = new ErrorPolicy() {
@@ -157,19 +173,7 @@ class ChainCoreBranchTest {
                 return false;
             }
         };
-        FailureContext ctx = new FailureContext(props, new CodeMappingConfig(props), policy);
-        Ex.setContext(ctx);
-
-        AtomicInteger calls = new AtomicInteger();
-        TestChain chain = new TestChain(true, null);
-        chain.check(false, ResponseCode.of(400, "m"), "d", () -> {
-            calls.incrementAndGet();
-            return "secret";
-        });
-
-        assertThat(calls.get()).isEqualTo(0);
-        assertThat(chain.getCauses()).hasSize(1);
-        assertThat(chain.getCauses().get(0).getInvalidValue()).isNull();
+        return new FailureContext(props, new CodeMappingConfig(props), policy);
     }
 
     @Test

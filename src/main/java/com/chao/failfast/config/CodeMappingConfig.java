@@ -236,26 +236,19 @@ public class CodeMappingConfig {
      * @return Corresponding HttpStatus object
      */
     public HttpStatus resolveHttpStatus(int code) {
-        // 1. 标准 HTTP 状态码优先精确匹配（100-599）
         if (code >= 100 && code <= 599) {
             try {
                 return HttpStatus.valueOf(code);
             } catch (IllegalArgumentException ignored) {
-                // 非标准 HTTP 码（如 499），继续后续匹配
             }
         }
-        // 2. 精确匹配自定义映射
         HttpStatus exact = DEFAULT_MAPPINGS.get(code);
         if (exact != null) return exact;
-
-        // 3. 范围匹配（如 40001~40099 匹配 40000）
         int rangeStart = (code / 100) * 100;
         HttpStatus rangeStatus = DEFAULT_MAPPINGS.get(rangeStart);
         if (rangeStatus != null) return rangeStatus;
-
-        // 4. 大类匹配（业务码 4xxxx/5xxxx）
         if (code >= 40000 && code < 50000) return HttpStatus.BAD_REQUEST;
-        // 5. 兜底
+
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 

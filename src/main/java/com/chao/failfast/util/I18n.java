@@ -48,20 +48,16 @@ public class I18n {
      */
     public static String get(String code, Object... args) {
         if (instance == null || !StringUtils.hasText(code)) {
-            // System.out.println("DEBUG: I18n.get(" + code + ") instance is NULL or code empty");
             return code;
         }
-        // If code is wrapped in {}, unwrap it
         String key = code;
         if (code.startsWith("{") && code.endsWith("}")) {
             key = code.substring(1, code.length() - 1);
         }
         
         try {
-            // System.out.println("DEBUG: I18n.get(" + key + ") locale=" + LocaleContextHolder.getLocale());
             return instance.messageSource.getMessage(key, args, code, LocaleContextHolder.getLocale());
         } catch (Exception e) {
-            // System.out.println("DEBUG: I18n.get exception=" + e);
             return code;
         }
     }

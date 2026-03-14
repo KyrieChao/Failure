@@ -37,8 +37,6 @@ public class MultiBusiness extends Business {
                 ), FailureConst.VALIDATION_ERROR_PREFIX + errors.size() + FailureConst.ERROR_ITEM_SUFFIX,
                 null, null, HttpStatus.INTERNAL_SERVER_ERROR,null
         );
-
-        // 限制错误数量，防止内存问题
         if (errors.size() > MAX_ERRORS) {
             this.errors = List.copyOf(errors.subList(0, MAX_ERRORS));
         } else {

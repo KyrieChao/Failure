@@ -57,12 +57,10 @@ public class FailureContext {
      * @return True to print method info, false otherwise
      */
     boolean isShadowTrace() {
-        // 检查线程级覆盖设置
         Boolean override = printMethodOverride.get();
         if (override != null) {
             return override;
         }
-        // 使用全局配置
         return properties.isShadowTrace();
     }
 
@@ -94,11 +92,9 @@ public class FailureContext {
     public <T> T withPrintMethod(boolean printMethod, Supplier<T> action) {
         Boolean original = printMethodOverride.get();
         try {
-            // 设置临时配置
             printMethodOverride.set(printMethod);
             return action.get();
         } finally {
-            // 恢复原有配置
             if (original == null) printMethodOverride.remove();
             else printMethodOverride.set(original);
         }
@@ -113,11 +109,9 @@ public class FailureContext {
     public void withPrintMethod(boolean printMethod, Runnable action) {
         Boolean original = printMethodOverride.get();
         try {
-            // 设置临时配置
             printMethodOverride.set(printMethod);
             action.run();
         } finally {
-            // 恢复原有配置
             if (original == null) printMethodOverride.remove();
             else printMethodOverride.set(original);
         }

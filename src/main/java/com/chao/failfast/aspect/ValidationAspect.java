@@ -197,7 +197,7 @@ public class ValidationAspect {
         ValidatorFactory factory = VALIDATOR_FACTORY_CACHE.computeIfAbsent(type, this::buildValidatorFactory);
         return factory.get();
     }
-
+    @SuppressWarnings("unchecked")
     private ValidatorFactory buildValidatorFactory(Class<? extends FastValidator<Object>> type) {
         ObjectProvider<FastValidator<Object>> provider = applicationContext != null
                 ? (ObjectProvider<FastValidator<Object>>) applicationContext.getBeanProvider((Class<?>) type)
