@@ -100,9 +100,23 @@ Failure.begin()
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.2</version> <!-- 确保这里是最新版 -->
+    <version>1.1.1</version> <!-- 确保这里是最新版 -->
 </dependency>
 ```
+本项目已发布至 JitPack：
+```xml
+<dependency>
+    <groupId>com.github.KyrieChao</groupId>
+    <artifactId>Failure</artifactId>
+    <version>1.7.1</version> <!-- 确保这里是最新版 -->
+</dependency>
+```
+
+| 渠道 | 说明 |
+|------|------|
+| Maven Central | ✅ 稳定版 |
+| JitPack | ⚡ 开发版，包含最新提交 |
+
 
 
 ---
