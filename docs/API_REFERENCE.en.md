@@ -1,6 +1,6 @@
 # API Reference
 
-[中文版本](./API_REFERENCE.md)
+[中文版本](API_REFERENCE.md)
 
 This document provides a comprehensive list of core APIs, design patterns, and best practices for the `Failure` validation framework. Designed with a fluent-interface style, it aims to provide a high-readability, type-safe, and easily extensible validation experience.
 

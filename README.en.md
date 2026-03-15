@@ -80,9 +80,10 @@ Failure.begin()
 | Document                                  | Content                                                 |
 |:------------------------------------------|:--------------------------------------------------------|
 | [Quick Start](#%EF%B8%8F-quick-start)     | Installation, basic usage, and three modes introduction |
-| [API Reference](./API_REFERENCE.en.md)    | Complete API list, method details, and best practices   |
+| [API Reference](docs/API_REFERENCE.en.md)    | Complete API list, method details, and best practices   |
 | [Configuration](#%EF%B8%8F-configuration) | application.yml configuration details                   |
 | [I18n Guide](./docs/I18N_GUIDE.md)        | Internationalization configuration and key reference    |
+| [Response Code Management](./docs/RESPONSE_CODE_MANAGEMENT.md) | Response code mapping and management scheme |
 
 ---
 
@@ -340,7 +341,7 @@ For advanced customization of default response code, default detail generation, 
 
 ## 📖 More Documentation
 
-- **[API_REFERENCE.en.md](./API_REFERENCE.en.md)** - Complete API Reference, Design Patterns
+- **[API_REFERENCE.en.md](docs/API_REFERENCE.en.md)** - Complete API Reference, Design Patterns
 - **[Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)** - Live Demo Project
 
 ---

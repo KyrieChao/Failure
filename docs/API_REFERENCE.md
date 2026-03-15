@@ -1,6 +1,6 @@
 # API Reference
 
-[English Version](./API_REFERENCE.en.md)
+[English Version](API_REFERENCE.en.md)
 
 本文档详尽列出了 `Failure` 校验框架的核心 API、设计模式及最佳实践。基于 fluent-interface 风格设计，旨在提供高可读性、强类型安全且易于扩展的校验体验。
 

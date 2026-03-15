@@ -82,9 +82,10 @@ Failure.begin()
 | 文档                         | 内容                            |
 |----------------------------| ----------------------------------- |
 | [快速开始](#-快速开始)             | 安装、基础用法、三种模式入门   |
-| [API 参考](./API_REFERENCE.md) | 完整的 API 列表、方法详解、最佳实践 |
+| [API 参考](docs/API_REFERENCE.md) | 完整的 API 列表、方法详解、最佳实践 |
 | [配置说明](#%EF%B8%8F-配置说明)    | application.yml 配置项详解  |
 | [国际化指南](./docs/I18N_GUIDE.md) | 国际化配置及键值参考 |
+| [响应码管理](./docs/RESPONSE_CODE_MANAGEMENT.md) | 响应码对应关系及管理方案 |
 ---
 
 ## 🛠️ 快速开始
@@ -119,8 +120,6 @@ Failure.begin()
 |------|------|
 | Maven Central | ✅ 稳定版 |
 | JitPack | ⚡ 开发版，包含最新提交 |
-
-
 
 ---
 
@@ -355,7 +354,7 @@ fail-fast:
 
 ## 📖 更多文档
 
-- **[API_REFERENCE.md](./API_REFERENCE.md)** - 完整的 API 参考、所有校验方法列表、设计模式详解
+- **[API_REFERENCE.md](docs/API_REFERENCE.md)** - 完整的 API 参考、所有校验方法列表、设计模式详解
 - **[Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)** - 实战示例项目
 
 ---
