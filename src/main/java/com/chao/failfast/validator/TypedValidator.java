@@ -100,6 +100,9 @@ public abstract class TypedValidator implements FastValidator<Object> {
      */
     @Override
     public final void validate(Object object, ValidationContext context) {
+        if (context == null) {
+            context = new ValidationContext(true);
+        }
         if (object == null) {
             context.reportError(ResponseCode.VALIDATION_ERROR_NULL);
             return;

@@ -37,7 +37,7 @@ import java.util.Map;
 public abstract class FailFastExceptionHandler {
 
     /**
-     * Fail-Fast configuration properties.
+     * Failure configuration properties.
      */
     private FailureProperties properties;
 

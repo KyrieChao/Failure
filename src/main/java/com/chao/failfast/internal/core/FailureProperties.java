@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Fail-Fast configuration properties - Enhanced version.
+ * Failure configuration properties - Enhanced version.
  *
  * @author Kyrie Chao
  * @version 1.0.0

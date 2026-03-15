@@ -28,7 +28,7 @@ import org.springframework.core.Ordered;
 import java.io.IOException;
 
 /**
- * Fail-Fast auto-configuration class - Enhanced version.
+ * Failure auto-configuration class - Enhanced version.
  *
  * @author Kyrie Chao
  * @version 1.0.0

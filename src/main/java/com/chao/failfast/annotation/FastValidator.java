@@ -87,5 +87,13 @@ public interface FastValidator<T> {
         public Business getFirstError() {
             return errors.isEmpty() ? null : errors.get(0);
         }
+
+        /**
+         * Reset the validation context to its initial state.
+         */
+        public void reset() {
+            errors.clear();
+            stopped = false;
+        }
     }
 }

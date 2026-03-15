@@ -17,6 +17,8 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 
 🔗 **实战示例项目**: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)
 
+📊 **完整性能报告与测试代码**：[Failure-Benchmark](https://github.com/KyrieChao/Benchmark)
+
 ---
 
 ## 🚀 核心特性
