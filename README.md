@@ -73,6 +73,9 @@ Failure.begin()
 </table>
 
 ---
+## Failure 性能对比图
+![性能测试报告](docs/images/performance_report.png)
+---
 
 ## 📚 文档导航
 
