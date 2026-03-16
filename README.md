@@ -116,6 +116,7 @@ Failure.begin()
 </dependency>
 ```
 
+
 | 渠道 | 说明 |
 |------|------|
 | Maven Central | ✅ 稳定版 |
