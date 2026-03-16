@@ -27,9 +27,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import com.chao.failfast.util.I18n;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -70,6 +72,58 @@ class FailFastExceptionHandlerTest {
             // To be safe and avoid side effects, we can just duplicate the logic we want to test or trust that calling it won't break anything.
             // Let's call super to cover the lines, assuming Slf4j is available and won't crash.
             super.logException(e);
+        }
+        
+        // 辅助方法用于测试私有方法
+        protected Object invokeParseValidationMessage(String message) {
+            // 由于是私有方法，我们通过反射调用
+            try {
+                java.lang.reflect.Method method = FailFastExceptionHandler.class.getDeclaredMethod("parseValidationMessage", String.class);
+                method.setAccessible(true);
+                return method.invoke(this, message);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        
+        protected boolean invokeIsNumeric(String str) {
+            try {
+                java.lang.reflect.Method method = FailFastExceptionHandler.class.getDeclaredMethod("isNumeric", String.class);
+                method.setAccessible(true);
+                return (boolean) method.invoke(this, str);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        
+        protected String invokeFormatValidationLocation(Class<?> clazz, String fieldOrPath) {
+            try {
+                java.lang.reflect.Method method = FailFastExceptionHandler.class.getDeclaredMethod("formatValidationLocation", Class.class, String.class);
+                method.setAccessible(true);
+                return (String) method.invoke(this, clazz, fieldOrPath);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        
+        protected Business invokeParseError(String message, String location, String methodName) {
+            try {
+                java.lang.reflect.Method method = FailFastExceptionHandler.class.getDeclaredMethod("parseError", String.class, String.class, String.class);
+                method.setAccessible(true);
+                return (Business) method.invoke(this, message, location, methodName);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        
+        protected Map<String, Object> invokeBuildMap(Business business) {
+            try {
+                java.lang.reflect.Method method = FailFastExceptionHandler.class.getDeclaredMethod("buildMap", Business.class);
+                method.setAccessible(true);
+                return (Map<String, Object>) method.invoke(this, business);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         
         // Expose protected methods for testing if needed, though we prefer testing via public API
@@ -524,4 +578,106 @@ class FailFastExceptionHandlerTest {
         assertEquals(1, handler.loggedExceptions.size());
     }
 
-}
+    @Test
+    @DisplayName("parseValidationMessage: 应正确解析错误消息格式")
+    void testParseValidationMessage() {
+        // 直接使用现有的 TestHandler
+        TestHandler testHandler = new TestHandler();
+        
+        // 测试各种格式
+        // 格式1: "code:message"
+        Object result1 = testHandler.invokeParseValidationMessage("2002:Custom Error");
+        assertThat(result1).isNotNull();
+        
+        // 格式2: "code"
+        Object result2 = testHandler.invokeParseValidationMessage("2002");
+        assertThat(result2).isNotNull();
+        
+        // 格式3: "message"
+        Object result3 = testHandler.invokeParseValidationMessage("Custom Error");
+        assertThat(result3).isNotNull();
+        
+        // 格式4: ""
+        Object result4 = testHandler.invokeParseValidationMessage("");
+        assertThat(result4).isNotNull();
+        
+        // 格式5: null
+        Object result5 = testHandler.invokeParseValidationMessage(null);
+        assertThat(result5).isNotNull();
+    }
+
+    @Test
+    @DisplayName("isNumeric: 应正确判断字符串是否为数字")
+    void testIsNumeric() {
+        TestHandler testHandler = new TestHandler();
+        
+        assertThat(testHandler.invokeIsNumeric("123")).isTrue();
+        assertThat(testHandler.invokeIsNumeric("abc")).isFalse();
+        assertThat(testHandler.invokeIsNumeric("")).isFalse();
+        assertThat(testHandler.invokeIsNumeric(null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("formatValidationLocation: 应正确格式化验证位置")
+    void testFormatValidationLocation() {
+        TestHandler testHandler = new TestHandler();
+        
+        // 1. 普通字段
+        String result1 = testHandler.invokeFormatValidationLocation(TestController.class, "field");
+        assertThat(result1).contains("TestController");
+        assertThat(result1).contains("field");
+        
+        // 2. 带点的字段路径
+        String result2 = testHandler.invokeFormatValidationLocation(TestController.class, "method.field");
+        assertThat(result2).contains("TestController");
+        assertThat(result2).contains("method");
+        assertThat(result2).contains("field");
+        
+        // 3. null 字段
+        String result3 = testHandler.invokeFormatValidationLocation(TestController.class, null);
+        assertThat(result3).contains("未知错误");
+        
+        // 4. null 类
+        String result4 = testHandler.invokeFormatValidationLocation(null, "field");
+        assertThat(result4).isEqualTo("field");
+    }
+
+    @Test
+    @DisplayName("parseError: 应正确解析错误信息")
+    void testParseError() {
+        TestHandler testHandler = new TestHandler();
+        
+        // 1. 带代码的错误消息
+        Business result1 = testHandler.invokeParseError("2002:Custom Error", "location", "method");
+        assertThat(result1).isNotNull();
+        assertThat(result1.getResponseCode().getCode()).isEqualTo(2002);
+        
+        // 2. 不带代码的错误消息
+        Business result2 = testHandler.invokeParseError("Custom Error", "location", "method");
+        assertThat(result2).isNotNull();
+        
+        // 3. null 消息
+        Business result3 = testHandler.invokeParseError(null, "location", "method");
+        assertThat(result3).isNotNull();
+        
+        // 4. 空消息
+        Business result4 = testHandler.invokeParseError("", "location", "method");
+        assertThat(result4).isNotNull();
+    }
+
+    @Test
+    @DisplayName("buildMap: 应正确构建响应映射")
+    void testBuildMap() {
+        TestHandler testHandler = new TestHandler();
+        Business business = Business.of(1001, "Test Error");
+        
+        Map<String, Object> result = testHandler.invokeBuildMap(business);
+        assertThat(result).isNotNull();
+        assertThat(result).containsKey("code");
+        assertThat(result).containsKey("message");
+        assertThat(result).containsKey("description");
+        assertThat(result).containsKey("timestamp");
+        assertThat(result.get("code")).isEqualTo(1001);
+    }
+
+} 

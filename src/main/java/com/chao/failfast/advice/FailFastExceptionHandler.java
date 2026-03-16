@@ -1,6 +1,5 @@
 package com.chao.failfast.advice;
 
-import com.chao.failfast.annotation.ToImprove;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.Business;
@@ -272,22 +271,23 @@ public abstract class FailFastExceptionHandler {
      * @param methodName Method name
      * @return Constructed Business exception object
      */
-    @ToImprove(value = "默认使用400错误码 待完善")
     private Business parseError(String message, String location, String methodName) {
         Business business;
 
-        // 处理空消息情况
-        if (message == null) {
+        if (message == null || message.isBlank()) {
             business = Business.of(ResponseCode.VALIDATION_ERROR_400, FailureConst.INVALID_PARAMETER);
         } else {
-            // 解析 "code:message" 格式，支持自定义错误码
-            String[] parts = message.split(":", 2);
-            if (parts.length == 2 && isNumeric(parts[0])) {
-                int code = Integer.parseInt(parts[0]);
-                String msg = parts[1].trim();
-                business = Business.of(ResponseCode.of(code, msg), msg);
+            ParsedValidationMessage parsed = parseValidationMessage(message);
+            if (parsed.code() != null) {
+                int code = parsed.code();
+                String text = parsed.text();
+                if (text == null || text.isBlank()) {
+                    ResponseCode base = ResponseCode.VALIDATION_ERROR_400;
+                    business = Business.of(ResponseCode.of(code, base.getMessage(), base.getDescription()), FailureConst.INVALID_PARAMETER);
+                } else {
+                    business = Business.of(ResponseCode.of(code, text), text);
+                }
             } else {
-                // 默认使用400错误码 (参数校验错误通常是客户端问题)
                 business = Business.of(ResponseCode.VALIDATION_ERROR_400, message);
             }
         }
@@ -297,6 +297,31 @@ public abstract class FailFastExceptionHandler {
             return Business.of(business.getResponseCode(), business.getDetail(), methodName, location);
         }
         return business;
+    }
+
+    private record ParsedValidationMessage(Integer code, String text) {
+    }
+
+    private ParsedValidationMessage parseValidationMessage(String raw) {
+        if (raw == null) return new ParsedValidationMessage(null, null);
+        String s = raw.trim();
+        if (s.isEmpty()) return new ParsedValidationMessage(null, null);
+
+        int idx = s.indexOf(':');
+        if (idx > 0) {
+            String prefix = s.substring(0, idx).trim();
+            if (isNumeric(prefix)) {
+                int code = Integer.parseInt(prefix);
+                String rest = s.substring(idx + 1).trim();
+                return new ParsedValidationMessage(code, rest.isEmpty() ? null : rest);
+            }
+        }
+
+        if (isNumeric(s)) {
+            return new ParsedValidationMessage(Integer.parseInt(s), null);
+        }
+
+        return new ParsedValidationMessage(null, s);
     }
 
     /**

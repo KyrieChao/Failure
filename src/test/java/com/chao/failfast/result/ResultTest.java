@@ -634,6 +634,18 @@ class ResultTest {
         }
 
         @Test
+        @DisplayName("getError: 当 Result 是 Failure 时应返回错误信息")
+        void getError_whenFailure_shouldReturnError() {
+            Business expectedError = Business.of(TestResponseCode.PARAM_ERROR, "test detail");
+            Result<String> failure = Result.fail(expectedError);
+
+            Business actualError = failure.getError();
+            assertThat(actualError).isEqualTo(expectedError);
+            assertThat(actualError.getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
+            assertThat(actualError.getDetail()).isEqualTo("test detail");
+        }
+
+        @Test
         @DisplayName("Failure 的 getter 应返回正确值")
         void failureGetterShouldReturnCorrectValues() {
             Business error = Business.of(TestResponseCode.PARAM_ERROR, "detail");

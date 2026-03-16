@@ -3,6 +3,7 @@ package com.chao.failfast.result;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.util.I18n;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
@@ -466,8 +467,11 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
          */
         public Fail(Business error) {
             super(
-                    error.getResponseCode().getCode(), error.getResponseCode().getMessage(),
-                    error.getDetail() != null ? error.getDetail() : error.getResponseCode().getDescription()
+                    error.getResponseCode().getCode(),
+                    I18n.get(error.getResponseCode().getMessage()),
+                    error.getDetail() != null
+                            ? I18n.get(error.getDetail())
+                            : I18n.get(error.getResponseCode().getDescription())
             );
             this.error = error;
         }

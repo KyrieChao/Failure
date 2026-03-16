@@ -297,6 +297,45 @@ class FastValidatorTest {
     }
 
     @Nested
+    @DisplayName("ValidationContext - reset 方法测试")
+    class ResetTest {
+
+        @Test
+        @DisplayName("reset 应重置上下文状态")
+        void shouldResetContext() {
+            FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
+            ctx.reportError(ResponseCode.of(40000, "错误"));
+            ctx.stop();
+
+            assertThat(ctx.isValid()).isFalse();
+            assertThat(ctx.isStopped()).isTrue();
+            assertThat(ctx.hasCauses()).hasSize(1);
+
+            // 执行重置
+            ctx.reset();
+
+            assertThat(ctx.isValid()).isTrue();
+            assertThat(ctx.isStopped()).isFalse();
+            assertThat(ctx.hasCauses()).isEmpty();
+            assertThat(ctx.getFirstError()).isNull();
+        }
+
+        @Test
+        @DisplayName("reset 后应能重新添加错误")
+        void shouldAllowAddingErrorsAfterReset() {
+            FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
+            ctx.reportError(ResponseCode.of(40000, "错误1"));
+            ctx.reset();
+
+            // 重置后应能添加新错误
+            ctx.reportError(ResponseCode.of(40001, "错误2"));
+            assertThat(ctx.isValid()).isFalse();
+            assertThat(ctx.hasCauses()).hasSize(1);
+            assertThat(ctx.getFirstError().getResponseCode().getCode()).isEqualTo(40001);
+        }
+    }
+
+    @Nested
     @DisplayName("集成测试 - 完整验证流程")
     class IntegrationTest {
 
