@@ -75,6 +75,17 @@ Failure.begin()
 
 ---
 
+---
+## ⚡ Performance
+
+JMH microbenchmark results (vs Hibernate Validator):
+
+![Performance Chart](docs/images/failure_benchmark_visualization.png)
+
+*Test environment & reproducible code: [Benchmark repo](https://github.com/KyrieChao/Benchmark)*
+
+---
+
 ## 📚 Documentation
 
 | Document                                  | Content                                                 |

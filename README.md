@@ -73,8 +73,14 @@ Failure.begin()
 </table>
 
 ---
-## Failure 性能对比图
-![性能测试报告](docs/images/performance_report.png)
+## ⚡ 性能参考
+
+在 JMH 微基准测试中表现如下（对比 Hibernate Validator）：
+
+![性能测试](docs/images/failure_benchmark_visualization.png)
+
+*详细测试环境及可复现代码：[Benchmark 仓库](https://github.com/KyrieChao/Benchmark)*
+
 ---
 
 ## 📚 文档导航
