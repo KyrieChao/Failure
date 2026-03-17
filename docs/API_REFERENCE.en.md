@@ -398,7 +398,7 @@ Use in Controller:
 ```java
 @PostMapping("/register")
 @Validate(value = UserRegisterValidator.class, fast = false)
-public Result<?> register(@RequestBody UserRegisterDTO dto) {
+public Result<?> register(@RequestBody @Valid UserRegisterDTO dto) {
     // AOP automatically executes validation
     userService.register(dto);
     return Result.success("Registration successful");

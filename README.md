@@ -208,7 +208,7 @@ if (!chain.isValid()) {
 // Controller
 @PostMapping("/register")
 @Validate(value = UserRegisterValidator.class, fast = false)  // fast=false 全量收集
-public Result<?> register(@RequestBody UserRegisterDTO dto) {
+public Result<?> register(@RequestBody @Valid UserRegisterDTO dto) {
     userService.register(dto);
     return Result.success("注册成功");
 }
