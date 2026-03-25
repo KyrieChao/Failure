@@ -311,7 +311,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     private Object resolveInvalidValue(Supplier<Object> invalidValueSupplier) {
         if (invalidValueSupplier == null) return null;
         FailureContext ctx = Ex.getContext();
-        ErrorPolicy policy = ctx != null ? ctx.getErrorPolicy() : DefaultErrorPolicy.INSTANCE;
+        ErrorPolicy policy = ctx != null ? Objects.requireNonNullElse(ctx.getErrorPolicy(), DefaultErrorPolicy.INSTANCE) : DefaultErrorPolicy.INSTANCE;
         if (!policy.captureInvalidValue(ctx)) return null;
         return invalidValueSupplier.get();
     }
@@ -376,7 +376,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
 
     private Business buildBusiness(ResponseCode code, String detail, Object value, String path, String constraint) {
         FailureContext ctx = Ex.getContext();
-        ErrorPolicy policy = ctx != null ? ctx.getErrorPolicy() : DefaultErrorPolicy.INSTANCE;
+        ErrorPolicy policy = ctx != null ? Objects.requireNonNullElse(ctx.getErrorPolicy(), DefaultErrorPolicy.INSTANCE) : DefaultErrorPolicy.INSTANCE;
 
         Business.Fabricator fabricator = Business.compose();
         if (value != null && policy.captureInvalidValue(ctx)) {

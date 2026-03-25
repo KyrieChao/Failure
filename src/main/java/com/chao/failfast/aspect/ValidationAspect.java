@@ -205,7 +205,7 @@ public class ValidationAspect {
 
                 // 检查是否需要捕获 invalidValue
                 FailureContext ctx = Ex.getContext();
-                ErrorPolicy policy = ctx != null ? ctx.getErrorPolicy() : DefaultErrorPolicy.INSTANCE;
+                ErrorPolicy policy = ctx != null ? java.util.Objects.requireNonNullElse(ctx.getErrorPolicy(), DefaultErrorPolicy.INSTANCE) : DefaultErrorPolicy.INSTANCE;
                 if (invalidValue != null && policy.captureInvalidValue(ctx)) {
                     fabricator.invalidValue(invalidValue);
                 }

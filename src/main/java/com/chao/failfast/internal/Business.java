@@ -4,6 +4,7 @@ import com.chao.failfast.config.CodeMappingConfig;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.internal.policy.DefaultErrorPolicy;
 import com.chao.failfast.internal.policy.ErrorPolicy;
 import com.chao.failfast.util.I18n;
 import lombok.Getter;
@@ -300,10 +301,8 @@ public class Business extends RuntimeException implements Serializable {
             if (responseCode == null) throw new IllegalArgumentException(FailureConst.CODE_REQUIRED);
             if (detail == null) {
                 FailureContext ctx = Ex.getContext();
-                ErrorPolicy policy = ctx != null ? ctx.getErrorPolicy() : null;
-                if (policy != null) {
-                    detail = policy.defaultDetail(responseCode);
-                }
+                ErrorPolicy policy = ctx != null ? java.util.Objects.requireNonNullElse(ctx.getErrorPolicy(), DefaultErrorPolicy.INSTANCE) : DefaultErrorPolicy.INSTANCE;
+                detail = policy.defaultDetail(responseCode);
                 if (detail == null) detail = responseCode.getDescription();
                 if (detail == null) detail = responseCode.getMessage();
                 if (detail == null) detail = FailureConst.MESSAGE_OR_DESCRIPTION_REQUIRED;
