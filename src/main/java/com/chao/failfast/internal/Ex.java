@@ -1,6 +1,7 @@
 package com.chao.failfast.internal;
 
 import com.chao.failfast.constant.FailureConst;
+import com.chao.failfast.internal.core.FailureContext;
 import lombok.Getter;
 
 import java.util.Set;
@@ -9,7 +10,7 @@ import java.util.Set;
  * Exception builder utility class - Enhanced thread-safe version.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 public final class Ex {
     /**
@@ -47,7 +48,6 @@ public final class Ex {
     public static void setContext(FailureContext ctx) {
         Ex.context = ctx;
     }
-
 
     /**
      * Private constructor to prevent instantiation.
@@ -136,8 +136,7 @@ public final class Ex {
         String full = f.getClassName();
         String simple = full.substring(full.lastIndexOf('.') + 1);
         int line = f.getLineNumber();
-        String fileInfo = (line > 0) ? simple + ".java:" + line : simple + ".java";
-        return simple + "." + f.getMethodName() + "(" + fileInfo + ")";
+        return (line > 0) ? simple + ".java:" + line : simple + ".java";
     }
 
     /**
@@ -154,7 +153,7 @@ public final class Ex {
         if (methodName.startsWith("lambda$")) {
             int firstDollar = methodName.indexOf('$');
             int lastDollar = methodName.lastIndexOf('$');
-            if (firstDollar != -1 && lastDollar > firstDollar) {
+            if (lastDollar > firstDollar) {
                 methodName = methodName.substring(firstDollar + 1, lastDollar);
             }
         }

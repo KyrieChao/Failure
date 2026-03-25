@@ -12,6 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import com.chao.failfast.internal.Ex;
+import com.chao.failfast.internal.core.FailureContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
@@ -38,6 +40,9 @@ import static org.mockito.Mockito.when;
 class DefaultExceptionHandlerTest {
 
     private final DefaultExceptionHandler handler = new DefaultExceptionHandler();
+
+    @Autowired
+    private FailureContext failureContext;
 
     @BeforeEach
     void setUp() {
@@ -167,5 +172,33 @@ class DefaultExceptionHandlerTest {
         assertThat(body).containsEntry("code", 500);
         assertThat(body).containsEntry("message", "参数绑定失败");
         assertThat(body).containsEntry("description", "未知错误");  // ← 覆盖空分支
+    }
+
+    @Test
+    @DisplayName("默认场景不应输出 scene 字段")
+    void defaultSceneShouldNotBeReturned() {
+        Ex.setContext(failureContext);
+        failureContext.setScene("DEFAULT");
+
+        Business business = Business.of(TestResponseCode.PARAM_ERROR, "详情");
+        ResponseEntity<?> response = handler.handleBusinessException(business);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertThat(body).doesNotContainKey("scene");
+    }
+
+    @Test
+    @DisplayName("非默认场景应输出 scene 字段")
+    void nonDefaultSceneShouldBeReturned() {
+        Ex.setContext(failureContext);
+        failureContext.setScene("CREATE");
+
+        Business business = Business.of(TestResponseCode.PARAM_ERROR, "详情");
+        ResponseEntity<?> response = handler.handleBusinessException(business);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertThat(body).containsEntry("scene", "CREATE");
     }
 }

@@ -56,4 +56,16 @@ class ResultsCoverageTest {
         assertTrue(result.isFail());
         assertEquals("参数错误", result.getError().getDetail());
     }
+
+    @Test
+    @DisplayName("tryOf: 无detail且错误码无description时使用错误码message")
+    void tryOf_noDetailNoDescriptionUsesMessage() {
+        ResponseCode code = ResponseCode.of(400, "only-message");
+        Result<String> result = Results.tryOf(() -> {
+            throw new RuntimeException("boom");
+        }, code);
+
+        assertTrue(result.isFail());
+        assertEquals("only-message", result.getError().getDetail());
+    }
 }

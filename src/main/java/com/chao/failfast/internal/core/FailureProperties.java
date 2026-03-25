@@ -3,6 +3,7 @@ package com.chao.failfast.internal.core;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,7 @@ import java.util.Map;
  * Failure configuration properties - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Data
 @ConfigurationProperties(prefix = "fail-fast")
@@ -32,6 +33,11 @@ public class FailureProperties {
     private boolean debugSnapshot = false;
 
     /**
+     * Whether to enable method validation.
+     */
+    private boolean methodValidationEnabled = false;
+
+    /**
      * Error code mapping configuration.
      */
     private CodeMapping codeMapping = new CodeMapping();
@@ -40,6 +46,8 @@ public class FailureProperties {
      * Internationalization configuration.
      */
     private I18n i18n = new I18n();
+
+    private TraceId traceId = new TraceId();
 
     /**
      * Internationalization configuration class.
@@ -86,5 +94,45 @@ public class FailureProperties {
          * Error code grouping.
          */
         private Map<String, List<Object>> groups = new HashMap<>();
+
+        /**
+         * Constraint to response code mapping: constraint name -> response code.
+         */
+        private Map<String, Integer> constraintMapping = new HashMap<>();
+
+        /**
+         * Constraint + path to response code mapping: constraintName:path -> response code.
+         */
+        private List<ConstraintPathMapping> constraintPathMapping = new ArrayList<>();
+
+        /**
+         * Constraint + bean class to response code mapping: constraintName:beanClass -> response code.
+         */
+        private List<ConstraintBeanMapping> constraintBeanMapping = new ArrayList<>();
+
+        @Data
+        public static class ConstraintPathMapping {
+            private String constraint;
+            private String path;
+            private Integer code;
+        }
+
+        @Data
+        public static class ConstraintBeanMapping {
+            private String constraint;
+            private String bean;
+            private Integer code;
+        }
+    }
+
+    @Data
+    public static class TraceId {
+        private boolean enabled = true;
+        private String headerName = "X-Trace-Id";
+        private boolean generateIfMissing = true;
+        private boolean responseHeader = true;
+        private String responseHeaderName = "X-Trace-Id";
+        private boolean mdcEnabled = true;
+        private String mdcKey = "traceId";
     }
 }

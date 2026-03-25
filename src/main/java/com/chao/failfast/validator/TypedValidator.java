@@ -15,7 +15,7 @@ import java.util.function.BiConsumer;
  * TypedValidator - Abstract generic validator class.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 public abstract class TypedValidator implements FastValidator<Object> {
 
@@ -106,7 +106,7 @@ public abstract class TypedValidator implements FastValidator<Object> {
     @Override
     public final void validate(Object object, ValidationContext context) {
         if (context == null) {
-            context = new ValidationContext(true);
+            context = new FastValidator.ValidationContext(true);
         }
         if (object == null) {
             context.reportError(ResponseCode.VALIDATION_ERROR_NULL);
@@ -144,15 +144,26 @@ public abstract class TypedValidator implements FastValidator<Object> {
             Class<?> registeredType = e.getKey();
             if (!registeredType.isAssignableFrom(runtimeType)) continue;
             int distance = distance(runtimeType, registeredType);
+            if (bestHandler == null) {
+                bestDistance = distance;
+                bestType = registeredType;
+                bestHandler = e.getValue();
+                continue;
+            }
             if (distance < bestDistance) {
                 bestDistance = distance;
                 bestType = registeredType;
                 bestHandler = e.getValue();
-            } else if (distance == bestDistance && bestType != null) {
-                if (bestType.isInterface() && !registeredType.isInterface()) {
-                    bestType = registeredType;
-                    bestHandler = e.getValue();
-                } else if (bestType.isInterface() == registeredType.isInterface()) {
+            } else if (distance == bestDistance) {
+                boolean bestIsInterface = bestType.isInterface();
+                boolean curIsInterface = registeredType.isInterface();
+
+                if (bestIsInterface != curIsInterface) {
+                    if (bestIsInterface) {
+                        bestType = registeredType;
+                        bestHandler = e.getValue();
+                    }
+                } else {
                     if (registeredType.getName().compareTo(bestType.getName()) < 0) {
                         bestType = registeredType;
                         bestHandler = e.getValue();
@@ -178,15 +189,15 @@ public abstract class TypedValidator implements FastValidator<Object> {
             int d = dist.get(cur);
 
             Class<?> sup = cur.getSuperclass();
-            if (sup != null && dist.putIfAbsent(sup, d + 1) == null) {
+            if (sup != null) {
                 if (sup.equals(to)) return d + 1;
+                dist.putIfAbsent(sup, d + 1);
                 q.add(sup);
             }
             for (Class<?> i : cur.getInterfaces()) {
-                if (dist.putIfAbsent(i, d + 1) == null) {
-                    if (i.equals(to)) return d + 1;
-                    q.add(i);
-                }
+                if (i.equals(to)) return d + 1;
+                dist.putIfAbsent(i, d + 1);
+                q.add(i);
             }
         }
 

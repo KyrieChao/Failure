@@ -1,5 +1,6 @@
 package com.chao.failfast.internal.chain;
 
+import com.chao.failfast.internal.chain.pipeline.ChainCore;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

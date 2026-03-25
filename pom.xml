@@ -13,7 +13,7 @@
 
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.1.2</version>
+    <version>1.2.0</version>
     <packaging>jar</packaging>
 
     <name>Failure - Fail-Fast Validation Framework</name>
@@ -35,7 +35,6 @@
             <timezone>Asia/Shanghai</timezone>
         </developer>
     </developers>
-
     <scm>
         <connection>scm:git:git://github.com/KyrieChao/Failure.git</connection>
         <developerConnection>scm:git:ssh://github.com:KyrieChao/Failure.git</developerConnection>
@@ -50,7 +49,6 @@
     </properties>
 
     <dependencies>
-        <!-- 你的依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -58,17 +56,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -141,6 +136,43 @@
                         <exclude>**/config/*Properties.class</exclude>
                         <exclude>**/exception/*Exception.class</exclude>
                     </excludes>
+                    <rules>
+                        <rule>
+                            <element>CLASS</element>
+                            <limits>
+                                <limit>
+                                    <counter>CLASS</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.8</minimum>
+                                </limit>
+                                <limit>
+                                    <counter>METHOD</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.8</minimum>
+                                </limit>
+                                <limit>
+                                    <counter>LINE</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.8</minimum>
+                                </limit>
+                                <limit>
+                                    <counter>INSTRUCTION</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.8</minimum>
+                                </limit>
+                                <limit>
+                                    <counter>BRANCH</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.8</minimum>
+                                </limit>
+                                <limit>
+                                    <counter>COMPLEXITY</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.8</minimum>
+                                </limit>
+                            </limits>
+                        </rule>
+                    </rules>
                 </configuration>
                 <executions>
                     <execution>
@@ -153,6 +185,13 @@
                         <phase>test</phase>
                         <goals>
                             <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
                         </goals>
                     </execution>
                 </executions>

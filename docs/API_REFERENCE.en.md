@@ -12,6 +12,8 @@ This document provides a comprehensive list of core APIs, design patterns, and b
 2. [Validation Methods Detailed](#2-validation-methods-detailed)
 3. [Terminal Operations](#3-terminal-operations)
 4. [Best Practices](#4-best-practices)
+5. [Configuration Reference](#5-configuration-reference)
+6. [Ecosystem and Integrations](#6-ecosystem-and-integrations)
 
 ---
 
@@ -274,6 +276,14 @@ Supports `Date`, `LocalDate`, `LocalDateTime`, `Instant`, `ZonedDateTime`.
 | Method | Description |
 | :--- | :--- |
 | `when(boolean)` | Dynamically controls whether subsequent checks are executed. false: skip; true: resume. |
+| `whenScene(scene)` | Execute subsequent checks only when the given `Scenario` is active. |
+| `whenScene(scenes...)` | Execute subsequent checks only when any of the given `Scenario` values is active. |
+| `inScene(scene, block)` | Run validations inside a scene-scoped block; restores `when` state after block finishes. |
+| `inScene(scenes, block)` | Run validations inside a multi-scene-scoped block; restores `when` state after block finishes. |
+| `whenGroup(group)` | Execute subsequent checks only when context groups contain the given group. |
+| `whenGroup(groups...)` | Execute subsequent checks only when context groups contain any given group. |
+| `inGroup(group, block)` | Run validations inside a group-scoped block; restores `when` state after block finishes. |
+| `inGroup(groups, block)` | Run validations inside a multi-group-scoped block; restores `when` state after block finishes. |
 | `defer(supplier)`        | **Lazy Validation**. Executes Supplier only when strictly necessary. Skipped if already failed or skipped by `when(false)`. Suitable for expensive checks. |
 | `stopOnFail()`           | **Stop on Failure**. Stops subsequent checks if there are any errors (even in strict mode), until `resume()` is called. Essential for preventing NPE. |
 | `resume()`               | **Resume Execution**. Re-enables subsequent checks (counterpart to `stopOnFail()` or `when(false)`). |
@@ -293,6 +303,55 @@ Failure.strict()
     .stopOnFail()                   // Stop if user is null
     .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // Safe access
 ```
+
+---
+
+### 2.11 Iterable Element Validation (forEach + Scope)
+
+Failure provides `forEach` for element-level validations on an `Iterable` with path injection. Each element is validated inside a `Scope<T>`; failures can carry paths like `[0].field`.
+
+| Method | Description |
+| :--- | :--- |
+| `forEach(items, block)` | Iterate items and run block per element (default empty `pathPrefix`). |
+| `forEach(items, pathPrefix, block)` | Iterate items and run block per element with a path prefix (e.g., `items`). |
+
+Example:
+
+```java
+Failure.strict()
+    .forEach(items, "items", s -> s
+        .notBlank(s.field(Item::getSku).as("sku"), UserCode.SKU_BLANK)
+        .positive(s.field(Item::getQty).as("qty"), UserCode.QTY_INVALID)
+        .done()
+    )
+    .failAll();
+```
+
+#### Scope<T> method list
+
+Reference builders:
+- `it()` returns `PathEntry<T>` for current element
+- `field(getter)` / `field(fieldName, getter)` returns `FieldRef<R>` (use `.as(alias)` or `.ref()`)
+
+Common assertion proxies:
+- `notNull(code)`
+- `notBlank(ref, code)` / `email(ref, code)` / `mobile(ref, code)` / `matches(ref, regex, code)` / `length(ref, min, max, code)`
+- `positive(ref, code)` / `between(ref, min, max, code)`
+- `isTrue(ref, code)` / `isFalse(ref, code)`
+- `notEmptyCollection(ref, code)` / `notEmptyMap(ref, code)`
+- `check(ref, predicate, code, detail)` / `check(ref, okSupplier, code, detail)`
+
+Conditions & nesting:
+- `when(condition, action)` / `when(predicate, action)` / `unless(condition, action)` / `unless(predicate, action)`
+- `nested(getter, action)` / `nested(fieldName, getter, action)`
+- `forEach(getter, action)` / `forEach(fieldName, getter, action)` for nested collections
+- `forEachEntry(getter, action)` / `forEachEntry(fieldName, getter, action)` for nested maps
+
+End & strategy:
+- `done()` ends current element scope
+- `stopItemOnFail()` stops validations for current element after its first error
+
+Full implementation: [Scope.java](file:///d:/Work/WorkIDEA/SpringBoot/mvn/fail-fast-improved/failure-spring-boot-starter/src/main/java/com/chao/failfast/internal/chain/pipeline/Scope.java)
 
 ---
 
@@ -631,6 +690,9 @@ fail-fast:
   shadow-trace: true        # Include class name and line number of validation point in exception
   debug-snapshot: true      # Enable debug snapshot to include invalid values (default: false)
   verbose: true             # Include detailed errors list in multi-error response
+
+  # Spring Method Validation (disabled by default for performance)
+  method-validation-enabled: false
   
   # Error code mapping
   code-mapping:
@@ -646,6 +708,20 @@ fail-fast:
       auth: ["40100..40199", "40300..40399"]
       business: ["40000..40099"]
       system: ["50000..59999"]
+    # JSR-303 constraint mappings (optional): map constraintName to response code
+    constraint-mapping:
+      NotBlank: 40001
+      NotNull: 40001
+    # More specific mapping (optional): constraint + path
+    constraint-path-mapping:
+      - constraint: NotBlank
+        path: user.username
+        code: 40001
+    # More specific mapping (optional): constraint + beanClass
+    constraint-bean-mapping:
+      - constraint: NotBlank
+        bean: com.foo.UserDTO
+        code: 40001
 ```
 
 ### ErrorPolicy (Advanced)
@@ -656,5 +732,79 @@ Provide an `ErrorPolicy` Spring bean to customize:
 - Whether to capture invalid values in exceptions (recommended: only when `debug-snapshot` is enabled)
 
 ---
+
+## 6. Ecosystem and Integrations
+
+### 6.1 JSR-303 Bridge (Jakarta Validation)
+
+Failure can reuse Jakarta Validation (JSR-303/380) constraints and merge constraint violations into the unified Failure error model.
+
+```java
+// 1) validate(target)
+Failure.begin()
+    .jsr(dto).validate()
+    .fail();
+
+// 2) validateValue(beanClass, property, value)
+Failure.begin()
+    .jsr(UserDTO.class).value("username", username)
+    .fail();
+
+// 3) path prefix for nested use cases
+Failure.begin()
+    .jsr(dto).pathPrefix("user").validate()
+    .fail();
+```
+
+Notes:
+- In `begin()` (Fail-Fast), multiple violations are reduced to the first one, and the chain semantics (`when()` / `or()`) are respected.
+- In `strict()` (Fail-Strict), all violations can be collected and returned by `failAll()`.
+- You can map `constraintName` to business response codes via `fail-fast.code-mapping.constraint-mapping/constraint-path-mapping/constraint-bean-mapping`.
+
+### 6.2 Recursive Validation (Object Graph Traversal)
+
+Use recursive validation to traverse nested objects/collections/maps with configurable depth and limits.
+
+```java
+@Resource
+private CustomValidator typedValidator; // extends TypedValidator
+
+Failure.strict()
+    .recursive(dto, typedValidator, RecursiveOptions.builder()
+        .maxDepth(4)
+        .maxItems(1000)
+        .maxErrors(100)
+        .exclude(List.of("password", "secret"))
+        .build()
+    )
+    .failAll();
+```
+
+### 6.3 Method Validation (Spring)
+
+Method Validation is disabled by default (performance first). Enable it if you want Spring method parameter validation support.
+
+```yaml
+fail-fast:
+  method-validation-enabled: true
+```
+
+Failure already provides unified response conversion for `MethodArgumentNotValidException` / `ConstraintViolationException`.
+
+### 6.4 Observability (Micrometer, Optional Starter)
+
+The core starter exposes `ValidationObserver`/`ValidationObservers` as an event dispatcher. The observability starter installs an observer when Micrometer is on the classpath and reports:
+- `failure.validation.time` (Timer, tag: `source=chain|jsr|method`)
+- `failure.validation.count` (Counter, tags: `source=chain|jsr|method`, `result=success|fail`)
+
+### 6.5 OpenAPI (springdoc, Optional Starter)
+
+When springdoc `OpenAPI` is present, the OpenAPI starter automatically:
+- Adds unified error response schemas (`ErrorItem` / `ErrorResponse`)
+- Adds `400` / `422` error responses for all operations if missing
+
+### 6.6 @FailFastBody (Optional Request Body)
+
+With `@FailFastBody(required=false)`, a missing request body can be resolved as `null` instead of throwing `HttpMessageNotReadableException`.
 
 **More Examples**: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)

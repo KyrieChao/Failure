@@ -4,7 +4,7 @@ import com.chao.failfast.config.CodeMappingConfig;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.Chain;
 import com.chao.failfast.internal.Ex;
-import com.chao.failfast.internal.FailureContext;
+import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.FailureProperties;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.AfterEach;

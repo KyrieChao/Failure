@@ -1,6 +1,7 @@
 package com.chao.failfast.internal;
 
 import com.chao.failfast.config.CodeMappingConfig;
+import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.FailureProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;

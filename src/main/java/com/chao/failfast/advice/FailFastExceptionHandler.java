@@ -3,9 +3,12 @@ package com.chao.failfast.advice;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.Business;
+import com.chao.failfast.internal.Ex;
 import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.FailureProperties;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.internal.validation.ValidationObservers;
 import com.chao.failfast.util.I18n;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -20,16 +23,13 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Abstract exception handler - Extensible base class.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -76,43 +76,56 @@ public abstract class FailFastExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        BindingResult result = e.getBindingResult();
-        List<Business> errors = new ArrayList<>();
+        // Start method validation metrics
+        String scene = getScene();
+        notifyValidationStart(scene);
+        long startTime = System.nanoTime();
+        boolean success = false;
 
-        // 尝试获取目标类信息用于位置格式化
-        Class<?> targetClass = null;
-        if (result.getTarget() != null) targetClass = result.getTarget().getClass();
+        try {
+            BindingResult result = e.getBindingResult();
+            List<Business> errors = new ArrayList<>();
 
-        // 获取方法名
-        String methodName = "Validation";
-        if (e.getParameter().getMethod() != null) {
-            java.lang.reflect.Method method = e.getParameter().getMethod();
-            methodName = method.getDeclaringClass().getSimpleName() + "#" + method.getName();
-        }
+            // 尝试获取目标类信息用于位置格式化
+            Class<?> targetClass = null;
+            if (result.getTarget() != null) targetClass = result.getTarget().getClass();
 
-        // 遍历所有字段错误并转换为Business异常
-        for (FieldError fieldError : result.getFieldErrors()) {
-            String location = formatValidationLocation(targetClass, fieldError.getField());
-            errors.add(parseError(fieldError.getDefaultMessage(), location, methodName));
-        }
-
-        // 检查方法上是否有 @Validate 注解来控制是否快速失败
-        boolean failFast = true;
-        if (e.getParameter().getMethod() != null) {
-            Validate validate = e.getParameter().getMethod().getAnnotation(Validate.class);
-            if (validate != null) {
-                failFast = validate.fast();
+            // 获取方法名
+            String methodName = "Validation";
+            if (e.getParameter().getMethod() != null) {
+                java.lang.reflect.Method method = e.getParameter().getMethod();
+                methodName = method.getDeclaringClass().getSimpleName() + "#" + method.getName();
             }
-        }
 
-        // 如果是快速失败模式且有多个错误，只保留第一个
-        if (failFast && errors.size() > 1) {
-            Business first = errors.get(0);
-            errors.clear();
-            errors.add(first);
-        }
+            // 遍历所有字段错误并转换为Business异常
+            for (FieldError fieldError : result.getFieldErrors()) {
+                String location = formatValidationLocation(targetClass, fieldError.getField());
+                errors.add(parseError(fieldError.getDefaultMessage(), location, methodName));
+            }
 
-        return handleMultiErrors(errors);
+            // 检查方法上是否有 @Validate 注解来控制是否快速失败
+            boolean failFast = true;
+            if (e.getParameter().getMethod() != null) {
+                Validate validate = e.getParameter().getMethod().getAnnotation(Validate.class);
+                if (validate != null) {
+                    failFast = validate.fast();
+                }
+            }
+
+            // 如果是快速失败模式且有多个错误，只保留第一个
+            if (failFast && errors.size() > 1) {
+                Business first = errors.get(0);
+                errors.clear();
+                errors.add(first);
+            }
+
+            return handleMultiErrors(errors);
+        } finally {
+            // End method validation metrics
+            long duration = System.nanoTime() - startTime;
+            notifyValidationEnd(duration, success);
+            notifyValidationFailure(String.valueOf(com.chao.failfast.internal.core.ResponseCode.VALIDATION_ERROR_400.getCode()));
+        }
     }
 
     /**
@@ -123,24 +136,37 @@ public abstract class FailFastExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException e) {
-        List<Business> errors = new ArrayList<>();
-        // 遍历所有约束违反并转换为Business异常
-        for (ConstraintViolation<?> violation : e.getConstraintViolations()) {
-            String location = formatValidationLocation(violation.getRootBeanClass(), violation.getPropertyPath().toString());
+        // Start method validation metrics
+        String scene = getScene();
+        notifyValidationStart(scene);
+        long startTime = System.nanoTime();
+        boolean success = false;
 
-            // 尝试获取方法名
-            String methodName = "Validation";
-            if (violation.getRootBeanClass() != null) {
-                String className = violation.getRootBeanClass().getSimpleName();
-                // 尝试从 propertyPath 获取方法名 (通常是第一个节点)
-                String path = violation.getPropertyPath().toString();
-                String methodPart = path.split("\\.")[0];
-                methodName = className + "#" + methodPart;
+        try {
+            List<Business> errors = new ArrayList<>();
+            // 遍历所有约束违反并转换为Business异常
+            for (ConstraintViolation<?> violation : e.getConstraintViolations()) {
+                String location = formatValidationLocation(violation.getRootBeanClass(), violation.getPropertyPath().toString());
+
+                // 尝试获取方法名
+                String methodName = "Validation";
+                if (violation.getRootBeanClass() != null) {
+                    String className = violation.getRootBeanClass().getSimpleName();
+                    // 尝试从 propertyPath 获取方法名 (通常是第一个节点)
+                    String path = violation.getPropertyPath().toString();
+                    String methodPart = path.split("\\.")[0];
+                    methodName = className + "#" + methodPart;
+                }
+
+                errors.add(parseError(violation.getMessage(), location, methodName));
             }
-
-            errors.add(parseError(violation.getMessage(), location, methodName));
+            return handleMultiErrors(errors);
+        } finally {
+            // End method validation metrics
+            long duration = System.nanoTime() - startTime;
+            notifyValidationEnd(duration, success);
+            notifyValidationFailure(String.valueOf(com.chao.failfast.internal.core.ResponseCode.VALIDATION_ERROR_400.getCode()));
         }
-        return handleMultiErrors(errors);
     }
 
     /**
@@ -161,26 +187,37 @@ public abstract class FailFastExceptionHandler {
      * @return ResponseEntity response object
      */
     protected ResponseEntity<?> buildMultiErrorResponse(MultiBusiness e) {
-        Map<String, Object> body = buildMap(e);
-        // 只有开启verbose模式才返回errors详情
-        if (properties != null && properties.isVerbose()) {
-            body.put(FailureConst.FIELD_ERRORS, e.getErrors().stream()
-                    .map(err -> {
-                        Map<String, String> item = new HashMap<>(2);
-                        item.put(FailureConst.FIELD_MESSAGE, I18n.get(err.getMessage()));
-                        item.put(FailureConst.FIELD_DESCRIPTION, I18n.get(err.getResponseCode().getDescription()));
-                        item.put(FailureConst.FIELD_DETAIL, I18n.get(err.getDetail()));
-                        return item;
-                    })
-                    .toList()
-            );
+        Map<String, Object> body = new HashMap<>();
+        body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
+        body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
+        body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
+        body.put(FailureConst.FIELD_TRACE_ID, getTraceId());
+
+        String scene = getScene();
+        if (!scene.isBlank() && !FailureConst.DEFAULT_SCENE.equals(scene)) {
+            body.put(FailureConst.FIELD_SCENE, scene);
         }
-        // 将所有错误简要拼接到 description 中，以便前端展示
-        String description = I18n.get(FailureConst.VALIDATION_ERROR_PREFIX)
-                           + e.getErrors().size() 
-                           + I18n.get(FailureConst.ERROR_ITEM_SUFFIX);
-        body.put(FailureConst.FIELD_DESCRIPTION, description);
+        if (isVerbose()) {
+            List<Map<String, Object>> errorList = new ArrayList<>();
+            for (Business err : e.getErrors()) {
+                Map<String, Object> errorItem = buildMapDetail(err);
+                errorList.add(errorItem);
+            }
+            body.put(FailureConst.FIELD_ERRORS, errorList);
+        }
+        String format = ZonedDateTime.now(FailureConst.CST).format(FailureConst.DEFAULT_DATETIME_FORMATTER);
+        body.put(FailureConst.FIELD_TIMESTAMP, format);
+
         return ResponseEntity.status(e.getHttpStatus()).body(body);
+    }
+
+    /**
+     * Check if verbose mode is enabled.
+     *
+     * @return true if verbose mode is enabled
+     */
+    private boolean isVerbose() {
+        return properties != null && properties.isVerbose();
     }
 
     /**
@@ -190,19 +227,14 @@ public abstract class FailFastExceptionHandler {
      * @return ResponseEntity response object
      */
     private ResponseEntity<?> handleMultiErrors(List<Business> errors) {
-        // 处理空错误列表的情况
         if (errors.isEmpty()) {
             return buildResponse(Business.of(ResponseCode.VALIDATION_ERROR, FailureConst.VALIDATION_ERROR));
         }
-
-        // 单个错误：使用单错误处理逻辑
         if (errors.size() == 1) {
             Business first = errors.get(0);
             logException(first);
             return buildResponse(first);
         }
-
-        // 多个错误：构建批量错误对象
         MultiBusiness multi = new MultiBusiness(errors);
         logException(multi);
         return buildMultiErrorResponse(multi);
@@ -215,14 +247,12 @@ public abstract class FailFastExceptionHandler {
      */
     protected void logException(Business e) {
         if (e instanceof MultiBusiness m) {
-            // 批量异常：记录错误数量和每个具体错误
             log.error("Multi Failure: {} errors", m.getErrors().size());
             for (int i = 0; i < m.getErrors().size(); i++) {
                 log.error("{}. {}", i + 1, m.getErrors().get(i).toString());
             }
         } else {
-            // 单个异常：直接记录异常信息
-            log.error("Failure :{}", e.toString());
+            log.error("{}", e.toString());
         }
     }
 
@@ -235,17 +265,13 @@ public abstract class FailFastExceptionHandler {
      */
     private String formatValidationLocation(Class<?> clazz, String fieldOrPath) {
         if (fieldOrPath == null) return I18n.get(FailureConst.UNKNOWN_ERROR);
-
         String className = "";
         if (clazz != null) {
-            // 处理 CGLIB 代理类，获取原始类名
             if (clazz.getName().contains("$$")) clazz = clazz.getSuperclass();
             className = clazz.getSimpleName();
         }
-        
+
         String at = I18n.get(FailureConst.AT);
-        
-        // 如果是方法参数校验 (e.g. annoSimple.name)，将最后一个点替换为 " at "
         if (fieldOrPath.contains(".")) {
             int lastDot = fieldOrPath.lastIndexOf('.');
             String methodAndArg = fieldOrPath.substring(0, lastDot) + at + fieldOrPath.substring(lastDot + 1);
@@ -254,8 +280,6 @@ public abstract class FailFastExceptionHandler {
             }
             return methodAndArg;
         }
-
-        // 如果是 Bean 校验 (e.g. UserDTO 的 age 字段)
         if (!className.isEmpty()) {
             return className + at + fieldOrPath;
         }
@@ -281,7 +305,7 @@ public abstract class FailFastExceptionHandler {
             if (parsed.code() != null) {
                 int code = parsed.code();
                 String text = parsed.text();
-                if (text == null || text.isBlank()) {
+                if (text == null) {
                     ResponseCode base = ResponseCode.VALIDATION_ERROR_400;
                     business = Business.of(ResponseCode.of(code, base.getMessage(), base.getDescription()), FailureConst.INVALID_PARAMETER);
                 } else {
@@ -291,8 +315,6 @@ public abstract class FailFastExceptionHandler {
                 business = Business.of(ResponseCode.VALIDATION_ERROR_400, message);
             }
         }
-
-        // 注入位置信息以提供更详细的错误上下文
         if (location != null) {
             return Business.of(business.getResponseCode(), business.getDetail(), methodName, location);
         }
@@ -350,8 +372,91 @@ public abstract class FailFastExceptionHandler {
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
         body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
         body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
+        body.put(FailureConst.FIELD_TRACE_ID, getTraceId());
+
+        String scene = getScene();
+        if (!scene.isBlank() && !FailureConst.DEFAULT_SCENE.equals(scene)) {
+            body.put(FailureConst.FIELD_SCENE, scene);
+        }
+        List<Map<String, Object>> errorList = new ArrayList<>();
+        Map<String, Object> errorItem = buildMapDetail(e);
+        errorList.add(errorItem);
+        body.put(FailureConst.FIELD_ERRORS, errorList);
+
         String format = ZonedDateTime.now(FailureConst.CST).format(FailureConst.DEFAULT_DATETIME_FORMATTER);
         body.put(FailureConst.FIELD_TIMESTAMP, format);
+
         return body;
+    }
+
+    private Map<String, Object> buildMapDetail(Business e) {
+        Map<String, Object> errorItem = new HashMap<>();
+        errorItem.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
+        errorItem.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getMessage()));
+        errorItem.put(FailureConst.FIELD_PATH, e.getPath());
+        errorItem.put(FailureConst.FIELD_DETAIL, I18n.get(e.getDetail()));
+        errorItem.put(FailureConst.FIELD_REJECTED, e.getInvalidValue());
+        return errorItem;
+    }
+
+    /**
+     * Get traceId from context or generate a new one.
+     *
+     * @return TraceId
+     */
+    private String getTraceId() {
+        FailureContext ctx = Ex.getContext();
+        if (ctx != null) {
+            String traceId = ctx.getTraceId();
+            if (traceId != null) {
+                return traceId;
+            }
+        }
+        return UUID.randomUUID().toString();
+    }
+
+    /**
+     * Get scene from context.
+     *
+     * @return Scene
+     */
+    private String getScene() {
+        FailureContext ctx = Ex.getContext();
+        if (ctx != null) {
+            String scene = ctx.getScene();
+            if (scene != null) {
+                return scene;
+            }
+        }
+        return FailureConst.DEFAULT_SCENE;
+    }
+
+
+    /**
+     * Notify observer of validation start.
+     *
+     * @param scene validation scene
+     */
+    private void notifyValidationStart(String scene) {
+        ValidationObservers.notifyStart(FailureConst.FIELD_METHOD, scene);
+    }
+
+    /**
+     * Notify observer of validation end.
+     *
+     * @param durationNanos duration in nanoseconds
+     * @param success       whether validation was successful
+     */
+    private void notifyValidationEnd(long durationNanos, boolean success) {
+        ValidationObservers.notifyEnd(FailureConst.FIELD_METHOD, durationNanos, success);
+    }
+
+    /**
+     * Notify observer of validation failure.
+     *
+     * @param errorCode error code
+     */
+    private void notifyValidationFailure(String errorCode) {
+        ValidationObservers.notifyFailure(FailureConst.FIELD_METHOD, errorCode);
     }
 }

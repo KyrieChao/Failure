@@ -2,6 +2,7 @@ package com.chao.failfast.internal.chain;
 
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.internal.chain.pipeline.ChainCore;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -151,5 +152,19 @@ class ChainTerminatorTest {
         chain.setAlive(false);
         Optional<String> result = chain.onFailGet(() -> "Value");
         assertThat(result).isPresent().contains("Value");
+    }
+
+    @Test
+    @DisplayName("failAll: 验证通过时不应抛出异常")
+    void failAllShouldPassWhenValid() {
+        TestTerminator chain = TestTerminator.create(true);
+        chain.failAll();
+    }
+
+    @Test
+    @DisplayName("verify: 默认实现为 no-op")
+    void verifyShouldBeNoOp() {
+        TestTerminator chain = TestTerminator.create(true);
+        chain.verify();
     }
 }

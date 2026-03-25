@@ -7,7 +7,7 @@ import com.chao.failfast.internal.Chain;
  * Failure static entry class - Chain validation API.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 public final class Failure {
 

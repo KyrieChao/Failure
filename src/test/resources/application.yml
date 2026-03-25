@@ -1,24 +1,34 @@
-server:
-  port: 8080
-spring:
-  application:
-    name: Failure-Demo
-
 fail-fast:
   shadow-trace: true
-  verbose: true # 设置为 true 时响应中包含 errors 详情
+  debug-snapshot: true
+  method-validation-enabled: true
+  trace-id:
+    enabled: true
+    header-name: X-Trace-Id
+    mdc-enabled: true
+    mdc-key: traceId
+    response-header: true
   code-mapping:
-    http-status:
-      40001: 400  # BAD_REQUEST
-      40101: 401  # UNAUTHORIZED
-      40301: 403  # FORBIDDEN
-      40401: 404  # NOT_FOUND
-      42201: 422  # UNPROCESSABLE_ENTITY
-      42901: 429  # TOO_MANY_REQUESTS
-      50001: 500  # INTERNAL_SERVER_ERROR
-    groups:
-      auth: [ "40100..40199" ]
-      user: [ "40400..40499" ]
-      product: [ 40400,40499 ]
-      order: [ "40000", "40001","40400..40499" ]
-      system: "50000..59999"
+    constraint-mapping:
+      NotBlank: 40010
+      Email: 40020
+      Positive: 40030
+    constraint-path-mapping:
+      - constraint: NotBlank
+        path: user.username
+        code: 40040
+      - constraint: NotNull
+        path: user.username
+        code: 40040
+      - constraint: Email
+        path: user.email
+        code: 40050
+    constraint-bean-mapping:
+      - constraint: NotBlank
+        bean: com.chao.failuretest.model.dto.UserJSRDTO
+        code: 40060
+      - constraint: Email
+        bean: com.chao.failuretest.model.dto.UserDTO
+        code: 40070
+  i18n:
+    default-locale: zh_CN

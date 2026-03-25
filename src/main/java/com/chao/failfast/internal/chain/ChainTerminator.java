@@ -2,6 +2,7 @@ package com.chao.failfast.internal.chain;
 
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.internal.chain.pipeline.ChainCore;
 import com.chao.failfast.internal.core.ResponseCode;
 
 import java.util.Optional;
@@ -12,7 +13,7 @@ import java.util.function.Supplier;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 public interface ChainTerminator<S extends ChainCore<S>> {
 

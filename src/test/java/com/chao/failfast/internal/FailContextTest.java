@@ -1,6 +1,7 @@
 package com.chao.failfast.internal;
 
 import com.chao.failfast.config.CodeMappingConfig;
+import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.FailureProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

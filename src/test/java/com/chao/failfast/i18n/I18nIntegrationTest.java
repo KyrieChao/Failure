@@ -1,6 +1,5 @@
 package com.chao.failfast.i18n;
 
-import com.chao.failfast.Failure;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.config.FailFastAutoConfiguration;
 import jakarta.validation.constraints.NotBlank;
@@ -11,6 +10,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,8 +23,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest(classes = {FailFastAutoConfiguration.class, I18nIntegrationTest.TestController.class})
 @TestPropertySource(properties = "fail-fast.i18n.default-locale=zh_CN")

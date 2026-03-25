@@ -2,6 +2,7 @@ package com.chao.failfast.internal;
 
 import com.chao.failfast.config.CodeMappingConfig;
 import com.chao.failfast.constant.FailureConst;
+import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.internal.policy.ErrorPolicy;
 import com.chao.failfast.util.I18n;
@@ -16,7 +17,7 @@ import java.util.regex.Matcher;
  * Business exception class - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Getter
 public class Business extends RuntimeException implements Serializable {
@@ -52,6 +53,14 @@ public class Business extends RuntimeException implements Serializable {
     private final Object invalidValue;
 
     /**
+     * Field path causing exception.
+     *
+     */
+    @Getter
+    private final String path;
+
+
+    /**
      * Serial version UID.
      */
     @Serial
@@ -68,6 +77,22 @@ public class Business extends RuntimeException implements Serializable {
      * @param invalidValue Parameter value causing exception
      */
     Business(ResponseCode responseCode, String detail, String method, String location, HttpStatus httpStatus, Object invalidValue) {
+        this(responseCode, detail, method, location, httpStatus, invalidValue, null);
+    }
+
+
+    /**
+     * Constructor.
+     *
+     * @param responseCode Response code enum
+     * @param detail       Detailed error description
+     * @param method       Method name where exception occurred
+     * @param location     Location info where exception occurred
+     * @param httpStatus   HTTP status code
+     * @param invalidValue Parameter value causing exception
+     * @param path         Field path causing exception
+     */
+    Business(ResponseCode responseCode, String detail, String method, String location, HttpStatus httpStatus, Object invalidValue, String path) {
         super(I18n.get(responseCode != null ? responseCode.getMessage() : FailureConst.UNKNOWN_ERROR), null, true, shouldFillStackTrace(responseCode));
         this.responseCode = responseCode;
         this.detail = detail;
@@ -75,6 +100,7 @@ public class Business extends RuntimeException implements Serializable {
         this.location = location;
         this.httpStatus = httpStatus != null ? httpStatus : HttpStatus.INTERNAL_SERVER_ERROR;
         this.invalidValue = invalidValue;
+        this.path = path;
     }
 
     private static boolean shouldFillStackTrace(ResponseCode code) {
@@ -186,6 +212,12 @@ public class Business extends RuntimeException implements Serializable {
         private Object invalidValue;
 
         /**
+         * Field path.
+         */
+        private String path;
+
+
+        /**
          * Serial version UID.
          */
         @Serial
@@ -225,12 +257,12 @@ public class Business extends RuntimeException implements Serializable {
         }
 
         /**
-         * Set location info (package-private).
+         * Set location info.
          *
          * @param location Location info
          * @return Current builder instance
          */
-        Fabricator location(String location) {
+        public Fabricator location(String location) {
             this.location = location;
             return this;
         }
@@ -245,6 +277,18 @@ public class Business extends RuntimeException implements Serializable {
             this.invalidValue = value;
             return this;
         }
+
+        /**
+         * Set field path.
+         *
+         * @param path Field path causing exception
+         * @return Current builder instance
+         */
+        public Fabricator path(String path) {
+            this.path = path;
+            return this;
+        }
+
 
         /**
          * Build final Business object.
@@ -271,7 +315,7 @@ public class Business extends RuntimeException implements Serializable {
             }
             CodeMappingConfig cfg = Ex.getContext() != null ? Ex.getContext().getCodeMappingConfig() : null;
             HttpStatus status = (cfg != null) ? cfg.resolveHttpStatus(responseCode.getCode()) : HttpStatus.INTERNAL_SERVER_ERROR;
-            return new Business(responseCode, detail, method, location, status, invalidValue);
+            return new Business(responseCode, detail, method, location, status, invalidValue, path);
         }
     }
 
@@ -284,13 +328,25 @@ public class Business extends RuntimeException implements Serializable {
     public String toString() {
         String codeStr = String.valueOf(responseCode.getCode()).replaceFirst("(\\d{3})(\\d{2})", "$1_$2");
 
+        String pathStr = "";
+        if (path != null && !path.isBlank()) {
+            pathStr = ", path=" + path;
+        }
+
         String valStr = "";
         FailureContext ctx = Ex.getContext();
         if (invalidValue != null && ctx != null && ctx.isDebugSnapshot()) {
-            valStr = ", val=" + maskValue(invalidValue);
+            String masked = maskValue(invalidValue);
+            valStr = ", val=" + masked;
         }
 
-        String base = "{code=%s, mes=%s, des=%s%s}".formatted(codeStr, I18n.get(responseCode.getMessage()), I18n.get(detail), valStr);
+        String base = "{code=%s, mes=%s, des=%s%s%s}".formatted(
+                codeStr,
+                I18n.get(responseCode.getMessage()),
+                I18n.get(detail),
+                pathStr,
+                valStr
+        );
         if (method == null) return base + (location != null ? " (" + extractFileLine(location) + ")" : "");
 
         String displayMethod = method;
@@ -302,6 +358,21 @@ public class Business extends RuntimeException implements Serializable {
             }
         }
         return "[%s] %s".formatted(displayMethod, base) + (location != null ? " (" + extractFileLine(location) + ")" : "");
+    }
+
+    private String extractFileLine(String loc) {
+        if (loc == null) return "";
+        int left = loc.indexOf('(');
+        if (left < 0) return loc;
+        int right = loc.lastIndexOf(')');
+        if (right <= left) return loc;
+
+        String content = loc.substring(left + 1, right);
+        int dollar = content.indexOf('$');
+        if (dollar < 0) return content;
+        int dot = content.indexOf('.', dollar);
+        if (dot < 0) return content;
+        return content.substring(0, dollar) + content.substring(dot);
     }
 
     private String maskValue(Object value) {
@@ -326,26 +397,5 @@ public class Business extends RuntimeException implements Serializable {
                     + str.substring(str.length() - 5);
         }
         return str;
-    }
-
-    /**
-     * Extract filename and line number from full location info.
-     *
-     * @param loc Full location info string
-     * @return Extracted filename and line number
-     */
-    private String extractFileLine(String loc) {
-        int start = loc.indexOf("(");
-        if (start < 0) return loc;
-        String content = loc.substring(start + 1, loc.length() - 1);
-
-        int dollarIndex = content.indexOf('$');
-        if (dollarIndex > 0) {
-            int dotIndex = content.indexOf('.', dollarIndex);
-            if (dotIndex > 0) {
-                return content.substring(0, dollarIndex) + content.substring(dotIndex);
-            }
-        }
-        return content;
     }
 }

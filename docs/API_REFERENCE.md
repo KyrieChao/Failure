@@ -12,6 +12,8 @@
 2. [校验方法详解](#2-校验方法详解)
 3. [终结操作](#3-终结操作)
 4. [最佳实践](#4-最佳实践)
+5. [配置参考](#5-配置参考)
+6. [生态与集成](#6-生态与集成)
 
 ---
 
@@ -277,6 +279,14 @@ Failure.begin()
 | 方法                     | 描述                                                                 |
 |--------------------------|--------------------------------------------------------------------|
 | `when(boolean)`          | 动态控制后续校验是否执行。false: 跳过后续校验; true: 恢复执行。                       |
+| `whenScene(scene)`       | 仅在指定 `Scenario` 命中时执行后续校验。                                     |
+| `whenScene(scenes...)`   | 仅在任一 `Scenario` 命中时执行后续校验。                                      |
+| `inScene(scene, block)`  | 以 block 作用域执行：只在指定 `Scenario` 命中时运行 block 内校验，结束后自动恢复 when 状态。 |
+| `inScene(scenes, block)` | 以 block 作用域执行：只在任一 `Scenario` 命中时运行 block 内校验，结束后自动恢复 when 状态。 |
+| `whenGroup(group)`       | 仅在上下文 groups 命中指定 group 时执行后续校验。                               |
+| `whenGroup(groups...)`   | 仅在上下文 groups 命中任一 group 时执行后续校验。                                |
+| `inGroup(group, block)`  | 以 block 作用域执行：只在 group 命中时运行 block 内校验，结束后自动恢复 when 状态。         |
+| `inGroup(groups, block)` | 以 block 作用域执行：只在任一 group 命中时运行 block 内校验，结束后自动恢复 when 状态。      |
 | `defer(supplier)`        | **延迟校验**。仅在真正需要时执行 Supplier。如果已失败或被跳过，则不执行。适用于昂贵的校验逻辑。       |
 | `stopOnFail()`           | **失败截断**。如果当前链中存在错误（即使是 strict 模式），则停止后续所有校验（直到调用 `resume()`）。通常用于防止空指针异常（NPE）。需配合 `defer` 使用以达到最佳效果。 |
 | `resume()`               | **恢复执行**。重新启用后续校验（对应 `stopOnFail()` 或 `when(false)`）。 |
@@ -296,6 +306,57 @@ Failure.strict()
     .stopOnFail()                   // 如果 user 为空，停止后续校验
     .defer(() -> user.isAdmin(), UserCode.NO_PERMISSION); // 安全访问
 ```
+
+---
+
+### 2.11 Iterable 元素级校验（forEach + Scope）
+
+Failure 提供 `forEach` 用于对 `Iterable` 元素执行“带 path 的批量校验”。每个元素会在一个 `Scope<T>` 中执行校验，Scope 会自动为错误注入形如 `[0].field` 的路径。
+
+| 方法 | 描述 |
+|---|---|
+| `forEach(items, block)` | 遍历 items，对每个元素执行 block（默认 pathPrefix 为空）。 |
+| `forEach(items, pathPrefix, block)` | 遍历 items，对每个元素执行 block，并为元素 path 增加前缀（如 `orderItems`）。 |
+
+**示例**：
+
+```java
+Failure.strict()
+    .forEach(items, "items", s -> s
+        .notBlank(s.field(Item::getSku).as("sku"), UserCode.SKU_BLANK)
+        .positive(s.field(Item::getQty).as("qty"), UserCode.QTY_INVALID)
+        .done()
+    )
+    .failAll();
+```
+
+#### Scope<T> 方法清单
+
+Scope 既提供“路径引用构造”，也提供常用断言代理与嵌套遍历能力。
+
+**引用构造**
+- `it()`：返回当前元素的 `PathEntry<T>`
+- `field(getter)` / `field(fieldName, getter)`：返回 `FieldRef<R>`（可 `.as(alias)` 改写字段名，或 `.ref()` 得到 `PathEntry<R>`）
+
+**断言代理（常用）**
+- `notNull(code)`
+- `notBlank(ref, code)` / `email(ref, code)` / `mobile(ref, code)` / `matches(ref, regex, code)` / `length(ref, min, max, code)`
+- `positive(ref, code)` / `between(ref, min, max, code)`
+- `isTrue(ref, code)` / `isFalse(ref, code)`
+- `notEmptyCollection(ref, code)` / `notEmptyMap(ref, code)`
+- `check(ref, predicate, code, detail)` / `check(ref, okSupplier, code, detail)`
+
+**条件与嵌套**
+- `when(condition, action)` / `when(predicate, action)` / `unless(condition, action)` / `unless(predicate, action)`
+- `nested(getter, action)` / `nested(fieldName, getter, action)`
+- `forEach(getter, action)` / `forEach(fieldName, getter, action)`（对子集合嵌套遍历）
+- `forEachEntry(getter, action)` / `forEachEntry(fieldName, getter, action)`（对 Map 的 value 嵌套遍历）
+
+**结束与策略**
+- `done()`：结束当前元素 scope
+- `stopItemOnFail()`：当当前元素产生错误后，停止该元素后续校验（不影响其它元素）
+
+完整实现见：[Scope.java](file:///d:/Work/WorkIDEA/SpringBoot/mvn/fail-fast-improved/failure-spring-boot-starter/src/main/java/com/chao/failfast/internal/chain/pipeline/Scope.java)
 
 ---
 
@@ -682,6 +743,9 @@ fail-fast:
   debug-snapshot: true      # 开启调试快照，异常包含失败值（默认 false）
   verbose: true             # 多错误响应包含详细 errors 列表
 
+  # Spring Method Validation（默认关闭，性能优先）
+  method-validation-enabled: false
+
   # 错误码映射
   code-mapping:
     http-status:
@@ -696,6 +760,20 @@ fail-fast:
       auth: [ "40100..40199", "40300..40399" ]
       business: [ "40000..40099" ]
       system: [ "50000..59999" ]
+    # JSR-303 约束映射（可选）：把 constraintName 映射为响应码
+    constraint-mapping:
+      NotBlank: 40001
+      NotNull: 40001
+    # 更精细的映射（可选）：constraint + path
+    constraint-path-mapping:
+      - constraint: NotBlank
+        path: user.username
+        code: 40001
+    # 更精细的映射（可选）：constraint + beanClass
+    constraint-bean-mapping:
+      - constraint: NotBlank
+        bean: com.foo.UserDTO
+        code: 40001
 ```
 
 ### ErrorPolicy（高级）
@@ -706,5 +784,81 @@ fail-fast:
 - 是否在异常中采集 invalidValue（建议只在 debug-snapshot 开启时采集）
 
 ---
+
+## 6. 生态与集成
+
+### 6.1 JSR-303 Bridge（Jakarta Validation 桥接）
+
+Failure 支持在链式 DSL 中复用 Jakarta Validation（JSR-303/380）的校验结果，并把 violations 纳入统一错误模型。
+
+常用方式：
+
+```java
+// 1) 对对象执行 validate(...)
+Failure.begin()
+    .jsr(dto).validate()
+    .fail();
+
+// 2) 对属性执行 validateValue(...)
+Failure.begin()
+    .jsr(UserDTO.class).value("username", username)
+    .fail();
+
+// 3) 为错误 path 加前缀（适用于嵌套场景）
+Failure.begin()
+    .jsr(dto).pathPrefix("user").validate()
+    .fail();
+```
+
+说明：
+- 在 `begin()`（Fail-Fast）模式下，若 JSR 返回多个 violation，会按 fail-fast 语义只保留首错（并尊重 `when()/or()` 的链式语义）。
+- 在 `strict()`（Fail-Strict）模式下，会收集所有 violation，最终由 `failAll()` 聚合返回。
+- 可通过 `fail-fast.code-mapping.constraint-mapping/constraint-path-mapping/constraint-bean-mapping` 将 constraintName 映射为业务响应码。
+
+### 6.2 递归校验（对象图遍历）
+
+Failure 提供递归校验能力，用于把深层对象/集合/Map 的嵌套结构展开校验，并支持深度/白名单/黑名单/数量上限等控制。
+
+```java
+@Resource
+private CustomValidator typedValidator; // extends TypedValidator
+
+Failure.strict()
+    .recursive(dto, typedValidator, RecursiveOptions.builder()
+        .maxDepth(4)
+        .maxItems(1000)
+        .maxErrors(100)
+        .exclude(List.of("password", "secret"))
+        .build()
+    )
+    .failAll();
+```
+
+### 6.3 Method Validation（Spring 方法参数校验）
+
+Method Validation 默认关闭（性能优先）。开启后可以使用 Spring 的方法参数校验能力（例如 `@Validated`）。
+
+```yaml
+fail-fast:
+  method-validation-enabled: true
+```
+
+框架已内置对 `MethodArgumentNotValidException` / `ConstraintViolationException` 的统一响应转换。
+
+### 6.4 Observability（Micrometer，可选 Starter）
+
+核心 starter 通过 `ValidationObserver`/`ValidationObservers` 提供“事件分发”能力，observability starter 在类路径存在 Micrometer 时安装 observer 并上报指标：
+- `failure.validation.time`（Timer，tag：`source=chain|jsr|method`）
+- `failure.validation.count`（Counter，tag：`source=chain|jsr|method`、`result=success|fail`）
+
+### 6.5 OpenAPI（springdoc，可选 Starter）
+
+openapi starter 在类路径存在 springdoc 的 `OpenAPI` 时自动增强：
+- 注入统一错误响应 Schema（`ErrorItem` / `ErrorResponse`）
+- 为所有接口补充 `400` / `422` 错误响应（若未定义）
+
+### 6.6 @FailFastBody（可选请求体）
+
+当接口参数标注 `@FailFastBody(required=false)` 时，缺失请求体会解析为 `null`（而不是抛 `HttpMessageNotReadableException`），便于实现“可选 body”的接口设计。
 
 **更多示例**: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)

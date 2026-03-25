@@ -2,6 +2,7 @@ package com.chao.failfast.internal;
 
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.util.I18n;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
@@ -11,7 +12,7 @@ import java.util.List;
  * Batch business exception - Collects all errors in non-FailFast mode.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Getter
 public class MultiBusiness extends Business {
@@ -32,10 +33,9 @@ public class MultiBusiness extends Business {
      */
     public MultiBusiness(List<Business> errors) {
         super(ResponseCode.of(
-                        FailureConst.SYSTEM_CODE, FailureConst.MULTIPLE_VALIDATION_ERRORS, errors.size() > MAX_ERRORS ?
-                                FailureConst.TOO_MANY_ERRORS : FailureConst.VALIDATION_ERROR_PREFIX + errors.size() + FailureConst.ERROR_ITEM_SUFFIX
-                ), FailureConst.VALIDATION_ERROR_PREFIX + errors.size() + FailureConst.ERROR_ITEM_SUFFIX,
-                null, null, HttpStatus.INTERNAL_SERVER_ERROR,null
+                        FailureConst.SYSTEM_CODE, FailureConst.MULTIPLE_VALIDATION_ERRORS, buildDetail(errors.size())
+                ), buildDetail(errors.size()),
+                null, null, HttpStatus.INTERNAL_SERVER_ERROR, null, null
         );
         if (errors.size() > MAX_ERRORS) {
             this.errors = List.copyOf(errors.subList(0, MAX_ERRORS));
@@ -43,6 +43,14 @@ public class MultiBusiness extends Business {
             this.errors = List.copyOf(errors);
         }
     }
+
+    private static String buildDetail(int size) {
+        if (size > MAX_ERRORS) {
+            return FailureConst.TOO_MANY_ERRORS;
+        }
+        return I18n.get(FailureConst.MULTIPLE_VALIDATION_ERRORS_COUNT, size);
+    }
+
 
     /**
      * Override toString method to provide formatted batch error output.

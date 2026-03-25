@@ -1,6 +1,6 @@
 package com.chao.failfast.internal.policy;
 
-import com.chao.failfast.internal.FailureContext;
+import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
 
 public interface ErrorPolicy {

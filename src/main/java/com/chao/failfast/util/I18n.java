@@ -2,6 +2,7 @@ package com.chao.failfast.util;
 
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -12,7 +13,7 @@ import java.util.Locale;
  * Internationalization message utility class.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Component
 public class I18n {
@@ -20,7 +21,7 @@ public class I18n {
     private final MessageSource messageSource;
     private static I18n instance;
 
-    public I18n(MessageSource messageSource) {
+    public I18n(@Qualifier("failFastMessageSource") MessageSource messageSource) {
         this.messageSource = messageSource;
     }
 

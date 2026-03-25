@@ -1,127 +1,131 @@
 package com.chao.failfast.internal.check;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.*;
 
-@DisplayName("ObjectChecks 工具类测试")
-class ObjectChecksTest {
+import static org.junit.jupiter.api.Assertions.*;
 
-    @Nested
-    @DisplayName("exists 方法测试")
-    class ExistsTest {
-        @Test
-        @DisplayName("当对象不为null时应返回true")
-        void shouldReturnTrueWhenObjectIsNotNull() {
-            assertThat(ObjectChecks.exists(new Object())).isTrue();
-            assertThat(ObjectChecks.exists("test")).isTrue();
-            assertThat(ObjectChecks.exists(123)).isTrue();
-        }
+/**
+ * ObjectChecks 100% 覆盖率测试
+ */
+@DisplayName("ObjectChecks 完整覆盖测试")
+public class ObjectChecksTest {
 
-        @Test
-        @DisplayName("当对象为null时应返回false")
-        void shouldReturnFalseWhenObjectIsNull() {
-            assertThat(ObjectChecks.exists(null)).isFalse();
-        }
+    @Test
+    @DisplayName("测试 exists 方法")
+    void testExists() {
+        // 测试对象不为 null 的情况
+        Object obj = new Object();
+        assertTrue(ObjectChecks.exists(obj));
+
+        // 测试对象为 null 的情况
+        assertFalse(ObjectChecks.exists(null));
     }
 
-    @Nested
-    @DisplayName("isNull 方法测试")
-    class IsNullTest {
-        @Test
-        @DisplayName("当对象为null时应返回true")
-        void shouldReturnTrueWhenObjectIsNull() {
-            assertThat(ObjectChecks.isNull(null)).isTrue();
-        }
+    @Test
+    @DisplayName("测试 notNull 方法")
+    void testNotNull() {
+        // 测试对象不为 null 的情况
+        Object obj = new Object();
+        assertTrue(ObjectChecks.notNull(obj));
 
-        @Test
-        @DisplayName("当对象不为null时应返回false")
-        void shouldReturnFalseWhenObjectIsNotNull() {
-            assertThat(ObjectChecks.isNull(new Object())).isFalse();
-            assertThat(ObjectChecks.isNull("test")).isFalse();
-        }
-    }
-    @Nested
-    @DisplayName("instanceOf 方法测试")
-    class InstanceOfTest {
-        @Test
-        @DisplayName("当对象是指定类型实例时应返回true")
-        void shouldReturnTrueWhenObjectIsInstanceOfType() {
-            assertThat(ObjectChecks.instanceOf("test", String.class)).isTrue();
-            assertThat(ObjectChecks.instanceOf(123, Integer.class)).isTrue();
-            assertThat(ObjectChecks.instanceOf(123, Number.class)).isTrue();  // 子类实例
-        }
-
-        @Test
-        @DisplayName("当对象不是指定类型实例时应返回false")
-        void shouldReturnFalseWhenObjectIsNotInstanceOfType() {
-            assertThat(ObjectChecks.instanceOf("test", Integer.class)).isFalse();
-            assertThat(ObjectChecks.instanceOf(null, String.class)).isFalse();  // obj为null
-        }
-
-        @Test
-        @DisplayName("当type为null时应返回false")
-        void shouldReturnFalseWhenTypeIsNull() {
-            assertThat(ObjectChecks.instanceOf("test", null)).isFalse();
-        }
+        // 测试对象为 null 的情况
+        assertFalse(ObjectChecks.notNull(null));
     }
 
-    @Nested
-    @DisplayName("notInstanceOf 方法测试")
-    class NotInstanceOfTest {
-        @Test
-        @DisplayName("当对象不是指定类型实例时应返回true")
-        void shouldReturnTrueWhenObjectIsNotInstanceOfType() {
-            assertThat(ObjectChecks.notInstanceOf("test", Integer.class)).isTrue();
-            assertThat(ObjectChecks.notInstanceOf(null, String.class)).isTrue();  // obj为null
-        }
+    @Test
+    @DisplayName("测试 isNull 方法")
+    void testIsNull() {
+        // 测试对象为 null 的情况
+        assertTrue(ObjectChecks.isNull(null));
 
-        @Test
-        @DisplayName("当对象是指定类型实例时应返回false")
-        void shouldReturnFalseWhenObjectIsInstanceOfType() {
-            assertThat(ObjectChecks.notInstanceOf("test", String.class)).isFalse();
-            assertThat(ObjectChecks.notInstanceOf(123, Number.class)).isFalse();
-        }
-
-        @Test
-        @DisplayName("当type为null时应返回false")
-        void shouldReturnFalseWhenTypeIsNull() {
-            assertThat(ObjectChecks.notInstanceOf("test", null)).isFalse();
-        }
+        // 测试对象不为 null 的情况
+        Object obj = new Object();
+        assertFalse(ObjectChecks.isNull(obj));
     }
 
-    @Nested
-    @DisplayName("allNotNull 方法测试")
-    class AllNotNullTest {
-        @Test
-        @DisplayName("当所有对象都不为null时应返回true")
-        void shouldReturnTrueWhenAllObjectsAreNotNull() {
-            assertThat(ObjectChecks.allNotNull("a", "b", "c")).isTrue();
-            assertThat(ObjectChecks.allNotNull(1, 2, 3)).isTrue();
-            assertThat(ObjectChecks.allNotNull("test")).isTrue();  // 单个参数
-            assertThat(ObjectChecks.allNotNull()).isTrue();  // 空参数
-        }
+    @Test
+    @DisplayName("测试 instanceOf 方法")
+    void testInstanceOf() {
+        // 测试类型为 null 的情况
+        Object obj = new Object();
+        assertFalse(ObjectChecks.instanceOf(obj, null));
 
-        @Test
-        @DisplayName("当任一对象为null时应返回false")
-        void shouldReturnFalseWhenAnyObjectIsNull() {
-            assertThat(ObjectChecks.allNotNull("a", null, "c")).isFalse();
-            assertThat(ObjectChecks.allNotNull(null, "b", "c")).isFalse();
-            assertThat(ObjectChecks.allNotNull("a", "b", null)).isFalse();
-        }
+        // 测试对象为 null 的情况
+        assertFalse(ObjectChecks.instanceOf(null, Object.class));
 
-        @Test
-        @DisplayName("当参数数组本身为null时应返回false")
-        void shouldReturnFalseWhenArrayIsNull() {
-            assertThat(ObjectChecks.allNotNull((Object[]) null)).isFalse();
-        }
+        // 测试对象是指定类型的实例的情况
+        Object obj2 = new Object();
+        assertTrue(ObjectChecks.instanceOf(obj2, Object.class));
 
-        @Test
-        @DisplayName("当只有单个null参数时应返回false")
-        void shouldReturnFalseWhenSingleNullArgument() {
-            assertThat(ObjectChecks.allNotNull((Object) null)).isFalse();
-        }
+        // 测试对象不是指定类型的实例的情况
+        Object obj3 = new Object();
+        assertFalse(ObjectChecks.instanceOf(obj3, String.class));
+    }
+
+    @Test
+    @DisplayName("测试 notInstanceOf 方法")
+    void testNotInstanceOf() {
+        // 测试类型为 null 的情况
+        Object obj = new Object();
+        assertFalse(ObjectChecks.notInstanceOf(obj, null));
+
+        // 测试对象为 null 的情况
+        assertTrue(ObjectChecks.notInstanceOf(null, Object.class));
+
+        // 测试对象不是指定类型的实例的情况
+        Object obj3 = new Object();
+        assertTrue(ObjectChecks.notInstanceOf(obj3, String.class));
+
+        // 测试对象是指定类型的实例的情况
+        Object obj2 = new Object();
+        assertFalse(ObjectChecks.notInstanceOf(obj2, Object.class));
+    }
+
+    @Test
+    @DisplayName("测试 allNotNull 方法")
+    void testAllNotNull() {
+        // 测试参数为 null 的情况
+        assertFalse(ObjectChecks.allNotNull((Object[]) null));
+
+        // 测试参数数组中有 null 的情况
+        assertFalse(ObjectChecks.allNotNull(new Object[]{new Object(), null}));
+
+        // 测试参数数组中没有 null 的情况
+        assertTrue(ObjectChecks.allNotNull(new Object[]{new Object(), new Object()}));
+    }
+
+    @Test
+    @DisplayName("测试 notEmpty 方法 (Collection)")
+    void testNotEmptyCollection() {
+        // 测试集合为 null 的情况
+        assertFalse(ObjectChecks.notEmpty((Collection<?>) null));
+
+        // 测试集合为空的情况
+        Collection<Object> emptyCollection = new ArrayList<>();
+        assertFalse(ObjectChecks.notEmpty(emptyCollection));
+
+        // 测试集合不为空的情况
+        Collection<Object> nonEmptyCollection = new ArrayList<>();
+        nonEmptyCollection.add(new Object());
+        assertTrue(ObjectChecks.notEmpty(nonEmptyCollection));
+    }
+
+    @Test
+    @DisplayName("测试 notEmpty 方法 (Map)")
+    void testNotEmptyMap() {
+        // 测试映射为 null 的情况
+        assertFalse(ObjectChecks.notEmpty((Map<?, ?>) null));
+
+        // 测试映射为空的情况
+        Map<Object, Object> emptyMap = new HashMap<>();
+        assertFalse(ObjectChecks.notEmpty(emptyMap));
+
+        // 测试映射不为空的情况
+        Map<Object, Object> nonEmptyMap = new HashMap<>();
+        nonEmptyMap.put("key", "value");
+        assertTrue(ObjectChecks.notEmpty(nonEmptyMap));
     }
 }

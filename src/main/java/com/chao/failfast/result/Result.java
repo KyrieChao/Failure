@@ -21,7 +21,7 @@ import java.util.stream.Stream;
  *
  * @param <T> Return value type on success
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -164,7 +164,9 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      */
     @JsonIgnore
     public Business getError() {
-        if (this instanceof Result.Fail<T> f) return f.error;
+        if (this instanceof Result.Fail<?> f) {
+            return f.error;
+        }
         throw new IllegalStateException("Result is success");
     }
 
@@ -452,7 +454,6 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      *
      * @param <T> Data type
      */
-    @Getter
     public static final class Fail<T> extends Result<T> {
         /**
          * Error info.
@@ -466,13 +467,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
          * @param error Error info
          */
         public Fail(Business error) {
-            super(
-                    error.getResponseCode().getCode(),
-                    I18n.get(error.getResponseCode().getMessage()),
-                    error.getDetail() != null
-                            ? I18n.get(error.getDetail())
-                            : I18n.get(error.getResponseCode().getDescription())
-            );
+            super(error.getResponseCode().getCode(), I18n.get(error.getResponseCode().getMessage()), I18n.get(error.getDetail()));
             this.error = error;
         }
     }

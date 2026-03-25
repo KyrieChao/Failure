@@ -13,7 +13,7 @@ import java.util.Date;
  * Utility class for date and time validation.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 public final class DateChecks {
 

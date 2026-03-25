@@ -7,7 +7,7 @@ import java.util.function.Predicate;
  * Utility class for collection validation.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 public final class CollectionChecks {
 

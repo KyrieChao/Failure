@@ -1,6 +1,7 @@
 package com.chao.failfast.validator;
 
 import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;
@@ -101,6 +102,18 @@ class FastValidatorTest {
             assertThat(ctx.isFast()).isFalse();
         }
 
+        @Test
+        @DisplayName("初始状态group")
+        void shouldHaveDefaultGroups() {
+
+            interface Create{
+
+            }
+            FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false, Scenario.DEFAULT, new Class<?>[]{Create.class});
+            assertThat(ctx.isFast()).isFalse();
+            assertThat(ctx.getScenes()).containsExactly(Scenario.DEFAULT);
+            assertThat(ctx.getGroups()).containsExactly(Create.class);
+        }
         @Test
         @DisplayName("初始状态应为有效")
         void shouldBeValidInitially() {

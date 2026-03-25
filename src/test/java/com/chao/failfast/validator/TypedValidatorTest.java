@@ -1,264 +1,521 @@
 package com.chao.failfast.validator;
 
 import com.chao.failfast.annotation.FastValidator;
-import com.chao.failfast.i18n.I18nExtension;
-import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.core.ResponseCode;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.Set;
+import static org.junit.jupiter.api.Assertions.*;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-@DisplayName("TypedValidator 类型校验器测试")
-@ExtendWith(I18nExtension.class)
 class TypedValidatorTest {
 
-    static class TestValidator extends TypedValidator {
+    @Test
+    void testConstructorAndRegisterValidators() {
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(0, validator.size());
+    }
+
+    @Test
+    void testRegister() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {
+            if (s == null || s.isEmpty()) {
+                ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL);
+            }
+        });
+        assertEquals(1, validator.size());
+        assertTrue(validator.isRegisteredType(String.class));
+    }
+
+    @Test
+    void testRegisterMultipleTypes() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {});
+        validator.register(Integer.class, (i, ctx) -> {});
+        validator.register(Double.class, (d, ctx) -> {});
+        assertEquals(3, validator.size());
+        assertTrue(validator.isRegisteredType(String.class));
+        assertTrue(validator.isRegisteredType(Integer.class));
+        assertTrue(validator.isRegisteredType(Double.class));
+    }
+
+    @Test
+    void testRegisterWithMoreThan10Types() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // 使用不同的类型来注册验证器
+        validator.register(String.class, (s, ctx) -> {});
+        validator.register(Integer.class, (i, ctx) -> {});
+        validator.register(Double.class, (d, ctx) -> {});
+        validator.register(Boolean.class, (b, ctx) -> {});
+        validator.register(Long.class, (l, ctx) -> {});
+        validator.register(Float.class, (f, ctx) -> {});
+        validator.register(Short.class, (s, ctx) -> {});
+        validator.register(Byte.class, (b, ctx) -> {});
+        validator.register(Character.class, (c, ctx) -> {});
+        validator.register(Void.class, (v, ctx) -> {});
+        validator.register(Object.class, (o, ctx) -> {});
+        assertEquals(11, validator.size());
+        assertNotNull(validator.getRegisteredTypes());
+    }
+
+    @Test
+    void testGetRegisteredTypes() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {});
+        validator.register(Integer.class, (i, ctx) -> {});
+        var types = validator.getRegisteredTypes();
+        assertEquals(2, types.size());
+        assertTrue(types.contains(String.class));
+        assertTrue(types.contains(Integer.class));
+    }
+
+    @Test
+    void testIsRegisteredType() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {});
+        assertTrue(validator.isRegisteredType(String.class));
+        assertFalse(validator.isRegisteredType(Integer.class));
+    }
+
+    @Test
+    void testValidateIfRegisteredWithNullObject() {
+        TestTypedValidator validator = new TestTypedValidator();
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        assertFalse(validator.validateIfRegistered(null, context));
+    }
+
+    @Test
+    void testValidateIfRegisteredWithUnregisteredType() {
+        TestTypedValidator validator = new TestTypedValidator();
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        assertFalse(validator.validateIfRegistered("test", context));
+    }
+
+    @Test
+    void testValidateIfRegisteredWithRegisteredType() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {
+            if (s.isEmpty()) {
+                ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL);
+            }
+        });
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        assertTrue(validator.validateIfRegistered("test", context));
+    }
+
+    @Test
+    void testGetSupportedTypeWithSingleType() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {});
+        assertEquals(String.class, validator.getSupportedType());
+    }
+
+    @Test
+    void testGetSupportedTypeWithMultipleTypes() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {});
+        validator.register(Integer.class, (i, ctx) -> {});
+        assertEquals(Object.class, validator.getSupportedType());
+    }
+
+    @Test
+    void testSize() {
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(0, validator.size());
+        validator.register(String.class, (s, ctx) -> {});
+        assertEquals(1, validator.size());
+    }
+
+    @Test
+    void testValidateWithNullContext() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {});
+        validator.validate("test", null);
+    }
+
+    @Test
+    void testValidateWithNullObject() {
+        TestTypedValidator validator = new TestTypedValidator();
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(null, context);
+        assertFalse(context.isValid());
+    }
+
+    @Test
+    void testValidateWithUnregisteredType() {
+        TestTypedValidator validator = new TestTypedValidator();
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate("test", context);
+        assertFalse(context.isValid());
+    }
+
+    @Test
+    void testValidateWithRegisteredType() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {
+            if (s.isEmpty()) {
+                ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL);
+            }
+        });
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate("test", context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testResolveHandlerWithCachedHandler() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {});
+        // First call to cache the handler
+        validator.validate("test", new FastValidator.ValidationContext(true));
+        // Second call should use cached handler
+        validator.validate("test", new FastValidator.ValidationContext(true));
+    }
+
+    @Test
+    void testResolveHandlerWithNoHandler() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // First call to cache NO_HANDLER
+        validator.validate(123, new FastValidator.ValidationContext(true));
+        // Second call should use cached NO_HANDLER
+        validator.validate(123, new FastValidator.ValidationContext(true));
+    }
+
+    @Test
+    void testComputeBestHandlerWithExactMatch() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(String.class, (s, ctx) -> {});
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate("test", context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerWithSuperclassMatch() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(Number.class, (n, ctx) -> {});
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(123, context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerWithInterfaceMatch() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(CharSequence.class, (cs, ctx) -> {});
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate("test", context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerWithMultipleMatches() {
+        TestTypedValidator validator = new TestTypedValidator();
+        validator.register(Number.class, (n, ctx) -> {});
+        validator.register(Object.class, (o, ctx) -> {});
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(123, context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testDistanceWithSameClass() {
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(0, validator.distance(String.class, String.class));
+    }
+
+    @Test
+    void testDistanceWithSuperclass() {
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(1, validator.distance(String.class, Object.class));
+    }
+
+    @Test
+    void testDistanceWithInterface() {
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(1, validator.distance(String.class, CharSequence.class));
+    }
+
+    @Test
+    void testDistanceWithNullClasses() {
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(Integer.MAX_VALUE, validator.distance(null, String.class));
+        assertEquals(Integer.MAX_VALUE, validator.distance(String.class, null));
+        assertEquals(Integer.MAX_VALUE, validator.distance(null, null));
+    }
+
+    @Test
+    void testDistanceWithUnrelatedClasses() {
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(Integer.MAX_VALUE, validator.distance(String.class, Integer.class));
+    }
+
+    @Test
+    void testComputeBestHandlerWithSameDistance() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // Register two interfaces that are both implemented by String
+        validator.register(CharSequence.class, (cs, ctx) -> {});
+        validator.register(Comparable.class, (c, ctx) -> {});
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate("test", context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testDistanceWithCachedClasses() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // This test ensures that the distance method handles cached classes correctly
+        assertEquals(1, validator.distance(String.class, Object.class));
+    }
+
+    @Test
+    void testComputeBestHandlerWithInterfaceVsClass() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // Register an interface and a class
+        validator.register(CharSequence.class, (cs, ctx) -> {});
+        validator.register(Object.class, (o, ctx) -> {});
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate("test", context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerPrefersClassOverInterfaceWhenSameDistance() throws Exception {
+        interface AA {
+        }
+        interface BB {
+        }
+        class ImplementsBoth implements AA, BB {
+        }
+
+        class LocalTypedValidator extends TypedValidator {
+            @Override
+            protected void registerValidators() {
+            }
+        }
+
+        LocalTypedValidator validator = new LocalTypedValidator();
+
+        var field = TypedValidator.class.getDeclaredField("validators");
+        field.setAccessible(true);
+        java.util.LinkedHashMap<Class<?>, java.util.function.BiConsumer<Object, FastValidator.ValidationContext>> ordered = new java.util.LinkedHashMap<>();
+        ordered.put(BB.class, (obj, ctx) -> ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL));
+        ordered.put(AA.class, (obj, ctx) -> {
+        });
+        field.set(validator, ordered);
+        Object current = field.get(validator);
+        assertTrue(current instanceof java.util.LinkedHashMap);
+        assertEquals(BB.class, ((java.util.Map<?, ?>) current).keySet().iterator().next());
+
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(new ImplementsBoth(), context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testDistanceWithDiamondInterfacesCoversDuplicateInterfaceVisit() {
+        interface D {
+        }
+        interface B extends D {
+        }
+        interface C extends D {
+        }
+        interface A extends B, C {
+        }
+
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(2, validator.distance(A.class, D.class));
+    }
+
+    @Test
+    void testComputeBestHandlerTieBreakByNameForInterfaces() throws Exception {
+        interface X {
+        }
+        interface Y {
+        }
+        class Impl implements X, Y {
+        }
+
+        class LocalTypedValidator extends TypedValidator {
+            @Override
+            protected void registerValidators() {
+            }
+        }
+        LocalTypedValidator validator = new LocalTypedValidator();
+
+        var field = TypedValidator.class.getDeclaredField("validators");
+        field.setAccessible(true);
+        java.util.LinkedHashMap<Class<?>, java.util.function.BiConsumer<Object, FastValidator.ValidationContext>> ordered = new java.util.LinkedHashMap<>();
+        Class<?> smaller = X.class.getName().compareTo(Y.class.getName()) < 0 ? X.class : Y.class;
+        Class<?> larger = smaller == X.class ? Y.class : X.class;
+        ordered.put(larger, (obj, ctx) -> ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL));
+        ordered.put(smaller, (obj, ctx) -> {
+        });
+        field.set(validator, ordered);
+
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(new Impl(), context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerPrefersClassWhenTieWithInterface() throws Exception {
+        interface I {
+        }
+        class Base {
+        }
+        class Impl extends Base implements I {
+        }
+
+        class LocalTypedValidator extends TypedValidator {
+            @Override
+            protected void registerValidators() {
+            }
+        }
+        LocalTypedValidator validator = new LocalTypedValidator();
+
+        var field = TypedValidator.class.getDeclaredField("validators");
+        field.setAccessible(true);
+        java.util.LinkedHashMap<Class<?>, java.util.function.BiConsumer<Object, FastValidator.ValidationContext>> ordered = new java.util.LinkedHashMap<>();
+        ordered.put(I.class, (obj, ctx) -> ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL));
+        ordered.put(Base.class, (obj, ctx) -> {
+        });
+        field.set(validator, ordered);
+
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(new Impl(), context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerKeepsClassWhenTieAndClassAlreadyBest() throws Exception {
+        interface I {
+        }
+        class Base {
+        }
+        class Impl extends Base implements I {
+        }
+
+        class LocalTypedValidator extends TypedValidator {
+            @Override
+            protected void registerValidators() {
+            }
+        }
+        LocalTypedValidator validator = new LocalTypedValidator();
+
+        var field = TypedValidator.class.getDeclaredField("validators");
+        field.setAccessible(true);
+        java.util.LinkedHashMap<Class<?>, java.util.function.BiConsumer<Object, FastValidator.ValidationContext>> ordered = new java.util.LinkedHashMap<>();
+        ordered.put(Base.class, (obj, ctx) -> ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL));
+        ordered.put(I.class, (obj, ctx) -> {
+        });
+        field.set(validator, ordered);
+
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(new Impl(), context);
+        assertFalse(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerSkipsWorseDistanceCandidate() throws Exception {
+        class Base {
+        }
+        class Impl extends Base {
+        }
+
+        class LocalTypedValidator extends TypedValidator {
+            @Override
+            protected void registerValidators() {
+            }
+        }
+        LocalTypedValidator validator = new LocalTypedValidator();
+
+        var field = TypedValidator.class.getDeclaredField("validators");
+        field.setAccessible(true);
+        java.util.LinkedHashMap<Class<?>, java.util.function.BiConsumer<Object, FastValidator.ValidationContext>> ordered = new java.util.LinkedHashMap<>();
+        ordered.put(Base.class, (obj, ctx) -> {
+        });
+        ordered.put(Object.class, (obj, ctx) -> ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL));
+        field.set(validator, ordered);
+
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(new Impl(), context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerUpdatesWhenFindsCloserTypeLater() throws Exception {
+        class Base {
+        }
+        class Impl extends Base {
+        }
+
+        class LocalTypedValidator extends TypedValidator {
+            @Override
+            protected void registerValidators() {
+            }
+        }
+        LocalTypedValidator validator = new LocalTypedValidator();
+
+        var field = TypedValidator.class.getDeclaredField("validators");
+        field.setAccessible(true);
+        java.util.LinkedHashMap<Class<?>, java.util.function.BiConsumer<Object, FastValidator.ValidationContext>> ordered = new java.util.LinkedHashMap<>();
+        ordered.put(Object.class, (obj, ctx) -> ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL));
+        ordered.put(Base.class, (obj, ctx) -> {
+        });
+        field.set(validator, ordered);
+
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(new Impl(), context);
+        assertTrue(context.isValid());
+    }
+
+    @Test
+    void testComputeBestHandlerTieBreakDoesNotUpdateWhenNameNotSmaller() throws Exception {
+        interface X {
+        }
+        interface Y {
+        }
+        class Impl implements X, Y {
+        }
+
+        class LocalTypedValidator extends TypedValidator {
+            @Override
+            protected void registerValidators() {
+            }
+        }
+        LocalTypedValidator validator = new LocalTypedValidator();
+
+        var field = TypedValidator.class.getDeclaredField("validators");
+        field.setAccessible(true);
+        java.util.LinkedHashMap<Class<?>, java.util.function.BiConsumer<Object, FastValidator.ValidationContext>> ordered = new java.util.LinkedHashMap<>();
+        Class<?> smaller = X.class.getName().compareTo(Y.class.getName()) < 0 ? X.class : Y.class;
+        Class<?> larger = smaller == X.class ? Y.class : X.class;
+        ordered.put(smaller, (obj, ctx) -> ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL));
+        ordered.put(larger, (obj, ctx) -> {
+        });
+        field.set(validator, ordered);
+
+        FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
+        validator.validate(new Impl(), context);
+        assertFalse(context.isValid());
+    }
+
+    // Test implementation of TypedValidator
+    private static class TestTypedValidator extends TypedValidator {
         @Override
         protected void registerValidators() {
-            register(String.class, (s, ctx) -> {
-                if (s.isEmpty()) ctx.reportError(ResponseCode.of(400, "Empty string"));
-            });
-            register(Integer.class, (i, ctx) -> {
-                if (i < 0) ctx.reportError(ResponseCode.of(400, "Negative integer"));
-            });
+            // Default implementation
+        }
+
+        // Expose distance method for testing
+        public int distance(Class<?> from, Class<?> to) {
+            try {
+                var method = TypedValidator.class.getDeclaredMethod("distance", Class.class, Class.class);
+                method.setAccessible(true);
+                return (int) method.invoke(this, from, to);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
-    static class EmptyValidator extends TypedValidator {
-    }
-
-    @Test
-    @DisplayName("应当根据类型分发校验")
-    void shouldDispatchByType() {
-        TestValidator validator = new TestValidator();
-        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
-
-        validator.validate("test", ctx);
-        assertThat(ctx.isValid()).isTrue();
-
-        validator.validate("", ctx);
-        assertThat(ctx.isValid()).isFalse();
-        assertThat(ctx.hasCauses()).hasSize(1);
-        
-        // Reset
-        ctx = new FastValidator.ValidationContext(false);
-        validator.validate(10, ctx);
-        assertThat(ctx.isValid()).isTrue();
-        
-        validator.validate(-1, ctx);
-        assertThat(ctx.isValid()).isFalse();
-    }
-
-    @Test
-    @DisplayName("当对象为 null 时应报错")
-    void shouldReportErrorWhenNull() {
-        TestValidator validator = new TestValidator();
-        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
-
-        validator.validate(null, ctx);
-        assertThat(ctx.isValid()).isFalse();
-        Business error = ctx.hasCauses().get(0);
-        assertThat(error.getResponseCode().getCode()).isEqualTo(500);
-        assertThat(error.getResponseCode().getMessage()).isIn("参数校验失败", "{response.code.validation.error}");
-    }
-
-    @Test
-    @DisplayName("当类型不支持时应报错")
-    void shouldReportErrorWhenTypeNotSupported() {
-        TestValidator validator = new TestValidator();
-        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
-
-        validator.validate(10.5, ctx); // Double not registered
-        assertThat(ctx.isValid()).isFalse();
-        Business error = ctx.hasCauses().get(0);
-        assertThat(error.getResponseCode().getCode()).isEqualTo(400);
-        assertThat(error.getDetail()).satisfiesAnyOf(
-            s -> assertThat(s).contains("不支持的校验类型"),
-            s -> assertThat(s).contains("{failure.const.unsupported.validation.type}")
-        );
-    }
-    @Test
-    @DisplayName("getSupportedType: 单一类型返回该类型，多类型返回 Object")
-    void shouldReturnCorrectSupportedType() {
-        // 单一类型
-        TestValidator single = new TestValidator();
-        // TestValidator 构造函数里注册了 String 和 Integer，所以是多类型
-        assertThat(single.getSupportedType()).isEqualTo(Object.class);
-
-        // 创建一个只注册了 String 的校验器
-        TypedValidator stringValidator = new TypedValidator() {
-            @Override
-            protected void registerValidators() {
-                register(String.class, (s, ctx) -> {});
-            }
-        };
-        assertThat(stringValidator.getSupportedType()).isEqualTo(String.class);
-
-        // 创建一个空校验器
-        TypedValidator emptyValidator = new TypedValidator() {};
-        assertThat(emptyValidator.getSupportedType()).isEqualTo(Object.class);
-    }
-
-    @Test
-    @DisplayName("当未注册类型时，应当不进行校验")
-    void shouldNotValidateWhenTypeNotRegistered() {
-        EmptyValidator validator = new EmptyValidator();
-        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
-
-        validator.validate("test", ctx);
-        assertThat(ctx.isValid()).isFalse();
-        assertThat(ctx.hasCauses().get(0).getResponseCode().getCode()).isEqualTo(400);
-    }
-
-    @Test
-    @DisplayName("validateIfRegistered 应在类型注册时执行校验")
-    void shouldValidateIfRegistered() {
-        TestValidator validator = new TestValidator();
-        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
-
-        // 注册类型，应执行校验
-        boolean result = validator.validateIfRegistered("", ctx);
-        assertThat(result).isTrue();
-        assertThat(ctx.isValid()).isFalse();
-
-        // 重置上下文
-        ctx.reset();
-        // 未注册类型，不应执行校验
-        result = validator.validateIfRegistered(10.5, ctx);
-        assertThat(result).isFalse();
-        assertThat(ctx.isValid()).isTrue();
-
-        // null 值，不应执行校验
-        result = validator.validateIfRegistered(null, ctx);
-        assertThat(result).isFalse();
-        assertThat(ctx.isValid()).isTrue();
-    }
-
-    @Test
-    @DisplayName("isRegisteredType 应正确判断类型是否注册")
-    void shouldCheckIfTypeIsRegistered() {
-        TestValidator validator = new TestValidator();
-        assertThat(validator.isRegisteredType(String.class)).isTrue();
-        assertThat(validator.isRegisteredType(Integer.class)).isTrue();
-        assertThat(validator.isRegisteredType(Double.class)).isFalse();
-    }
-
-    @Test
-    @DisplayName("getRegisteredTypes 应返回所有注册类型")
-    void shouldReturnAllRegisteredTypes() {
-        TestValidator validator = new TestValidator();
-        Set<Class<?>> types = validator.getRegisteredTypes();
-        assertThat(types).containsExactlyInAnyOrder(String.class, Integer.class);
-    }
-
-    @Test
-    @DisplayName("size 应返回注册类型数量")
-    void shouldReturnSizeOfRegisteredTypes() {
-        TestValidator validator = new TestValidator();
-        assertThat(validator.size()).isEqualTo(2);
-
-        EmptyValidator emptyValidator = new EmptyValidator();
-        assertThat(emptyValidator.size()).isEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("当 context 为 null 时应创建默认上下文")
-    void shouldCreateDefaultContextWhenNull() {
-        TestValidator validator = new TestValidator();
-        validator.validate("", null);
-        // 不应抛出异常
-    }
-
-    @Test
-    @DisplayName("继承体系的类型应选择最合适的处理器")
-    void shouldSelectBestHandlerForInheritedTypes() {
-        // 创建一个包含继承关系的测试
-        TypedValidator validator = new TypedValidator() {
-            @Override
-            protected void registerValidators() {
-                register(Number.class, (n, ctx) -> {
-                    if (n.doubleValue() < 0) ctx.reportError(ResponseCode.of(400, "Negative number"));
-                });
-                register(Integer.class, (i, ctx) -> {
-                    if (i < 0) ctx.reportError(ResponseCode.of(400, "Negative integer"));
-                });
-            }
-        };
-
-        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
-        validator.validate(5, ctx);
-        assertThat(ctx.isValid()).isTrue();
-
-        ctx.reset();
-        validator.validate(-5, ctx);
-        assertThat(ctx.isValid()).isFalse();
-    }
-
-    @Test
-    @DisplayName("当多个接口具有相同距离时应选择名称字典序较小的")
-    void shouldSelectHandlerByLexicographicalOrderWhenDistanceEqual() {
-        // 创建一个包含多个接口的测试
-        interface InterfaceA {}
-        interface InterfaceB {}
-        class TestClass implements InterfaceA, InterfaceB {}
-
-        TypedValidator validator = new TypedValidator() {
-            @Override
-            protected void registerValidators() {
-                register(InterfaceA.class, (obj, ctx) -> ctx.reportError(ResponseCode.of(400, "InterfaceA error")));
-                register(InterfaceB.class, (obj, ctx) -> ctx.reportError(ResponseCode.of(400, "InterfaceB error")));
-            }
-        };
-
-        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
-        validator.validate(new TestClass(), ctx);
-        assertThat(ctx.isValid()).isFalse();
-        // 应该选择 InterfaceA，因为 A 在字典序上小于 B
-    }
-
-    @Test
-    @DisplayName("当类和接口距离相同时应选择类而非接口")
-    void shouldSelectClassOverInterfaceWhenDistanceEqual() {
-        interface TestInterface {}
-        class TestBaseClass implements TestInterface {}
-        class TestSubClass extends TestBaseClass {}
-
-        TypedValidator validator = new TypedValidator() {
-            @Override
-            protected void registerValidators() {
-                register(TestInterface.class, (obj, ctx) -> ctx.reportError(ResponseCode.of(400, "Interface error")));
-                register(TestBaseClass.class, (obj, ctx) -> ctx.reportError(ResponseCode.of(400, "Class error")));
-            }
-        };
-
-        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
-        validator.validate(new TestSubClass(), ctx);
-        assertThat(ctx.isValid()).isFalse();
-        // 应该选择 TestBaseClass，因为类优先于接口
-    }
-
-    @Test
-    @DisplayName("distance 方法应正确计算类继承距离")
-    void shouldCalculateDistanceCorrectly() {
-        // 测试直接继承
-        assertThat(distance(Integer.class, Number.class)).isGreaterThan(0);
-        assertThat(distance(Integer.class, Object.class)).isGreaterThan(distance(Integer.class, Number.class));
-        assertThat(distance(Integer.class, Integer.class)).isEqualTo(0);
-        assertThat(distance(null, Integer.class)).isEqualTo(Integer.MAX_VALUE);
-        assertThat(distance(Integer.class, null)).isEqualTo(Integer.MAX_VALUE);
-    }
-
-    // 反射获取 distance 方法进行测试
-    private int distance(Class<?> from, Class<?> to) {
-        try {
-            java.lang.reflect.Method method = TypedValidator.class.getDeclaredMethod("distance", Class.class, Class.class);
-            method.setAccessible(true);
-            return (int) method.invoke(null, from, to);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-} 
+}

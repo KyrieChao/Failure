@@ -30,6 +30,7 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 - **函数式结果**: 提供 `Result<T>` 单子类型，支持 `map`, `flatMap`, `recover` 等函数式操作
 - **智能调试快照**: 当 `fail-fast.debug-snapshot=true`（默认 false）时，异常信息可包含失败参数值（自动脱敏与截断），让报错即线索
 - **智能异常处理**: 自动映射业务错误码到 HTTP 状态码，支持影子追踪 (`shadow-trace`) 快速定位问题
+- **可选生态模块**: 提供可选 starter（Micrometer Observability / OpenAPI springdoc），引入即生效且不污染核心依赖
 
 ---
 
@@ -110,15 +111,15 @@ Failure.begin()
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.1.1</version> <!-- 确保这里是最新版 -->
+    <version>1.2.0</version> <!-- 确保这里是最新版 -->
 </dependency>
 ```
 本项目已发布至 JitPack：
 ```xml
 <dependency>
     <groupId>com.github.KyrieChao</groupId>
-    <artifactId>Failure</artifactId>
-    <version>1.7.1</version> <!-- 确保这里是最新版 -->
+    <artifactId>failure-spring-boot-starter</artifactId>
+    <version>1.2.0</version> <!-- 确保这里是最新版 -->
 </dependency>
 ```
 
@@ -127,6 +128,38 @@ Failure.begin()
 |------|------|
 | Maven Central | ✅ 稳定版 |
 | JitPack | ⚡ 开发版，包含最新提交 |
+
+### 可选 Starter（Observability / OpenAPI）
+
+Failure 采用“核心 starter + 可选生态 starter”的结构：核心 starter 不强依赖 Micrometer/springdoc，可选模块按需引入。
+
+#### 1) Observability（Micrometer）
+
+当应用中存在 `MeterRegistry` 时自动生效，产生指标：
+- `failure.validation.time`（Timer，tag：`source=chain|jsr|method`）
+- `failure.validation.count`（Counter，tag：`source=chain|jsr|method`、`result=success|fail`）
+
+```xml
+<dependency>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-observability-spring-boot-starter</artifactId>
+    <version>1.2.0</version>
+</dependency>
+```
+
+#### 2) OpenAPI（springdoc）
+
+当应用中存在 springdoc 的 `OpenAPI` 类型时自动生效：
+- 注入统一的错误响应 Schema（`ErrorItem` / `ErrorResponse`）
+- 为所有接口补充 `400` / `422` 错误响应（若未定义）
+
+```xml
+<dependency>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-openapi-springdoc-starter</artifactId>
+    <version>1.2.0</version>
+</dependency>
+```
 
 ---
 
@@ -378,7 +411,7 @@ fail-fast:
 欢迎提交 Issue 或 Pull Request！请确保：
 
 - 运行 `mvn test` 通过所有测试
-- 代码覆盖率保持在 99%+
+- 代码覆盖率遵守 JaCoCo 阈值（默认 80%+）
 - 遵循现有代码风格
 
 ## 📄 许可证

@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  * <p>Contains shared constants for validation, configuration, response, etc.</p>
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  * @since 1.3.1
  */
 public final class FailureConst {
@@ -69,7 +69,10 @@ public final class FailureConst {
      * Error detail field.
      */
     public static final String FIELD_DETAIL = "detail";
-
+    /**
+     * Error traceId field.
+     */
+    public static final String FIELD_TRACE_ID = "traceId";
     /**
      * Timestamp field.
      */
@@ -80,6 +83,12 @@ public final class FailureConst {
      */
     public static final String FIELD_ERRORS = "errors";
 
+
+    public static final String FIELD_REJECTED = "rejected";
+    public static final String FIELD_PATH = "path";
+    public static final String FIELD_SCENE = "scene";
+    public static final String FIELD_METHOD = "method";
+    public static final String DEFAULT_SCENE = "DEFAULT";
 
     // ==================== Common Error Messages (English) ====================
 
@@ -102,6 +111,11 @@ public final class FailureConst {
      * Multiple validation errors.
      */
     public static final String MULTIPLE_VALIDATION_ERRORS = "{failure.const.multiple.validation.errors}";
+
+    /**
+     * Multiple validation errors count (e.g., "Total {0} items").
+     */
+    public static final String MULTIPLE_VALIDATION_ERRORS_COUNT = "{failure.const.multiple.validation.errors.count}";
 
     /**
      * Location separator.

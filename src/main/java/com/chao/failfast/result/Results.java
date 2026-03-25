@@ -16,7 +16,7 @@ import java.util.function.*;
  * Result utility class - Provide batch operations and convenient methods.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 public final class Results {
 

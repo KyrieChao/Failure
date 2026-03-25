@@ -31,6 +31,7 @@ validation experience.
 - **Functional Results**: Provides `Result<T>` monad with `map`, `flatMap`, `recover` operations.
 - **Smart Debug Snapshot**: Optionally includes invalid values in exceptions (auto-masking & truncation) when `fail-fast.debug-snapshot=true` (default: false).
 - **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes, with `shadow-trace` for quick debugging.
+- **Optional Starters**: Provides optional starters (Micrometer Observability / OpenAPI springdoc) without polluting core dependencies.
 
 ---
 
@@ -114,7 +115,39 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.0.2</version> <!-- Make sure it's up to date. -->
+    <version>1.2.0</version> <!-- Make sure it's up to date. -->
+</dependency>
+```
+
+### Optional Starters (Observability / OpenAPI)
+
+Failure uses a "core starter + optional ecosystem starters" structure. The core starter does not hard-depend on Micrometer/springdoc; optional modules are enabled when present on the classpath.
+
+#### 1) Observability (Micrometer)
+
+Enabled automatically when `MeterRegistry` is present. Metrics:
+- `failure.validation.time` (Timer, tag: `source=chain|jsr|method`)
+- `failure.validation.count` (Counter, tags: `source=chain|jsr|method`, `result=success|fail`)
+
+```xml
+<dependency>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-observability-spring-boot-starter</artifactId>
+    <version>1.2.0</version>
+</dependency>
+```
+
+#### 2) OpenAPI (springdoc)
+
+Enabled automatically when springdoc `OpenAPI` type is present:
+- Adds unified error response schemas (`ErrorItem` / `ErrorResponse`)
+- Adds `400` / `422` error responses for all operations if missing
+
+```xml
+<dependency>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-openapi-springdoc-starter</artifactId>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -365,7 +398,10 @@ Or simply give it a ⭐ Star to help more people discover this project!
 ---
 ## 🤝 Contributing
 
-Issues and Pull Requests are welcome! Please run `mvn test` before submitting and follow the existing code style.
+Issues and Pull Requests are welcome! Please:
+- Ensure `mvn test` passes.
+- Keep coverage above the JaCoCo thresholds (default: 80%+).
+- Follow the existing code style.
 
 ## 📄 License
 

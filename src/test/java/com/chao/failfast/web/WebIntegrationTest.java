@@ -1,10 +1,10 @@
 package com.chao.failfast.web;
 
 import com.chao.failfast.Failure;
+import com.chao.failfast.annotation.FailFastBody;
 import com.chao.failfast.annotation.FastValidator;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.config.FailFastAutoConfiguration;
-import com.chao.failfast.i18n.I18nPropertiesIntegrationTest;
 import com.chao.failfast.internal.core.ResponseCode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -129,6 +128,25 @@ class WebIntegrationTest {
                 .andExpect(jsonPath("$.description", containsString("共2项问题")));
     }
 
+    @Test
+    @DisplayName("测试 @FailFastBody - 正常绑定 JSON")
+    void testFailFastBodyBinding() throws Exception {
+        String json = """
+                    {
+                        "username": "u1",
+                        "age": 18
+                    }
+                """;
+
+        mockMvc.perform(post("/api/example/failfast-body")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("u1"))
+                .andExpect(jsonPath("$.age").value(18));
+    }
+
     // ================== 示例 Controller 和 DTO ==================
 
     @SpringBootApplication
@@ -184,6 +202,11 @@ class WebIntegrationTest {
         @PostMapping("/enhanced-valid")
         @Validate(fast = false)
         public UserRegisterRequest enhancedValid(@RequestBody @Valid UserRegisterRequest request) {
+            return request;
+        }
+
+        @PostMapping("/failfast-body")
+        public UserRegisterRequest failFastBody(@FailFastBody UserRegisterRequest request) {
             return request;
         }
     }

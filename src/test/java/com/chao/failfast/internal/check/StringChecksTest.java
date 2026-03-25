@@ -357,6 +357,8 @@ class StringChecksTest {
         void urlStrict() {
             assertThat(StringChecks.url("https://google.com")).isTrue();
             assertThat(StringChecks.url("ftp://example.com")).isTrue(); // URI allows ftp
+            assertThat(StringChecks.url("google.com")).isFalse();
+            assertThat(StringChecks.url("mailto:test@example.com")).isFalse();
             assertThat(StringChecks.url("not a url")).isFalse();
         }
     }

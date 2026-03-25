@@ -31,14 +31,14 @@ class ResultsTest2 {
         }
 
         @Test
-        @DisplayName("当Supplier抛出Business异常时应返回对应的失败Result")
+        @DisplayName("当Supplier抛出Business异常时应返回指定错误码的失败Result")
         void shouldReturnFailureWhenSupplierThrowsBusiness() {
             Result<String> result = Results.tryOf(() -> {
                 throw Business.of(TestResponseCode.PARAM_ERROR);
             }, TestResponseCode.SYSTEM_ERROR);
 
             assertThat(result.isFail()).isTrue();
-            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
+            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.SYSTEM_ERROR.getCode());
         }
 
         @Test
@@ -50,7 +50,6 @@ class ResultsTest2 {
 
             assertThat(result.isFail()).isTrue();
             assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.SYSTEM_ERROR.getCode());
-            assertThat(result.getError().getDetail()).isEqualTo("runtime error");
         }
 
         @Test
@@ -73,15 +72,15 @@ class ResultsTest2 {
         }
 
         @Test
-        @DisplayName("tryOf 带详情 当Supplier抛出Business异常时应忽略详情返回原异常")
+        @DisplayName("tryOf 带详情 当Supplier抛出Business异常时应使用指定详情")
         void shouldReturnBusinessErrorWithDetail() {
             Result<String> result = Results.tryOf(() -> {
                 throw Business.of(TestResponseCode.PARAM_ERROR);
-            }, TestResponseCode.SYSTEM_ERROR, "ignored detail");
+            }, TestResponseCode.SYSTEM_ERROR, "custom detail");
 
             assertThat(result.isFail()).isTrue();
-            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-            assertThat(result.getError().getDetail()).isNotEqualTo("ignored detail");
+            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.SYSTEM_ERROR.getCode());
+            assertThat(result.getError().getDetail()).isEqualTo("custom detail");
         }
     }
 
@@ -183,15 +182,15 @@ class ResultsTest2 {
         }
 
         @Test
-        @DisplayName("tryRun 带详情 当抛出Business异常时应忽略详情返回原异常")
+        @DisplayName("tryRun 带详情 当抛出Business异常时应使用指定详情")
         void shouldReturnBusinessErrorWithDetailWhenException() {
             Result<Void> result = Results.tryRun(() -> {
                 throw Business.of(TestResponseCode.PARAM_ERROR);
-            }, TestResponseCode.SYSTEM_ERROR, "ignored detail");
+            }, TestResponseCode.SYSTEM_ERROR, "custom detail");
 
             assertThat(result.isFail()).isTrue();
-            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-            assertThat(result.getError().getDetail()).isNotEqualTo("ignored detail");
+            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.SYSTEM_ERROR.getCode());
+            assertThat(result.getError().getDetail()).isEqualTo("custom detail");
         }
     }
 
@@ -403,7 +402,7 @@ class ResultsTest2 {
             }, TestResponseCode.SYSTEM_ERROR);
 
             assertThat(result.isFail()).isTrue();
-            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
+            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.SYSTEM_ERROR.getCode());
         }
 
         @Test

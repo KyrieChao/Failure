@@ -1,152 +1,1269 @@
 package com.chao.failfast.aspect;
 
 import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.annotation.Scene;
 import com.chao.failfast.annotation.SkipValidation;
 import com.chao.failfast.annotation.Validate;
+import com.chao.failfast.constant.FailureConst;
+import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.MultiBusiness;
-import com.chao.failfast.model.TestResponseCode;
+import com.chao.failfast.internal.Ex;
+import com.chao.failfast.internal.core.FailureContext;
+import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.internal.policy.ErrorPolicy;
 import com.chao.failfast.validator.TypedValidator;
 import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.HttpSession;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 
-/**
- * ValidationAspect 全面覆盖测试
- */
-@ExtendWith(MockitoExtension.class)
-@DisplayName("ValidationAspect 切面全覆盖测试")
+@Slf4j
 class ValidationAspectTest {
 
-    @Mock
+
+    private TestValidationAspect aspect;
     private ApplicationContext applicationContext;
+    private Validator validator;
+    private FailureContext context;
 
-    @Mock
-    private ProceedingJoinPoint joinPoint;
+    @BeforeEach
+    void setUp() {
+        aspect = new TestValidationAspect();
+        applicationContext = Mockito.mock(ApplicationContext.class);
+        validator = Mockito.mock(Validator.class);
+        context = Mockito.mock(FailureContext.class);
+        aspect.setApplicationContext(applicationContext);
+        aspect.setValidator(validator);
+        Ex.setContext(context);
+    }
 
-    @Mock
-    private MethodSignature signature;
-
-    @Mock
-    private Validate validate;
-
-    @InjectMocks
-    private ValidationAspect validationAspect;
-
-    // --- 测试辅助类 ---
-
-    // 1. 普通验证器
-    public static class StringValidator implements FastValidator<String> {
-        @Override
-        public void validate(String target, ValidationContext context) {
-            if ("error".equals(target)) {
-                context.reportError(TestResponseCode.PARAM_ERROR);
+    // 测试子类，暴露私有方法
+    private static class TestValidationAspect extends ValidationAspect {
+        public void setApplicationContext(ApplicationContext applicationContext) {
+            try {
+                Field field = ValidationAspect.class.getDeclaredField("applicationContext");
+                field.setAccessible(true);
+                field.set(this, applicationContext);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
 
-        @Override
-        public Class<?> getSupportedType() {
-            return String.class;
+        public void setValidator(Validator validator) {
+            try {
+                Field field = ValidationAspect.class.getDeclaredField("validator");
+                field.setAccessible(true);
+                field.set(this, validator);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public String toSceneName(Scenario[] scenes) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("toSceneName", Scenario[].class);
+                method.setAccessible(true);
+                return (String) method.invoke(this, (Object) scenes);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public List<Business> executeBridgeValidation(List<Object> args, Class<?>[] groups, boolean fast, Scenario[] scenes) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("executeBridgeValidation", List.class, Class[].class, boolean.class, Scenario[].class);
+                method.setAccessible(true);
+                return (List<Business>) method.invoke(this, args, groups, fast, scenes);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public boolean shouldKeepViolation(ConstraintViolation<?> violation, Scenario[] scenes) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("shouldKeepViolation", ConstraintViolation.class, Scenario[].class);
+                method.setAccessible(true);
+                return (boolean) method.invoke(this, violation, scenes);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public String parseFieldName(String propertyPath) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("parseFieldName", String.class);
+                method.setAccessible(true);
+                return (String) method.invoke(this, propertyPath);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Field findField(Class<?> clazz, String fieldName) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("findField", Class.class, String.class);
+                method.setAccessible(true);
+                return (Field) method.invoke(this, clazz, fieldName);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Set<Scenario> getSceneValues(Field field) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("getSceneValues", Field.class);
+                method.setAccessible(true);
+                return (Set<Scenario>) method.invoke(this, field);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public List<Object> collectValidatableArgs(ProceedingJoinPoint point) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("collectValidatableArgs", ProceedingJoinPoint.class);
+                method.setAccessible(true);
+                return (List<Object>) method.invoke(this, point);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public boolean shouldSkip(Class<?> clazz) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("shouldSkip", Class.class);
+                method.setAccessible(true);
+                return (boolean) method.invoke(this, clazz);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public boolean hasSkipAnnotation(Annotation[] annotations) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("hasSkipAnnotation", Annotation[].class);
+                method.setAccessible(true);
+                return (boolean) method.invoke(this, (Object) annotations);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public String formatValidationLocation(Class<?> clazz, String fieldOrPath) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("formatValidationLocation", Class.class, String.class);
+                method.setAccessible(true);
+                return (String) method.invoke(this, clazz, fieldOrPath);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void executeTypedValidator(TypedValidator validator, List<Object> args, FastValidator.ValidationContext ctx) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("executeTypedValidator", TypedValidator.class, List.class, FastValidator.ValidationContext.class);
+                method.setAccessible(true);
+                method.invoke(this, validator, args, ctx);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void executePlainValidator(FastValidator<Object> validator, List<Object> args, FastValidator.ValidationContext ctx) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("executePlainValidator", FastValidator.class, List.class, FastValidator.ValidationContext.class);
+                method.setAccessible(true);
+                method.invoke(this, validator, args, ctx);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Class<?> getValidatorSupportedType(FastValidator<?> validator) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("getValidatorSupportedType", FastValidator.class);
+                method.setAccessible(true);
+                return (Class<?>) method.invoke(this, validator);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
-    // 2. 多重错误验证器
-    public static class MultiErrorValidator implements FastValidator<String> {
-        @Override
-        public void validate(String target, ValidationContext context) {
-            context.reportError(TestResponseCode.PARAM_ERROR);
-            context.reportError(TestResponseCode.SYSTEM_ERROR);
-        }
+    @Test
+    void testAroundWithNoValidatorsAndNoGroups() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{});
 
-        @Override
-        public Class<?> getSupportedType() {
-            return String.class;
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Object expectedResult = new Object();
+        Mockito.when(point.proceed()).thenReturn(expectedResult);
+
+        Object result = aspect.around(point, validate);
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void testAroundWithValidators() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{"test"});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.DEFAULT});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class});
+
+        Object expectedResult = new Object();
+        Mockito.when(point.proceed()).thenReturn(expectedResult);
+
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(null);
+
+        Object result = aspect.around(point, validate);
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void testAroundWithValidationErrors() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{""});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.DEFAULT});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class});
+
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
+
+        assertThrows(Business.class, () -> aspect.around(point, validate));
+    }
+
+    @Test
+    void testToSceneNameWithEmptyScenes() {
+        String sceneName = aspect.toSceneName(new Scenario[]{});
+        assertEquals(FailureConst.DEFAULT_SCENE, sceneName);
+    }
+
+    @Test
+    void testToSceneNameWithDefaultScene() {
+        String sceneName = aspect.toSceneName(new Scenario[]{Scenario.DEFAULT});
+        assertEquals(FailureConst.DEFAULT_SCENE, sceneName);
+    }
+
+    @Test
+    void testToSceneNameWithCustomScenes() {
+        String sceneName = aspect.toSceneName(new Scenario[]{Scenario.CREATE, Scenario.UPDATE});
+        assertEquals("CREATE,UPDATE", sceneName);
+    }
+
+    @Test
+    void testExecuteBridgeValidationWithNullValidator() {
+        // 通过反射设置validator为null
+        try {
+            Field field = ValidationAspect.class.getDeclaredField("validator");
+            field.setAccessible(true);
+            field.set(aspect, null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        List<Business> errors = aspect.executeBridgeValidation(List.of("test"), new Class<?>[]{}, true, new Scenario[]{});
+        assertTrue(errors.isEmpty());
+    }
+
+    @Test
+    void testShouldKeepViolationWithEmptyScenes() {
+        @SuppressWarnings("unchecked")
+        ConstraintViolation<Object> violation = Mockito.mock(ConstraintViolation.class);
+        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
+        Mockito.when(violation.getPropertyPath()).thenReturn(path);
+        Mockito.when(path.toString()).thenReturn("field");
+        boolean result = aspect.shouldKeepViolation(violation, new Scenario[]{});
+        assertTrue(result);
+    }
+
+    @Test
+    void testShouldKeepViolationWithDefaultScene() {
+        @SuppressWarnings("unchecked")
+        ConstraintViolation<Object> violation = Mockito.mock(ConstraintViolation.class);
+        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
+        Mockito.when(violation.getPropertyPath()).thenReturn(path);
+        Mockito.when(path.toString()).thenReturn("field");
+        boolean result = aspect.shouldKeepViolation(violation, new Scenario[]{Scenario.DEFAULT});
+        assertTrue(result);
+    }
+
+    @Test
+    void testParseFieldName() {
+        assertEquals("field", aspect.parseFieldName("field"));
+        assertEquals("field", aspect.parseFieldName("field.subfield"));
+        assertEquals("items", aspect.parseFieldName("items[0]"));
+    }
+
+    @Test
+    void testFindField() {
+        Field field = aspect.findField(TestClass.class, "name");
+        assertNotNull(field);
+    }
+
+    @Test
+    void testGetSceneValues() throws NoSuchFieldException {
+        Field field = TestClass.class.getDeclaredField("name");
+        Set<Scenario> scenes = aspect.getSceneValues(field);
+        assertNotNull(scenes);
+    }
+
+    @Test
+    void testCollectValidatableArgsWithSkipValidation() {
+        try {
+            ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+            MethodSignature signature = Mockito.mock(MethodSignature.class);
+            Method method = getClass().getMethod("testMethodWithSkipValidation", String.class);
+            Mockito.when(point.getSignature()).thenReturn(signature);
+            Mockito.when(signature.getMethod()).thenReturn(method);
+            Mockito.when(point.getArgs()).thenReturn(new Object[]{"test"});
+
+            List<Object> args = aspect.collectValidatableArgs(point);
+            assertTrue(args.isEmpty());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    // 3. 抛异常验证器
-    public static class ExceptionThrowingValidator implements FastValidator<Object> {
-        @Override
-        public void validate(Object target, ValidationContext context) {
-            throw new RuntimeException("Validator execution failed");
-        }
+    @Test
+    void testCollectValidatableArgsWithSkipType() {
+        try {
+            ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+            MethodSignature signature = Mockito.mock(MethodSignature.class);
+            Method method = getClass().getMethod("testMethodWithServletRequest", ServletRequest.class);
+            Mockito.when(point.getSignature()).thenReturn(signature);
+            Mockito.when(signature.getMethod()).thenReturn(method);
+            Mockito.when(point.getArgs()).thenReturn(new Object[]{Mockito.mock(ServletRequest.class)});
 
-        @Override
-        public Class<?> getSupportedType() {
-            return String.class;
-        }
-    }
-
-    // 4. 构造函数抛异常验证器
-    public static class ConstructorThrowingValidator implements FastValidator<Object> {
-        public ConstructorThrowingValidator() {
-            throw new RuntimeException("Constructor failed");
-        }
-
-        @Override
-        public void validate(Object target, ValidationContext context) {
+            List<Object> args = aspect.collectValidatableArgs(point);
+            assertTrue(args.isEmpty());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    // 5. 私有构造函数验证器
-    public static class PrivateConstructorValidator implements FastValidator<Object> {
-        private PrivateConstructorValidator() {
+    @Test
+    void testShouldSkip() {
+        assertTrue(aspect.shouldSkip(ServletRequest.class));
+        assertTrue(aspect.shouldSkip(InputStream.class));
+        assertFalse(aspect.shouldSkip(String.class));
+    }
+
+    @Test
+    void testHasSkipAnnotation() {
+        assertTrue(aspect.hasSkipAnnotation(new Annotation[]{Mockito.mock(SkipValidation.class)}));
+        assertFalse(aspect.hasSkipAnnotation(new Annotation[]{}));
+        assertFalse(aspect.hasSkipAnnotation(null));
+    }
+
+    @Test
+    void testFormatValidationLocation() {
+        String location = aspect.formatValidationLocation(TestClass.class, "field");
+        assertNotNull(location);
+    }
+
+    @Test
+    void testExecuteTypedValidator() {
+        TypedValidator typedValidator = Mockito.mock(TypedValidator.class);
+        com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(true);
+        aspect.executeTypedValidator(typedValidator, List.of("test"), ctx);
+        verify(typedValidator).validateIfRegistered("test", ctx);
+    }
+
+    @Test
+    void testExecutePlainValidator() {
+        TestValidator validator = new TestValidator();
+        com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(true);
+        aspect.executePlainValidator(validator, List.of("test"), ctx);
+    }
+
+    @Test
+    void testGetValidatorSupportedType() {
+        TestValidator validator = new TestValidator();
+        Class<?> type = aspect.getValidatorSupportedType(validator);
+        assertEquals(String.class, type);
+    }
+
+    @Test
+    void testGetValidatorSupportedTypeWithObjectClass() {
+        ObjectValidator validator = new ObjectValidator();
+        Class<?> type = aspect.getValidatorSupportedType(validator);
+        assertEquals(Object.class, type);
+    }
+
+    @Test
+    void testFormatValidationLocationWithNullField() {
+        String location = aspect.formatValidationLocation(TestClass.class, null);
+        assertEquals("", location);
+    }
+
+    @Test
+    void testFormatValidationLocationWithNullClass() {
+        String location = aspect.formatValidationLocation(null, "field");
+        assertEquals("field", location);
+    }
+
+    @Test
+    void testExecutePlainValidatorWithUnsupportedType() {
+        TestValidator validator = new TestValidator();
+        com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(true);
+        aspect.executePlainValidator(validator, List.of(123), ctx);
+        assertTrue(ctx.isValid());
+    }
+
+    @Test
+    @DisplayName("测试未注册规则的验证器 - 应报告'不支持的类型'错误")
+    void testExecutePlainValidatorWithObjectType() {
+        // 1. 准备：这是一个没有注册任何规则的验证器
+        ObjectValidator validator = new ObjectValidator();
+        com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(false);
+
+        // 2. 执行：传入任意对象 (如 "test" 或 new Object())
+        Object testData = new Object();
+        aspect.executePlainValidator(validator, List.of(testData), ctx);
+
+        // 3. 【关键修正】断言验证应该失败
+        // 因为 validators 地图为空，resolveHandler 返回 null，触发 "Unsupported validation type" 错误
+        assertFalse(ctx.isValid(), "未注册任何规则的验证器应导致验证失败");
+
+        // 4. 进阶断言：验证错误确实被记录，且错误数量大于 0
+        assertTrue(ctx.errorSize() > 0, "验证失败后，上下文中应包含至少一个错误");
+
+        Business firstError = ctx.getFirstError();
+        assertTrue(firstError.getDetail().contains("Object"));
+    }
+
+    @Test
+    void testAroundWithSceneHandling() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Object expectedResult = new Object();
+        Mockito.when(point.proceed()).thenReturn(expectedResult);
+
+        Mockito.when(context.getScene()).thenReturn(null);
+
+        Object result = aspect.around(point, validate);
+        assertEquals(expectedResult, result);
+        verify(context).setScene("CREATE");
+        verify(context).setScene(FailureConst.DEFAULT_SCENE);
+    }
+
+    @Test
+    void testAroundWithValidationGroups() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{"test"});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{Object.class});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Object expectedResult = new Object();
+        Mockito.when(point.proceed()).thenReturn(expectedResult);
+
+        Object result = aspect.around(point, validate);
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void testAroundWithMultipleValidators() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{"test"});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class, TestValidator.class});
+
+        Object expectedResult = new Object();
+        Mockito.when(point.proceed()).thenReturn(expectedResult);
+
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(null);
+
+        Object result = aspect.around(point, validate);
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void testShouldKeepViolationWithSceneFiltering() throws NoSuchFieldException {
+        // 使用原始类型来避免Mockito的类型推断问题
+        @SuppressWarnings("rawtypes")
+        ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
+        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
+        Mockito.when(violation.getPropertyPath()).thenReturn(path);
+        Mockito.when(path.toString()).thenReturn("name");
+        Mockito.when(violation.getRootBeanClass()).thenReturn(TestClass.class);
+
+        boolean result = aspect.shouldKeepViolation(violation, new Scenario[]{Scenario.CREATE});
+        assertTrue(result);
+
+        result = aspect.shouldKeepViolation(violation, new Scenario[]{Scenario.DELETE});
+        assertFalse(result);
+    }
+
+    @Test
+    void testShouldKeepViolationWithFieldNotFound() {
+        // 使用原始类型来避免Mockito的类型推断问题
+        @SuppressWarnings("rawtypes")
+        ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
+        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
+        Mockito.when(violation.getPropertyPath()).thenReturn(path);
+        Mockito.when(path.toString()).thenReturn("nonExistentField");
+        Mockito.when(violation.getRootBeanClass()).thenReturn(TestClass.class);
+
+        boolean result = aspect.shouldKeepViolation(violation, new Scenario[]{Scenario.CREATE});
+        assertTrue(result); // 找不到字段时应该保留错误
+    }
+
+    @Test
+    void testFormatValidationLocationWithCglibProxy() {
+        // 创建一个模拟的 CGLIB 代理类
+        class CglibProxyTestClass {
+        }
+        String proxyClassName = CglibProxyTestClass.class.getName() + "$$EnhancerByCGLIB$$123456";
+        Class<?> proxyClass = null;
+        try {
+            proxyClass = Class.forName(proxyClassName, false, getClass().getClassLoader());
+        } catch (ClassNotFoundException e) {
+            // 如果类不存在，我们可以使用一个简单的类来测试
+            proxyClass = TestClass.class;
+        }
+        String location = aspect.formatValidationLocation(proxyClass, "field");
+        assertNotNull(location);
+    }
+
+    @Test
+    void testAroundWithNullContext() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Object expectedResult = new Object();
+        Mockito.when(point.proceed()).thenReturn(expectedResult);
+
+        Ex.setContext(null); // 设置为null
+
+        Object result = aspect.around(point, validate);
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void testAroundWithMultipleErrors() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{"", ""});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.DEFAULT});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(false); // 不使用failFast，收集所有错误
+        Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class, TestValidator.class});
+
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
+
+        Exception exception = assertThrows(Exception.class, () -> aspect.around(point, validate));
+        assertTrue(exception instanceof com.chao.failfast.internal.MultiBusiness);
+    }
+
+    @Test
+    void testGetValidatorSupportedTypeWithGenericInference() {
+        // 使用已定义的 GenericValidator 类
+        GenericValidator validator = new GenericValidator();
+        Class<?> type = aspect.getValidatorSupportedType(validator);
+        assertEquals(String.class, type);
+    }
+
+    @Test
+    void testGetValidatorSupportedTypeWithNullGeneric() {
+        // 使用已定义的 NonGenericValidator 类
+        NonGenericValidator validator = new NonGenericValidator();
+        Class<?> type = aspect.getValidatorSupportedType(validator);
+        assertEquals(Object.class, type);
+    }
+
+    @Test
+    void testBuildValidatorFactoryWithApplicationContext() throws Exception {
+        // 测试通过 ApplicationContext 获取验证器
+        TestValidator testValidator = new TestValidator();
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(testValidator);
+
+        // 通过反射调用 buildValidatorFactory
+        Method method = ValidationAspect.class.getDeclaredMethod("buildValidatorFactory", Class.class);
+        method.setAccessible(true);
+        Object factory = method.invoke(aspect, TestValidator.class);
+        assertNotNull(factory);
+    }
+
+    @Test
+    void testBuildValidatorFactoryWithBeanNames() throws Exception {
+        // 测试通过 BeanNames 获取验证器
+        TestValidator testValidator = new TestValidator();
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(null);
+        Mockito.when(applicationContext.getBeanNamesForType(TestValidator.class)).thenReturn(new String[]{"testValidator"});
+        Mockito.when(applicationContext.getBean(TestValidator.class)).thenReturn(testValidator);
+
+        // 通过反射调用 buildValidatorFactory
+        Method method = ValidationAspect.class.getDeclaredMethod("buildValidatorFactory", Class.class);
+        method.setAccessible(true);
+        Object factory = method.invoke(aspect, TestValidator.class);
+        assertNotNull(factory);
+    }
+
+    @Test
+    void testBuildValidatorFactoryWithNullApplicationContext() throws Exception {
+        // 测试 ApplicationContext 为 null 的情况
+        // 通过反射设置 applicationContext 为 null
+        Field field = ValidationAspect.class.getDeclaredField("applicationContext");
+        field.setAccessible(true);
+        field.set(aspect, null);
+
+        // 通过反射调用 buildValidatorFactory
+        Method method = ValidationAspect.class.getDeclaredMethod("buildValidatorFactory", Class.class);
+        method.setAccessible(true);
+        Object factory = method.invoke(aspect, TestValidator.class);
+        assertNotNull(factory);
+    }
+
+    @Test
+    void testNewValidatorInstance() throws Exception {
+        // 测试正常创建验证器实例
+        Method method = ValidationAspect.class.getDeclaredMethod("newValidatorInstance", Class.class);
+        method.setAccessible(true);
+        Object validator = method.invoke(aspect, TestValidator.class);
+        assertNotNull(validator);
+    }
+
+    @Test
+    void testNewValidatorInstanceWithException() {
+        // 测试创建验证器实例失败的情况
+        class InvalidValidator extends TypedValidator {
+            // 私有构造函数，无法实例化
+            private InvalidValidator() {
+            }
+
+            @Override
+            protected void registerValidators() {
+            }
+
+            @Override
+            public Class<?> getSupportedType() {
+                return Object.class;
+            }
         }
 
-        @Override
-        public void validate(Object target, ValidationContext context) {
+        Method method = null;
+        try {
+            method = ValidationAspect.class.getDeclaredMethod("newValidatorInstance", Class.class);
+            method.setAccessible(true);
+            method.invoke(aspect, InvalidValidator.class);
+            fail("应该抛出异常");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof RuntimeException);
         }
     }
 
-    // 6. TypedValidator 实现
-    public static class MyTypedValidator extends TypedValidator {
+    @Test
+    void testExecuteBridgeValidationWithFastMode() {
+        // 测试 fast 模式下的验证
+        try {
+            Field field = ValidationAspect.class.getDeclaredField("validator");
+            field.setAccessible(true);
+            field.set(aspect, null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        List<Business> errors = aspect.executeBridgeValidation(List.of("test"), new Class<?>[]{}, true, new Scenario[]{});
+        assertTrue(errors.isEmpty());
+    }
+
+    @Test
+    void testShouldKeepViolationWithNullScenes() {
+        // 测试 scenes 为 null 的情况
+        @SuppressWarnings("rawtypes")
+        ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
+        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
+        Mockito.when(violation.getPropertyPath()).thenReturn(path);
+        Mockito.when(path.toString()).thenReturn("field");
+        boolean result = aspect.shouldKeepViolation(violation, null);
+        assertTrue(result);
+    }
+
+    @Test
+    void testShouldKeepViolationWithEmptySceneSet() throws NoSuchFieldException {
+        // 测试场景集合为空的情况
+        @SuppressWarnings("rawtypes")
+        ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
+        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
+        Mockito.when(violation.getPropertyPath()).thenReturn(path);
+        Mockito.when(path.toString()).thenReturn("name");
+        Mockito.when(violation.getRootBeanClass()).thenReturn(TestClass.class);
+
+        // 移除字段上的 @Scene 注解
+        Field field = TestClass.class.getDeclaredField("name");
+        // 创建一个没有 @Scene 注解的字段
+        class TestClassWithoutScene {
+            private String name;
+        }
+        Field fieldWithoutScene = TestClassWithoutScene.class.getDeclaredField("name");
+
+        boolean result = aspect.shouldKeepViolation(violation, new Scenario[]{Scenario.CREATE});
+        assertTrue(result);
+    }
+
+    @Test
+    void testCollectValidatableArgsWithNullArgs() {
+        try {
+            ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+            MethodSignature signature = Mockito.mock(MethodSignature.class);
+            Method method = getClass().getMethod("testMethod");
+            Mockito.when(point.getSignature()).thenReturn(signature);
+            Mockito.when(signature.getMethod()).thenReturn(method);
+            Mockito.when(point.getArgs()).thenReturn(new Object[]{}); // 使用空数组而不是 null
+
+            List<Object> args = aspect.collectValidatableArgs(point);
+            assertNotNull(args);
+            assertTrue(args.isEmpty());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void testHasSkipAnnotationWithNullAnnotations() {
+        boolean result = aspect.hasSkipAnnotation(null);
+        assertFalse(result);
+    }
+
+    @Test
+    void testHasSkipAnnotationWithNoSkipAnnotation() {
+        boolean result = aspect.hasSkipAnnotation(new Annotation[]{});
+        assertFalse(result);
+    }
+
+    @Test
+    void testShouldSkipWithNonSkipType() {
+        boolean result = aspect.shouldSkip(String.class);
+        assertFalse(result);
+    }
+
+    @Test
+    void testFormatValidationLocationWithEmptyField() {
+        String location = aspect.formatValidationLocation(TestClass.class, "");
+        assertEquals("TestClass at ", location);
+    }
+
+    @Test
+    void testFormatValidationLocationWithNullClassAndNullField() {
+        String location = aspect.formatValidationLocation(null, null);
+        assertEquals("", location);
+    }
+
+    @Test
+    void testToSceneNameWithNullScenes() {
+        String sceneName = aspect.toSceneName(null);
+        assertEquals(FailureConst.DEFAULT_SCENE, sceneName);
+    }
+
+    @Test
+    void testToSceneNameSkipsNullAndDefault() {
+        String sceneName = aspect.toSceneName(new Scenario[]{null, Scenario.DEFAULT, Scenario.CREATE});
+        assertEquals("CREATE", sceneName);
+    }
+
+    @Test
+    void testAroundRestoresOriginalSceneWhenPresent() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Object expectedResult = new Object();
+        Mockito.when(point.proceed()).thenReturn(expectedResult);
+
+        Mockito.when(context.getScene()).thenReturn("ORIGINAL");
+
+        Object result = aspect.around(point, validate);
+        assertEquals(expectedResult, result);
+        verify(context).setScene("CREATE");
+        verify(context).setScene("ORIGINAL");
+    }
+
+    @Test
+    void testAroundDoesNotRestoreSceneOnFailure() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{""});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class});
+
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
+
+        Mockito.when(context.getScene()).thenReturn("ORIGINAL");
+
+        assertThrows(Business.class, () -> aspect.around(point, validate));
+        verify(context).setScene("CREATE");
+        verify(context, Mockito.never()).setScene("ORIGINAL");
+    }
+
+    @Test
+    void testBuildValidatorFactoryBeanNamePathInvokesGet() throws Exception {
+        TestValidator testValidator = new TestValidator();
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(null);
+        Mockito.when(applicationContext.getBeanNamesForType(TestValidator.class)).thenReturn(new String[]{"testValidator"});
+        Mockito.when(applicationContext.getBean(TestValidator.class)).thenReturn(testValidator);
+
+        Method method = ValidationAspect.class.getDeclaredMethod("buildValidatorFactory", Class.class);
+        method.setAccessible(true);
+        Object factory = method.invoke(aspect, TestValidator.class);
+        Method get = factory.getClass().getDeclaredMethod("get");
+        get.setAccessible(true);
+        Object v = get.invoke(factory);
+        assertSame(testValidator, v);
+    }
+
+    @Test
+    void testGetValidatorSupportedTypeWithNullDeclaredType() {
+        class NullDeclaredValidator implements com.chao.failfast.annotation.FastValidator<String> {
+            @Override
+            public void validate(String value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+            }
+
+            @Override
+            public Class<?> getSupportedType() {
+                return null;
+            }
+        }
+
+        Class<?> type = aspect.getValidatorSupportedType(new NullDeclaredValidator());
+        assertEquals(String.class, type);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Test
+    void testGetValidatorSupportedTypeWithRawValidator() {
+        class RawValidator implements com.chao.failfast.annotation.FastValidator {
+            @Override
+            public void validate(Object value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+            }
+
+            @Override
+            public Class<?> getSupportedType() {
+                return Object.class;
+            }
+        }
+
+        Class<?> type = aspect.getValidatorSupportedType(new RawValidator());
+        assertEquals(Object.class, type);
+    }
+
+    @Test
+    void testFormatValidationLocationWithDollarDollarClassName() {
+        class $$Proxy extends TestClass {
+        }
+        String location = aspect.formatValidationLocation($$Proxy.class, "field");
+        assertNotNull(location);
+    }
+
+    @Test
+    void testExecuteBridgeValidationCapturesInvalidValueBasedOnPolicy() {
+        Object arg = new Object();
+
+        @SuppressWarnings("rawtypes")
+        ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
+        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
+        Mockito.when(violation.getPropertyPath()).thenReturn(path);
+        Mockito.when(path.toString()).thenReturn("field");
+        Mockito.when(violation.getMessage()).thenReturn("msg");
+        Mockito.when(violation.getInvalidValue()).thenReturn("bad");
+        Mockito.when(violation.getRootBeanClass()).thenReturn(TestClass.class);
+
+        Mockito.when(validator.validate(arg)).thenReturn((Set) Set.of(violation));
+
+        Ex.setContext(null);
+        List<Business> errorsWithDefaultPolicy = aspect.executeBridgeValidation(List.of(arg), new Class<?>[]{}, true, new Scenario[]{Scenario.DEFAULT});
+        assertEquals(1, errorsWithDefaultPolicy.size());
+        assertEquals("bad", errorsWithDefaultPolicy.get(0).getInvalidValue());
+
+        FailureContext ctx = Mockito.mock(FailureContext.class);
+        ErrorPolicy noCapture = Mockito.mock(ErrorPolicy.class);
+        Mockito.when(noCapture.captureInvalidValue(ctx)).thenReturn(false);
+        Mockito.when(ctx.getErrorPolicy()).thenReturn(noCapture);
+        Ex.setContext(ctx);
+        List<Business> errorsWithCustomPolicy = aspect.executeBridgeValidation(List.of(arg), new Class<?>[]{}, true, new Scenario[]{Scenario.DEFAULT});
+        assertEquals(1, errorsWithCustomPolicy.size());
+        assertNull(errorsWithCustomPolicy.get(0).getInvalidValue());
+    }
+
+    @Test
+    void testAroundSkipsCustomValidatorsWhenBridgeErrorsAndFailFast() throws Throwable {
+        class ThrowingValidator implements com.chao.failfast.annotation.FastValidator<Object> {
+            @Override
+            public void validate(Object value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+                throw new RuntimeException("should not run");
+            }
+
+            @Override
+            public Class<?> getSupportedType() {
+                return Object.class;
+            }
+        }
+
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{new Object()});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{ThrowingValidator.class});
+
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(ThrowingValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(new ThrowingValidator());
+
+        Object arg = new Object();
+        @SuppressWarnings("rawtypes")
+        ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
+        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
+        Mockito.when(violation.getPropertyPath()).thenReturn(path);
+        Mockito.when(path.toString()).thenReturn("field");
+        Mockito.when(violation.getMessage()).thenReturn("msg");
+        Mockito.when(violation.getInvalidValue()).thenReturn(null);
+        Mockito.when(violation.getRootBeanClass()).thenReturn(TestClass.class);
+        Mockito.when(validator.validate(Mockito.any())).thenReturn((Set) Set.of(violation));
+
+        assertThrows(Business.class, () -> aspect.around(point, validate));
+    }
+
+    @Test
+    void testExecuteSingleValidatorNormalizesNullScenes() throws Exception {
+        Method method = ValidationAspect.class.getDeclaredMethod("executeSingleValidator", com.chao.failfast.annotation.FastValidator.class, List.class, boolean.class, Scenario[].class, Class[].class);
+        method.setAccessible(true);
+        Object result = method.invoke(aspect, new TestValidator(), List.of("test"), true, null, new Class<?>[]{});
+        assertTrue(((List<?>) result).isEmpty());
+    }
+
+    @Test
+    void testExecuteSingleValidatorNormalizesEmptyScenes() throws Exception {
+        Method method = ValidationAspect.class.getDeclaredMethod("executeSingleValidator", com.chao.failfast.annotation.FastValidator.class, List.class, boolean.class, Scenario[].class, Class[].class);
+        method.setAccessible(true);
+        Object result = method.invoke(aspect, new TestValidator(), List.of("test"), true, new Scenario[]{}, new Class<?>[]{});
+        assertTrue(((List<?>) result).isEmpty());
+    }
+
+    @Test
+    void testAroundSkipsBridgeWhenOnlyCustomValidatorsAndDefaultScene() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{"x"});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.DEFAULT});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class});
+
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
+
+        Object expected = new Object();
+        Mockito.when(point.proceed()).thenReturn(expected);
+
+        Object result = aspect.around(point, validate);
+        assertSame(expected, result);
+        Mockito.verify(validator, Mockito.never()).validate(Mockito.any());
+        Mockito.verify(validator, Mockito.never()).validate(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    void testAroundRunsBridgeWhenScenesLengthGreaterThanOne() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{new Object()});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.DEFAULT, Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class});
+
+        Mockito.when(validator.validate(Mockito.any())).thenReturn(Collections.emptySet());
+
+        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
+
+        Object expected = new Object();
+        Mockito.when(point.proceed()).thenReturn(expected);
+
+        Object result = aspect.around(point, validate);
+        assertSame(expected, result);
+        Mockito.verify(validator).validate(Mockito.any());
+    }
+
+    @Test
+    void testAroundRunsBridgeWithGroupsUsesGroupValidate() throws Throwable {
+        interface Group1 {
+        }
+
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{new Object()});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.DEFAULT});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{Group1.class});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Mockito.when(validator.validate(Mockito.any(), Mockito.any())).thenReturn(Collections.emptySet());
+
+        Object expected = new Object();
+        Mockito.when(point.proceed()).thenReturn(expected);
+
+        Object result = aspect.around(point, validate);
+        assertSame(expected, result);
+        Mockito.verify(validator).validate(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    void testAroundRestoresDefaultSceneWhenOriginalSceneNull() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{new Object()});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Mockito.when(validator.validate(Mockito.any())).thenReturn(Collections.emptySet());
+        Mockito.when(context.getScene()).thenReturn(null);
+
+        Object expected = new Object();
+        Mockito.when(point.proceed()).thenReturn(expected);
+
+        Object result = aspect.around(point, validate);
+        assertSame(expected, result);
+        Mockito.verify(context).setScene("CREATE");
+        Mockito.verify(context).setScene(FailureConst.DEFAULT_SCENE);
+    }
+
+    @Test
+    void testAroundWithDefaultSceneDoesNotApplyOrRestoreScene() throws Throwable {
+        interface Group2 {
+        }
+
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{new Object()});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.DEFAULT});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{Group2.class});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Mockito.when(validator.validate(Mockito.any(), Mockito.any())).thenReturn(Collections.emptySet());
+
+        Object expected = new Object();
+        Mockito.when(point.proceed()).thenReturn(expected);
+
+        Object result = aspect.around(point, validate);
+        assertSame(expected, result);
+        Mockito.verify(context, Mockito.never()).setScene(Mockito.anyString());
+    }
+
+    @Test
+    void testAroundWithNullFailureContextDoesNotRestoreScene() throws Throwable {
+        Ex.setContext(null);
+
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{new Object()});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Mockito.when(validator.validate(Mockito.any())).thenReturn(Collections.emptySet());
+
+        Object expected = new Object();
+        Mockito.when(point.proceed()).thenReturn(expected);
+
+        Object result = aspect.around(point, validate);
+        assertSame(expected, result);
+    }
+
+    // 测试方法
+    public void testMethod() {
+    }
+
+    public void testMethodWithSkipValidation(@SkipValidation String value) {
+    }
+
+    public void testMethodWithServletRequest(ServletRequest request) {
+    }
+
+    // 测试类
+    static class TestClass {
+        @Scene(value = {Scenario.CREATE, Scenario.UPDATE})
+        private String name;
+    }
+
+    // 测试验证器
+    static class TestValidator extends TypedValidator {
         @Override
         protected void registerValidators() {
             register(String.class, (s, ctx) -> {
-                if ("error".equals(s)) {
-                    ctx.reportError(TestResponseCode.PARAM_ERROR);
-                }
-            });
-            register(Integer.class, (i, ctx) -> {
-                if (i < 0) {
-                    ctx.reportError(TestResponseCode.PARAM_ERROR);
+                if (s == null || s.isEmpty()) {
+                    ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL);
                 }
             });
         }
+
+        @Override
+        public Class<?> getSupportedType() {
+            return String.class;
+        }
     }
 
-    // 7. 返回 Object.class 的验证器 (无法确定类型)
-    public static class UnknownTypeValidator implements FastValidator<Object> {
+    // 测试验证器（返回Object.class）
+    static class ObjectValidator extends TypedValidator {
         @Override
-        public void validate(Object target, ValidationContext context) {
-            // Should not be called
-            context.reportError(TestResponseCode.PARAM_ERROR);
+        protected void registerValidators() {
         }
 
         @Override
@@ -155,551 +1272,26 @@ class ValidationAspectTest {
         }
     }
 
-    // 8. 能够停止上下文的验证器
-    public static class StoppingValidator implements FastValidator<String> {
+    // 测试验证器（用于泛型推断测试）
+    static class GenericValidator implements com.chao.failfast.annotation.FastValidator<String> {
         @Override
-        public void validate(String target, ValidationContext context) {
-            context.reportError(TestResponseCode.PARAM_ERROR);
-        }
-
-        @Override
-        public Class<?> getSupportedType() {
-            return String.class;
-        }
-    }
-
-    // 9. 第二个验证器，用于验证是否被短路
-    public static class SecondValidator implements FastValidator<String> {
-        @Override
-        public void validate(String target, ValidationContext context) {
-            context.reportError(TestResponseCode.SYSTEM_ERROR);
+        public void validate(String value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
         }
 
         @Override
         public Class<?> getSupportedType() {
-            return String.class;
+            return Object.class; // 返回Object.class，触发泛型推断
         }
     }
 
-
-    // 10. getSupportedType 返回 null 的验证器
-    public static class NullTypeValidator implements FastValidator<Object> {
+    static class NonGenericValidator implements com.chao.failfast.annotation.FastValidator<Object> {
         @Override
-        public void validate(Object target, ValidationContext context) {}
+        public void validate(Object value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+        }
+
         @Override
-        public Class<?> getSupportedType() { return null; }
-    }
-
-    @BeforeEach
-    void setUp() {
-        try {
-            Field cache = ValidationAspect.class.getDeclaredField("VALIDATOR_CACHE");
-            cache.setAccessible(true);
-            ((ConcurrentHashMap<?, ?>) cache.get(null)).clear();
-
-            Field factoryCache = ValidationAspect.class.getDeclaredField("VALIDATOR_FACTORY_CACHE");
-            factoryCache.setAccessible(true);
-            ((ConcurrentHashMap<?, ?>) factoryCache.get(null)).clear();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        public Class<?> getSupportedType() {
+            return Object.class;
         }
     }
-
-    @Nested
-    @DisplayName("基础逻辑测试")
-    class BasicLogicTest {
-
-        @Test
-        @DisplayName("validate.value() 为空时直接放行")
-        void shouldProceedWhenNoValidatorSpecified() throws Throwable {
-            when(validate.value()).thenReturn(new Class[0]);
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-            verify(joinPoint, never()).getArgs();
-        }
-
-        @Test
-        @DisplayName("collectValidatableArgs 为空时直接放行")
-        void shouldProceedWhenNoValidatableArgs() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-
-            // Mock args
-            when(joinPoint.getArgs()).thenReturn(new Object[]{});
-            when(joinPoint.getSignature()).thenReturn(signature);
-            Method method = TestMethods.class.getMethod("noArgs");
-            when(signature.getMethod()).thenReturn(method);
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-        }
-    }
-
-    @Nested
-    @DisplayName("参数收集逻辑测试 (collectValidatableArgs)")
-    class ArgsCollectionTest {
-
-        @Test
-        @DisplayName("当 getParameterAnnotations 返回 null 时应安全处理")
-        void shouldHandleNullAnnotations() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{"valid"};
-            when(joinPoint.getArgs()).thenReturn(args);
-            when(joinPoint.getSignature()).thenReturn(signature);
-
-            // Mock method to return null annotations for the first parameter
-            Method method = mock(Method.class);
-            when(signature.getMethod()).thenReturn(method);
-            when(method.getParameterAnnotations()).thenReturn(new Annotation[][]{null});
-
-            when(applicationContext.getBeanNamesForType(StringValidator.class)).thenReturn(new String[]{});
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-        }
-
-        @Test
-        @DisplayName("过滤 null、@SkipValidation 和特定类型参数")
-        void shouldFilterArgsCorrectly() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            // 构造参数：
-            // 0: "valid" (正常)
-            // 1: null (过滤)
-            // 2: "skip" (@SkipValidation 过滤)
-            // 3: ServletRequest (类型过滤)
-            Object[] args = new Object[]{
-                    "valid",
-                    null,
-                    "skip",
-                    mock(ServletRequest.class)
-            };
-            when(joinPoint.getArgs()).thenReturn(args);
-            when(joinPoint.getSignature()).thenReturn(signature);
-
-            Method method = TestMethods.class.getMethod("mixedArgs", String.class, String.class, String.class, ServletRequest.class);
-            when(signature.getMethod()).thenReturn(method);
-
-            // Mock ApplicationContext needed for validator execution
-            when(applicationContext.getBeanNamesForType(StringValidator.class)).thenReturn(new String[]{});
-
-            // Act
-            validationAspect.around(joinPoint, validate);
-
-            // Assert
-            // 只有第一个参数 "valid" 应该被传递给验证器
-            // 我们可以通过 Spy 或者 Mock Validator 来验证
-            // 这里简单通过 verify(proceed) 确认没有抛异常即可，因为 "valid" 不会触发错误
-            verify(joinPoint).proceed();
-        }
-
-        @Test
-        @DisplayName("验证所有跳过类型")
-        void shouldSkipAllIgnoredTypes() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-
-            Object[] args = new Object[]{
-                    mock(ServletRequest.class),
-                    mock(ServletResponse.class),
-                    mock(HttpSession.class),
-                    mock(MultipartFile.class),
-                    mock(InputStream.class),
-                    mock(OutputStream.class),
-                    mock(Reader.class),
-                    mock(Writer.class)
-            };
-            when(joinPoint.getArgs()).thenReturn(args);
-            when(joinPoint.getSignature()).thenReturn(signature);
-            Method method = TestMethods.class.getMethod("ignoredTypes", ServletRequest.class, ServletResponse.class, HttpSession.class, MultipartFile.class, InputStream.class, OutputStream.class, Reader.class, Writer.class);
-            when(signature.getMethod()).thenReturn(method);
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-            // 确保没有进行验证逻辑（因为参数列表为空）
-            verify(applicationContext, never()).getBean(any(Class.class));
-        }
-    }
-
-    @Nested
-    @DisplayName("验证器执行逻辑测试")
-    class ValidatorExecutionTest {
-
-        @Test
-        @DisplayName("executePlainValidator: 类型匹配且通过验证")
-        void shouldPassPlainValidator() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{"valid"};
-            setupJoinPoint(args, "singleArg", String.class);
-
-            when(applicationContext.getBeanNamesForType(StringValidator.class)).thenReturn(new String[]{});
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-        }
-
-        @Test
-        @DisplayName("executePlainValidator: 类型匹配但验证失败 (Business异常)")
-        void shouldFailPlainValidator() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{"error"};
-            setupJoinPoint(args, "singleArg", String.class);
-
-            when(applicationContext.getBeanNamesForType(StringValidator.class)).thenReturn(new String[]{});
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-
-            assertThat(thrown).isInstanceOf(Business.class);
-            verify(joinPoint, never()).proceed();
-        }
-
-        @Test
-        @DisplayName("executePlainValidator: 类型不匹配 (忽略)")
-        void shouldIgnoreTypeMismatch() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{123}; // Integer vs StringValidator
-            setupJoinPoint(args, "intArg", Integer.class);
-
-            when(applicationContext.getBeanNamesForType(StringValidator.class)).thenReturn(new String[]{});
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-        }
-
-        @Test
-        @DisplayName("executePlainValidator: 无法确定类型 (Object.class) -> Log Warn & Skip")
-        void shouldSkipUnknownTypeValidator() throws Throwable {
-            Class[] validators = {UnknownTypeValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{"any"};
-            setupJoinPoint(args, "singleArg", String.class);
-
-            when(applicationContext.getBeanNamesForType(UnknownTypeValidator.class)).thenReturn(new String[]{});
-
-            validationAspect.around(joinPoint, validate);
-
-            // 验证器本身逻辑是抛错，但如果被跳过，则不会抛错
-            verify(joinPoint).proceed();
-        }
-
-        @Test
-        @DisplayName("executePlainValidator: getSupportedType 返回 null -> Log Warn & Skip")
-        void shouldSkipNullTypeValidator() throws Throwable {
-            Class[] validators = {NullTypeValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{"any"};
-            setupJoinPoint(args, "singleArg", String.class);
-
-            when(applicationContext.getBeanNamesForType(NullTypeValidator.class)).thenReturn(new String[]{});
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-        }
-        
-        @Test
-        @DisplayName("executePlainValidator: 遇到错误应停止 (Fast Mode)")
-        void shouldStopPlainValidatorOnFirstError() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            // "error" fails, "valid" passes.
-            // If it stops, "valid" is not validated.
-            // But verify() checks if proceed() is called (which it won't be if error).
-            // To ensure the loop break is hit, we need 2 args.
-            Object[] args = new Object[]{"error", "valid"};
-            // Mock signature to accept 2 args
-            when(joinPoint.getArgs()).thenReturn(args);
-            when(joinPoint.getSignature()).thenReturn(signature);
-            Method method = TestMethods.class.getMethod("mixedArgs", String.class, String.class, String.class, ServletRequest.class);
-            when(signature.getMethod()).thenReturn(method);
-
-            when(applicationContext.getBeanNamesForType(StringValidator.class)).thenReturn(new String[]{});
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-
-            assertThat(thrown).isInstanceOf(Business.class);
-        }
-
-        @Test
-        @DisplayName("executeTypedValidator: 匹配注册类型并验证")
-        void shouldExecuteTypedValidator() throws Throwable {
-            Class[] validators = {MyTypedValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{"valid", 100};
-            setupJoinPoint(args, "mixedArgs2", String.class, Integer.class);
-
-            when(applicationContext.getBeanNamesForType(MyTypedValidator.class)).thenReturn(new String[]{});
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-        }
-
-        @Test
-        @DisplayName("executeTypedValidator: 匹配注册类型并验证失败")
-        void shouldFailTypedValidator() throws Throwable {
-            Class[] validators = {MyTypedValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{-1}; // Integer < 0 triggers error
-            setupJoinPoint(args, "intArg", Integer.class);
-
-            when(applicationContext.getBeanNamesForType(MyTypedValidator.class)).thenReturn(new String[]{});
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-
-            assertThat(thrown).isInstanceOf(Business.class);
-        }
-
-        @Test
-        @DisplayName("executeTypedValidator: 遇到错误应停止 (Fast Mode)")
-        void shouldStopTypedValidatorOnFirstError() throws Throwable {
-            Class[] validators = {MyTypedValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            // "error" fails, 100 passes. But if it stops, 100 is not validated?
-            // Wait, TypedValidator iterates over args.
-            // If first arg fails, it should break loop.
-            Object[] args = new Object[]{"error", 100};
-            setupJoinPoint(args, "mixedArgs2", String.class, Integer.class);
-
-            when(applicationContext.getBeanNamesForType(MyTypedValidator.class)).thenReturn(new String[]{});
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-
-            assertThat(thrown).isInstanceOf(Business.class);
-            // We can't easily verify if the loop broke without spying on the validator's internal map consumer
-            // But this should cover the branch "if (ctx.isStopped()) break;"
-        }
-
-        @Test
-        @DisplayName("executeTypedValidator: 类型不匹配 (忽略)")
-        void shouldIgnoreTypedValidatorMismatch() throws Throwable {
-            Class[] validators = {MyTypedValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{1.0d}; // Double not in [String, Integer]
-            setupJoinPoint(args, "doubleArg", Double.class);
-
-            when(applicationContext.getBeanNamesForType(MyTypedValidator.class)).thenReturn(new String[]{});
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(joinPoint).proceed();
-        }
-    }
-
-    @Nested
-    @DisplayName("Fail-Fast 机制测试")
-    class FailFastTest {
-
-        @Test
-        @DisplayName("fast=true: 遇到第一个错误即停止")
-        void shouldStopOnFirstErrorWhenFastTrue() throws Throwable {
-            Class[] validators = {StoppingValidator.class, SecondValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{"any"};
-            setupJoinPoint(args, "singleArg", String.class);
-
-            // Mock StoppingValidator
-            StoppingValidator v1 = spy(new StoppingValidator());
-
-            // 使用 doReturn 避免 spy 调用真实方法（虽然这里真实方法就是我们要测的，但为了验证 getBean）
-            // 这里我们直接 mock getBeanNamesForType 走反射或者 bean
-            when(applicationContext.getBeanNamesForType(StoppingValidator.class)).thenReturn(new String[]{"v1"});
-            when(applicationContext.getBean(StoppingValidator.class)).thenReturn(v1);
-
-            // 关键：验证 v2 是否被获取/实例化。如果 failFast 生效，v1 报错后 break，v2 不应该被触碰
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-
-            assertThat(thrown).isInstanceOf(Business.class);
-
-            verify(v1).validate(any(), any());
-            // 验证第二个验证器没有被请求实例化/获取
-            verify(applicationContext, never()).getBeanNamesForType(SecondValidator.class);
-        }
-
-        @Test
-        @DisplayName("fast=false: 收集所有错误")
-        void shouldCollectAllErrorsWhenFastFalse() throws Throwable {
-            Class[] validators = {MultiErrorValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(false);
-
-            Object[] args = new Object[]{"any"};
-            setupJoinPoint(args, "singleArg", String.class);
-
-            when(applicationContext.getBeanNamesForType(MultiErrorValidator.class)).thenReturn(new String[]{});
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-
-            assertThat(thrown).isInstanceOf(MultiBusiness.class);
-            MultiBusiness mb = (MultiBusiness) thrown;
-            assertThat(mb.getErrors()).hasSize(2);
-        }
-    }
-
-    @Nested
-    @DisplayName("异常处理与实例化测试")
-    class ExceptionHandlingTest {
-
-        @Test
-        @DisplayName("验证器执行抛出运行时异常: 异常应直接抛出")
-        void shouldThrowValidatorException() throws Throwable {
-            Class[] validators = {ExceptionThrowingValidator.class, StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-            when(validate.fast()).thenReturn(true);
-
-            Object[] args = new Object[]{"valid"};
-            setupJoinPoint(args, "singleArg", String.class);
-
-            when(applicationContext.getBeanNamesForType(ExceptionThrowingValidator.class)).thenReturn(new String[]{});
-
-            // 注意：executeValidators 方法本身没有 try-catch 包裹 validator.validate 调用的异常？
-            // 让我们再检查 ValidationAspect.java 
-            // executeSingleValidator 调用 validator.validate
-            // 没有任何 try-catch！
-            // 所以 validator 抛异常会直接抛出到切面外，导致 500
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-            assertThat(thrown).isInstanceOf(RuntimeException.class)
-                    .hasMessage("Validator execution failed");
-
-            // 验证第二个验证器没有被执行 (因为第一个抛异常中断了)
-            verify(applicationContext, never()).getBeanNamesForType(StringValidator.class);
-        }
-
-        @Test
-        @DisplayName("实例化失败 (私有构造): 抛出 RuntimeException")
-        void shouldThrowRuntimeExceptionOnInstantiationError() throws Throwable {
-            Class[] validators = {PrivateConstructorValidator.class};
-            when(validate.value()).thenReturn(validators);
-
-            setupJoinPoint(new Object[]{"any"}, "singleArg", String.class);
-            when(applicationContext.getBeanNamesForType(PrivateConstructorValidator.class)).thenReturn(new String[]{});
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-
-            assertThat(thrown).isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("Failed to instantiate validator");
-        }
-
-        @Test
-        @DisplayName("构造函数抛异常: 抛出 RuntimeException")
-        void shouldThrowRuntimeExceptionOnConstructorError() throws Throwable {
-            Class[] validators = {ConstructorThrowingValidator.class};
-            when(validate.value()).thenReturn(validators);
-
-            setupJoinPoint(new Object[]{"any"}, "singleArg", String.class);
-            when(applicationContext.getBeanNamesForType(ConstructorThrowingValidator.class)).thenReturn(new String[]{});
-
-            Throwable thrown = catchThrowable(() -> validationAspect.around(joinPoint, validate));
-
-            assertThat(thrown).isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("Failed to instantiate validator");
-        }
-
-        @Test
-        @DisplayName("Spring Bean 获取: 优先从 ApplicationContext 获取")
-        void shouldGetValidatorFromContext() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-
-            setupJoinPoint(new Object[]{"valid"}, "singleArg", String.class);
-
-            StringValidator mockValidator = mock(StringValidator.class);
-            // Fix generic type issue
-            doReturn(String.class).when(mockValidator).getSupportedType();
-
-            when(applicationContext.getBeanNamesForType(StringValidator.class)).thenReturn(new String[]{"bean"});
-            when(applicationContext.getBean(StringValidator.class)).thenReturn(mockValidator);
-
-            validationAspect.around(joinPoint, validate);
-
-            verify(mockValidator).validate(any(), any());
-        }
-
-        @Test
-        @DisplayName("Validator 缓存测试: 第二次调用应使用缓存")
-        void shouldUseValidatorCache() throws Throwable {
-            Class[] validators = {StringValidator.class};
-            when(validate.value()).thenReturn(validators);
-
-            setupJoinPoint(new Object[]{"valid"}, "singleArg", String.class);
-
-            when(applicationContext.getBeanNamesForType(StringValidator.class)).thenReturn(new String[]{});
-
-            // First call
-            validationAspect.around(joinPoint, validate);
-
-            // Second call
-            validationAspect.around(joinPoint, validate);
-
-            verify(applicationContext, times(1)).getBeanNamesForType(StringValidator.class);
-
-            // Reflection instantiation happens internally in computeIfAbsent, 
-            // verifying it is hard without spying the map, but functionality is covered.
-        }
-    }
-
-    // --- Helper Methods ---
-
-    private void setupJoinPoint(Object[] args, String methodName, Class<?>... paramTypes) throws NoSuchMethodException {
-        when(joinPoint.getArgs()).thenReturn(args);
-        when(joinPoint.getSignature()).thenReturn(signature);
-        Method method = TestMethods.class.getMethod(methodName, paramTypes);
-        when(signature.getMethod()).thenReturn(method);
-    }
-
-    // --- Dummy Methods for Reflection ---
-    interface TestMethods {
-        void noArgs();
-
-        void singleArg(String arg);
-
-        void intArg(Integer arg);
-
-        void doubleArg(Double arg);
-
-        void mixedArgs(String arg1, String arg2, @SkipValidation String arg3, ServletRequest req);
-
-        void mixedArgs2(String arg1, Integer arg2);
-
-        void ignoredTypes(ServletRequest req, ServletResponse resp, HttpSession session, MultipartFile file, InputStream is, OutputStream os, Reader reader, Writer writer);
-    }
-}
+} 

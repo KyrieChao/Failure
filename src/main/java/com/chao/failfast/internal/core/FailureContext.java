@@ -1,7 +1,7 @@
-package com.chao.failfast.internal;
+package com.chao.failfast.internal.core;
 
 import com.chao.failfast.config.CodeMappingConfig;
-import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.policy.DefaultErrorPolicy;
 import com.chao.failfast.internal.policy.ErrorPolicy;
 import lombok.Getter;
@@ -13,7 +13,7 @@ import java.util.function.Supplier;
  * FailFast Context - Thread-safe configuration management.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Component
 public class FailureContext {
@@ -41,6 +41,16 @@ public class FailureContext {
     private final ThreadLocal<Boolean> printMethodOverride = ThreadLocal.withInitial(() -> null);
 
     /**
+     * Thread-local traceId.
+     */
+    private final ThreadLocal<String> traceId = ThreadLocal.withInitial(() -> null);
+
+    /**
+     * Thread-local scene.
+     */
+    private final ThreadLocal<String> scene = ThreadLocal.withInitial(() -> FailureConst.DEFAULT_SCENE);
+
+    /**
      * Constructor.
      *
      * @param properties FailFast configuration properties
@@ -56,7 +66,7 @@ public class FailureContext {
      *
      * @return True to print method info, false otherwise
      */
-    boolean isShadowTrace() {
+    public boolean isShadowTrace() {
         Boolean override = printMethodOverride.get();
         if (override != null) {
             return override;
@@ -79,6 +89,44 @@ public class FailureContext {
     public void clearThreadContext() {
         printMethodOverride.remove();
         methodEnabledOverride.remove();
+        traceId.remove();
+        scene.remove();
+    }
+
+    /**
+     * Get traceId.
+     *
+     * @return traceId
+     */
+    public String getTraceId() {
+        return traceId.get();
+    }
+
+    /**
+     * Set traceId.
+     *
+     * @param traceId traceId
+     */
+    public void setTraceId(String traceId) {
+        this.traceId.set(traceId);
+    }
+
+    /**
+     * Get scene.
+     *
+     * @return scene
+     */
+    public String getScene() {
+        return scene.get();
+    }
+
+    /**
+     * Set scene.
+     *
+     * @param scene scene
+     */
+    public void setScene(String scene) {
+        this.scene.set(scene);
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.chao.failfast.annotation;
 
+import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import lombok.Getter;
@@ -14,7 +15,7 @@ import java.util.List;
  *
  * @param <T> Target type
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @FunctionalInterface
 public interface FastValidator<T> {
@@ -40,9 +41,21 @@ public interface FastValidator<T> {
     class ValidationContext {
         @Getter
         private final boolean fast;
+        @Getter
+        private final Scenario[] scenes;
+        @Getter
+        private final Class<?>[] groups;
         private final List<Business> errors = new ArrayList<>();
         @Getter
         private boolean stopped;
+
+        public ValidationContext(boolean fast) {
+            this(fast, new Scenario[]{Scenario.DEFAULT}, new Class<?>[0]);
+        }
+
+        public ValidationContext(boolean fast, Scenario scene, Class<?>[] groups) {
+            this(fast, new Scenario[]{scene}, groups);
+        }
 
         public void reportError(ResponseCode code) {
             reportError(Business.of(code));
@@ -68,6 +81,10 @@ public interface FastValidator<T> {
 
         public boolean isValid() {
             return errors.isEmpty();
+        }
+
+        public int errorSize() {
+            return errors.size();
         }
 
         /**

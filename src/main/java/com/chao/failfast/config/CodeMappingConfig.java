@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * Error code mapping configuration - Support configurable HTTP status mapping.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Component
 @Slf4j

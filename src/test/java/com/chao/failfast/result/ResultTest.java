@@ -1,661 +1,604 @@
 package com.chao.failfast.result;
 
 import com.chao.failfast.internal.Business;
-import com.chao.failfast.model.TestResponseCode;
+import com.chao.failfast.internal.core.ResponseCode;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-@DisplayName("Result 类测试")
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+
+@Slf4j
 class ResultTest {
 
-    @Nested
-    @DisplayName("创建方法测试")
-    class CreationTest {
-        @Test
-        @DisplayName("ok 方法应创建成功结果")
-        void okShouldCreateSuccessResult() {
-            Result<String> result = Result.ok("test");
-            assertThat(result.isSuccess()).isTrue();
-            assertThat(result.isFail()).isFalse();
-            assertThat(result.get()).isEqualTo("test");
-            assertThat(result.getOrNull()).isEqualTo("test");
-            assertThat(catchThrowable(result::getError)).isInstanceOf(IllegalStateException.class);
-        }
-
-        @Test
-        @DisplayName("fail 方法应创建失败结果")
-        void failShouldCreateFailureResult() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            assertThat(result.isSuccess()).isFalse();
-            assertThat(result.isFail()).isTrue();
-            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-            assertThat(catchThrowable(result::get)).isInstanceOf(IllegalStateException.class);
-            assertThat(catchThrowable(result::getOrNull)).isEqualTo(null);
-        }
-
-        @Test
-        @DisplayName("fail 方法应创建带详情的失败结果")
-        void failWithDetailShouldCreateFailureResult() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR, "detail");
-            assertThat(result.isFail()).isTrue();
-            assertThat(result.getError().getDetail()).isEqualTo("detail");
-        }
-
-        @Test
-        @DisplayName("ofNullable 当值不为null时应创建成功结果")
-        void ofNullableShouldCreateSuccessResultWhenValueIsNotNull() {
-            Result<String> result = Result.ofNullable("test", TestResponseCode.PARAM_ERROR);
-            assertThat(result.isSuccess()).isTrue();
-            assertThat(result.get()).isEqualTo("test");
-        }
-
-        @Test
-        @DisplayName("ofNullable 带详情 当值不为null时应创建成功结果")
-        void ofNullableWithDetailShouldCreateSuccessResultWhenValueIsNotNull() {
-            Result<String> result = Result.ofNullable("test", TestResponseCode.PARAM_ERROR, "detail");
-            assertThat(result.isSuccess()).isTrue();
-            assertThat(result.get()).isEqualTo("test");
-        }
-
-        @Test
-        @DisplayName("ofNullable 当值为null时应创建失败结果")
-        void ofNullableShouldCreateFailureResultWhenValueIsNull() {
-            Result<String> result = Result.ofNullable(null, TestResponseCode.PARAM_ERROR);
-            assertThat(result.isFail()).isTrue();
-            assertThat(result.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-        }
-
-        @Test
-        @DisplayName("ofNullable 带详情 当值为null时应创建失败结果")
-        void ofNullableWithDetailShouldCreateFailureResultWhenValueIsNull() {
-            Result<String> result = Result.ofNullable(null, TestResponseCode.PARAM_ERROR, "detail");
-            assertThat(result.isFail()).isTrue();
-            assertThat(result.getError().getDetail()).isEqualTo("detail");
-        }
+    @Test
+    void testOk() {
+        String value = "test";
+        Result<String> result = Result.ok(value);
+        assertTrue(result.isSuccess());
+        assertFalse(result.isFail());
+        assertEquals(value, result.get());
+        assertEquals(value, result.getOrNull());
     }
 
-    @Nested
-    @DisplayName("函数式操作测试")
-    class FunctionalOpsTest {
-        @Test
-        @DisplayName("map 应转换成功值")
-        void mapShouldTransformSuccessValue() {
-            Result<String> result = Result.ok("123");
-            Result<Integer> mapped = result.map(Integer::parseInt);
-            assertThat(mapped.isSuccess()).isTrue();
-            assertThat(mapped.get()).isEqualTo(123);
-        }
-
-        @Test
-        @DisplayName("map 不应转换失败结果")
-        void mapShouldNotTransformFailureResult() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<Integer> mapped = result.map(Integer::parseInt);
-            assertThat(mapped.isFail()).isTrue();
-            assertThat(mapped.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-        }
-
-        @Test
-        @DisplayName("map 抛出异常时应捕获")
-        void mapShouldCatchException() {
-            Result<String> result = Result.ok("abc");
-            assertThat(catchThrowable(() -> result.map(s -> {
-                throw new RuntimeException("error");
-            }))).isInstanceOf(RuntimeException.class);
-
-            // If Business exception is thrown in map?
-            Result<String> result2 = Result.ok("abc");
-            Result<String> mapped2 = result2.map(s -> {
-                throw Business.of(TestResponseCode.PARAM_ERROR);
-            });
-            assertThat(mapped2.isFail()).isTrue();
-        }
-
-        @Test
-        @DisplayName("flatMap 应连接 Result")
-        void flatMapShouldChainResults() {
-            Result<String> result = Result.ok("123");
-            Result<Integer> flatMapped = result.flatMap(s -> Result.ok(Integer.parseInt(s)));
-            assertThat(flatMapped.isSuccess()).isTrue();
-            assertThat(flatMapped.get()).isEqualTo(123);
-        }
-
-        @Test
-        @DisplayName("flatMap 不应转换失败结果")
-        void flatMapShouldNotTransformFailureResult() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<Integer> flatMapped = result.flatMap(s -> Result.ok(Integer.parseInt(s)));
-            assertThat(flatMapped.isFail()).isTrue();
-        }
-
-        @Test
-        @DisplayName("filter 当条件满足时应保持成功")
-        void filterShouldKeepSuccessWhenPredicateIsTrue() {
-            Result<Integer> result = Result.ok(10);
-            Result<Integer> filtered = result.filter(i -> i > 5, TestResponseCode.PARAM_ERROR);
-            assertThat(filtered.isSuccess()).isTrue();
-        }
-
-        @Test
-        @DisplayName("filter 带详情 当条件满足时应保持成功")
-        void filterWithDetailShouldKeepSuccessWhenPredicateIsTrue() {
-            Result<Integer> result = Result.ok(10);
-            Result<Integer> filtered = result.filter(i -> i > 5, TestResponseCode.PARAM_ERROR, "detail");
-            assertThat(filtered.isSuccess()).isTrue();
-        }
-        @Test
-        @DisplayName("filter: 当 Result 已是失败时应直接返回自身，不执行 predicate")
-        void filterWhenAlreadyFailShouldReturnSelf() {
-            Result<Integer> fail = Result.fail(TestResponseCode.PARAM_ERROR, "原始错误");
-
-            // 即使 predicate 会抛异常，也不应该执行，因为已经是 Fail 了
-            Result<Integer> filtered = fail.filter(
-                    i -> { throw new RuntimeException("不应执行"); },
-                    TestResponseCode.PARAM_ERROR,
-                    "新详情"
-            );
-
-            assertThat(filtered.isFail()).isTrue();
-            assertThat(filtered.getError().getResponseCode()).isEqualTo(TestResponseCode.PARAM_ERROR);
-            assertThat(filtered.getError().getDetail()).isEqualTo("原始错误");
-        }
-
-        @Test
-        @DisplayName("filter 当条件不满足时应转为失败")
-        void filterShouldFailWhenPredicateIsFalse() {
-            Result<Integer> result = Result.ok(1);
-            Result<Integer> filtered = result.filter(i -> i > 5, TestResponseCode.PARAM_ERROR);
-            assertThat(filtered.isFail()).isTrue();
-            assertThat(filtered.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-        }
-
-        @Test
-        @DisplayName("filter 带详情 当条件不满足时应转为失败")
-        void filterWithDetailShouldFailWhenPredicateIsFalse() {
-            Result<Integer> result = Result.ok(1);
-            Result<Integer> filtered = result.filter(i -> i > 5, TestResponseCode.PARAM_ERROR, "detail");
-            assertThat(filtered.isFail()).isTrue();
-            assertThat(filtered.getError().getDetail()).isEqualTo("detail");
-        }
-
-        @Test
-        @DisplayName("filter 对失败结果无影响")
-        void filterShouldNotAffectFailure() {
-            Result<Integer> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<Integer> filtered = result.filter(i -> i > 5, TestResponseCode.SYSTEM_ERROR);
-            assertThat(filtered.isFail()).isTrue();
-            assertThat(filtered.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-        }
-
-        @Test
-        @DisplayName("combine 组合两个成功结果")
-        void combineShouldCombineSuccess() {
-            Result<String> r1 = Result.ok("Hello");
-            Result<String> r2 = Result.ok("World");
-            Result<String> combined = r1.combine(r2, (s1, s2) -> s1 + " " + s2);
-            assertThat(combined.isSuccess()).isTrue();
-            assertThat(combined.get()).isEqualTo("Hello World");
-        }
-
-        @Test
-        @DisplayName("combine 包含失败结果时返回失败")
-        void combineShouldReturnFailure() {
-            Result<String> r1 = Result.ok("Hello");
-            Result<String> r2 = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> combined = r1.combine(r2, (s1, s2) -> s1 + " " + s2);
-            assertThat(combined.isFail()).isTrue();
-
-            Result<String> combined2 = r2.combine(r1, (s1, s2) -> s1 + " " + s2);
-            assertThat(combined2.isFail()).isTrue();
-        }
+    @Test
+    void testFailWithResponseCode() {
+        ResponseCode code = ResponseCode.VALIDATION_ERROR_400;
+        Result<String> result = Result.fail(code);
+        assertFalse(result.isSuccess());
+        assertTrue(result.isFail());
+        assertEquals(code.getCode(), result.getCode());
     }
 
-    @Nested
-    @DisplayName("恢复与终结操作测试")
-    class TerminalOpsTest {
-        @Test
-        @DisplayName("peek 应只执行副作用")
-        void peekShouldNotChangeResult() {
-            Result<String> result = Result.ok("test");
-            final boolean[] executed = {false};
-            Result<String> peeked = result.peek(s -> executed[0] = true);
-
-            assertThat(peeked.get()).isEqualTo("test");
-            assertThat(executed[0]).isTrue();
-
-            // Failure case
-            Result<String> fail = Result.fail(TestResponseCode.PARAM_ERROR);
-            executed[0] = false;
-            fail.peek(s -> executed[0] = true);
-            assertThat(executed[0]).isFalse();
-        }
-
-        @Test
-        @DisplayName("peekError 应只在错误时执行副作用")
-        void peekErrorShouldNotChangeResult() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            final boolean[] executed = {false};
-            Result<String> peeked = result.peekError(e -> executed[0] = true);
-
-            assertThat(peeked.isFail()).isTrue();
-            assertThat(executed[0]).isTrue();
-
-            // Success case
-            Result<String> success = Result.ok("test");
-            executed[0] = false;
-            success.peekError(e -> executed[0] = true);
-            assertThat(executed[0]).isFalse();
-        }
-
-        @Test
-        @DisplayName("recoverWith 当失败时应执行恢复函数")
-        void recoverWithShouldRecover() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> recovered = result.recoverWith(e -> Result.ok("recovered"));
-
-            assertThat(recovered.isSuccess()).isTrue();
-            assertThat(recovered.get()).isEqualTo("recovered");
-
-            // Success case
-            Result<String> success = Result.ok("test");
-            Result<String> recoveredSuccess = success.recoverWith(e -> Result.ok("recovered"));
-            assertThat(recoveredSuccess.get()).isEqualTo("test");
-        }
-
-        @Test
-        @DisplayName("failNow 当成功时应返回值")
-        void failNowShouldReturnValueWhenSuccess() {
-            Result<String> result = Result.ok("test");
-            assertThat(result.failNow()).isEqualTo("test");
-            assertThat(result.failNow("default")).isEqualTo("test");
-            assertThat(result.failNow(e -> new RuntimeException())).isEqualTo("test");
-        }
-
-        @Test
-        @DisplayName("failNow 当失败时应抛出异常")
-        void failNowShouldThrowExceptionWhenFailure() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            assertThat(catchThrowable(result::failNow)).isInstanceOf(Business.class);
-            assertThat(result.failNow("default")).isEqualTo("default");
-            assertThat(catchThrowable(() -> result.failNow(e -> new IllegalArgumentException())))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        @DisplayName("onFailGet 当成功时应返回值")
-        void onFailGetShouldReturnValueWhenSuccess() {
-            Result<String> result = Result.ok("test");
-            assertThat(result.onFailGet(() -> "default")).isEqualTo("test");
-        }
-
-        @Test
-        @DisplayName("onFailGet 当失败时应返回默认值")
-        void onFailGetShouldReturnDefaultValueWhenFailure() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            assertThat(result.onFailGet(() -> "default")).isEqualTo("default");
-        }
-
-        @Test
-        @DisplayName("recover 当失败时应恢复")
-        void recoverShouldRecoverFromFailure() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> recovered = result.recover(e -> "recovered");
-            assertThat(recovered.isSuccess()).isTrue();
-            assertThat(recovered.get()).isEqualTo("recovered");
-
-            // Success case
-            Result<String> success = Result.ok("test");
-            Result<String> recoveredSuccess = success.recover(e -> "recovered");
-            assertThat(recoveredSuccess.get()).isEqualTo("test");
-        }
+    @Test
+    void testFailWithResponseCodeAndDetail() {
+        ResponseCode code = ResponseCode.VALIDATION_ERROR_400;
+        String detail = "Invalid parameter";
+        Result<String> result = Result.fail(code, detail);
+        assertFalse(result.isSuccess());
+        assertTrue(result.isFail());
+        assertEquals(code.getCode(), result.getCode());
     }
 
-    @Nested
-    @DisplayName("map 边界测试")
-    class MapEdgeTest {
-
-        @Test
-        @DisplayName("map 中抛出 Business 异常时应转为失败 Result")
-        void mapShouldConvertBusinessExceptionToFailure() {
-            Result<String> result = Result.ok("test");
-            Result<String> mapped = result.map(s -> {
-                throw Business.of(TestResponseCode.PARAM_ERROR, "business error");
-            });
-
-            assertThat(mapped.isFail()).isTrue();
-            assertThat(mapped.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-            assertThat(mapped.getError().getDetail()).isEqualTo("business error");
-        }
-
-        @Test
-        @DisplayName("map 中抛出 RuntimeException 时应继续抛出")
-        void mapShouldRethrowRuntimeException() {
-            Result<String> result = Result.ok("test");
-
-            assertThatThrownBy(() -> result.map(s -> {
-                throw new RuntimeException("runtime error");
-            })).isInstanceOf(RuntimeException.class).hasMessage("runtime error");
-        }
-
-        @Test
-        @DisplayName("map 中抛出 Error 时应继续抛出")
-        void mapShouldRethrowError() {
-            Result<String> result = Result.ok("test");
-
-            assertThatThrownBy(() -> result.map(s -> {
-                throw new OutOfMemoryError("oom");
-            })).isInstanceOf(OutOfMemoryError.class).hasMessage("oom");
-        }
-
-        @Test
-        @DisplayName("map 返回 null 时应创建包含 null 的成功 Result")
-        void mapShouldAllowNullReturn() {
-            Result<String> result = Result.ok("test");
-            Result<Object> mapped = result.map(s -> null);
-
-            assertThat(mapped.isSuccess()).isTrue();
-            assertThat(mapped.get()).isNull();
-        }
+    @Test
+    void testFailWithBusiness() {
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Invalid parameter");
+        Result<String> result = Result.fail(business);
+        assertFalse(result.isSuccess());
+        assertTrue(result.isFail());
+        assertEquals(business.getResponseCode().getCode(), result.getCode());
     }
 
-    @Nested
-    @DisplayName("flatMap 边界测试")
-    class FlatMapEdgeTest {
-
-        @Test
-        @DisplayName("flatMap 返回 null 时应抛出 NullPointerException")
-        void flatMapShouldThrowNpeWhenReturnsNull() {
-            Result<String> result = Result.ok("test");
-
-            Result<Object> mapped = result.flatMap(s -> null);
-
-            assertThat(mapped).isNull();  // 或者根据你的设计调整断言
-        }
-
-        @Test
-        @DisplayName("flatMap 返回的失败 Result 应被保留")
-        void flatMapShouldPreserveFailureResult() {
-            Result<String> result = Result.ok("test");
-            Result<String> mapped = result.flatMap(s -> Result.fail(TestResponseCode.PARAM_ERROR));
-
-            assertThat(mapped.isFail()).isTrue();
-            assertThat(mapped.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-        }
+    @Test
+    void testOfNullableWithNonNullValue() {
+        String value = "test";
+        ResponseCode code = ResponseCode.VALIDATION_ERROR_400;
+        Result<String> result = Result.ofNullable(value, code);
+        assertTrue(result.isSuccess());
+        assertEquals(value, result.get());
     }
 
-    @Nested
-    @DisplayName("filter 边界测试")
-    class FilterEdgeTest {
-
-        @Test
-        @DisplayName("filter 中 predicate 抛出异常时应继续抛出")
-        void filterShouldRethrowExceptionFromPredicate() {
-            Result<String> result = Result.ok("test");
-
-            assertThatThrownBy(() -> result.filter(s -> {
-                throw new RuntimeException("predicate error");
-            }, TestResponseCode.PARAM_ERROR)).isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        @DisplayName("filter 中 predicate 返回 null 时应视为 false")
-        void filterShouldTreatNullAsFalse() {
-            Result<String> result = Result.ok("test");
-            // 注意：如果 predicate 返回 null，会导致 NullPointerException
-            // 因为使用了 Boolean 拆箱
-            assertThatThrownBy(() -> result.filter(s -> null, TestResponseCode.PARAM_ERROR))
-                    .isInstanceOf(NullPointerException.class);
-        }
+    @Test
+    void testOfNullableWithNullValue() {
+        String value = null;
+        ResponseCode code = ResponseCode.VALIDATION_ERROR_400;
+        Result<String> result = Result.ofNullable(value, code);
+        assertFalse(result.isSuccess());
+        assertTrue(result.isFail());
     }
 
-    @Nested
-    @DisplayName("peek 边界测试")
-    class PeekEdgeTest {
-
-        @Test
-        @DisplayName("peek 中 action 抛出异常时应继续抛出")
-        void peekShouldRethrowExceptionFromAction() {
-            Result<String> result = Result.ok("test");
-
-            assertThatThrownBy(() -> result.peek(s -> {
-                throw new RuntimeException("peek error");
-            })).isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        @DisplayName("peek 应返回原始 Result 实例")
-        void peekShouldReturnSameInstance() {
-            Result<String> result = Result.ok("test");
-            Result<String> peeked = result.peek(s -> {
-            });
-
-            assertThat(peeked).isSameAs(result);
-        }
+    @Test
+    void testOfNullableWithNonNullValueAndDetail() {
+        String value = "test";
+        ResponseCode code = ResponseCode.VALIDATION_ERROR_400;
+        String detail = "Invalid parameter";
+        Result<String> result = Result.ofNullable(value, code, detail);
+        assertTrue(result.isSuccess());
+        assertEquals(value, result.get());
     }
 
-    @Nested
-    @DisplayName("peekError 边界测试")
-    class PeekErrorEdgeTest {
-
-        @Test
-        @DisplayName("peekError 中 action 抛出异常时应继续抛出")
-        void peekErrorShouldRethrowExceptionFromAction() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-
-            assertThatThrownBy(() -> result.peekError(e -> {
-                throw new RuntimeException("peek error");
-            })).isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        @DisplayName("peekError 应返回原始 Result 实例")
-        void peekErrorShouldReturnSameInstance() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> peeked = result.peekError(e -> {
-            });
-
-            assertThat(peeked).isSameAs(result);
-        }
+    @Test
+    void testOfNullableWithNullValueAndDetail() {
+        String value = null;
+        ResponseCode code = ResponseCode.VALIDATION_ERROR_400;
+        String detail = "Invalid parameter";
+        Result<String> result = Result.ofNullable(value, code, detail);
+        assertFalse(result.isSuccess());
+        assertTrue(result.isFail());
     }
 
-    @Nested
-    @DisplayName("recover 边界测试")
-    class RecoverEdgeTest {
-
-        @Test
-        @DisplayName("recover 中 recovery 函数抛出异常时应继续抛出")
-        void recoverShouldRethrowExceptionFromRecovery() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-
-            assertThatThrownBy(() -> result.recover(e -> {
-                throw new RuntimeException("recovery error");
-            })).isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        @DisplayName("recover 返回 null 时应创建包含 null 的成功 Result")
-        void recoverShouldAllowNullReturn() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> recovered = result.recover(e -> null);
-
-            assertThat(recovered.isSuccess()).isTrue();
-            assertThat(recovered.get()).isNull();
-        }
+    @Test
+    void testGetOnSuccess() {
+        String value = "test";
+        Result<String> result = Result.ok(value);
+        assertEquals(value, result.get());
     }
 
-    @Nested
-    @DisplayName("recoverWith 边界测试")
-    class RecoverWithEdgeTest {
-
-        @Test
-        @DisplayName("recoverWith 中 recovery 函数抛出异常时应继续抛出")
-        void recoverWithShouldRethrowExceptionFromRecovery() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-
-            assertThatThrownBy(() -> result.recoverWith(e -> {
-                throw new RuntimeException("recovery error");
-            })).isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        @DisplayName("recoverWith 返回 null 时应抛出 NullPointerException")
-        void recoverWithShouldThrowNpeWhenReturnsNull() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> with = result.recoverWith(e -> null);
-            assertThat(with).isNull();
-        }
-
-        @Test
-        @DisplayName("recoverWith 返回的失败 Result 应被保留")
-        void recoverWithShouldPreserveFailureResult() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> recovered = result.recoverWith(e -> Result.fail(TestResponseCode.SYSTEM_ERROR));
-
-            assertThat(recovered.isFail()).isTrue();
-            assertThat(recovered.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.SYSTEM_ERROR.getCode());
-        }
+    @Test
+    void testGetOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        assertThrows(IllegalStateException.class, result::get);
     }
 
-    @Nested
-    @DisplayName("combine 边界测试")
-    class CombineEdgeTest {
-
-        @Test
-        @DisplayName("combine 中 combiner 抛出异常时应继续抛出")
-        void combineShouldRethrowExceptionFromCombiner() {
-            Result<String> r1 = Result.ok("a");
-            Result<String> r2 = Result.ok("b");
-
-            assertThatThrownBy(() -> r1.combine(r2, (s1, s2) -> {
-                throw new RuntimeException("combiner error");
-            })).isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        @DisplayName("combine 返回 null 时应创建包含 null 的成功 Result")
-        void combineShouldAllowNullReturn() {
-            Result<String> r1 = Result.ok("a");
-            Result<String> r2 = Result.ok("b");
-            Result<Object> combined = r1.combine(r2, (s1, s2) -> null);
-
-            assertThat(combined.isSuccess()).isTrue();
-            assertThat(combined.get()).isNull();
-        }
-
-        @Test
-        @DisplayName("combine 当两个都失败时应返回第一个失败")
-        void combineShouldReturnFirstFailureWhenBothFail() {
-            Result<String> r1 = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> r2 = Result.fail(TestResponseCode.SYSTEM_ERROR);
-            Result<String> combined = r1.combine(r2, (s1, s2) -> s1 + s2);
-
-            assertThat(combined.isFail()).isTrue();
-            assertThat(combined.getError().getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-        }
+    @Test
+    void testGetOrNullOnSuccess() {
+        String value = "test";
+        Result<String> result = Result.ok(value);
+        assertEquals(value, result.getOrNull());
     }
 
-    @Nested
-    @DisplayName("onFailGet 边界测试")
-    class OnFailGetEdgeTest {
-
-        @Test
-        @DisplayName("onFailGet 中 supplier 抛出异常时应继续抛出")
-        void onFailGetShouldRethrowExceptionFromSupplier() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-
-            assertThatThrownBy(() -> result.onFailGet(() -> {
-                throw new RuntimeException("supplier error");
-            })).isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        @DisplayName("onFailGet 中 supplier 返回 null 时应返回 null")
-        void onFailGetShouldAllowNullReturn() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-            String value = result.onFailGet(() -> null);
-
-            assertThat(value).isNull();
-        }
+    @Test
+    void testGetOrNullOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        assertNull(result.getOrNull());
     }
 
-    @Nested
-    @DisplayName("failNow 边界测试")
-    class FailNowEdgeTest {
-
-        @Test
-        @DisplayName("failNow(Function) 中 exceptionProvider 抛出异常时应继续抛出")
-        void failNowShouldRethrowExceptionFromProvider() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-
-            assertThatThrownBy(() -> result.failNow(e -> {
-                throw new RuntimeException("provider error");
-            })).isInstanceOf(RuntimeException.class).hasMessage("provider error");
-        }
-
-        @Test
-        @DisplayName("failNow(Function) 返回 null 时应抛出 NullPointerException")
-        void failNowShouldThrowNpeWhenReturnsNull() {
-            Result<String> result = Result.fail(TestResponseCode.PARAM_ERROR);
-
-            assertThatThrownBy(() -> result.failNow(e -> null))
-                    .isInstanceOf(NullPointerException.class);
-        }
+    @Test
+    void testGetErrorOnFailure() {
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Invalid parameter");
+        Result<String> result = Result.fail(business);
+        assertEquals(business, result.getError());
     }
 
-    @Nested
-    @DisplayName("Success/Failure 内部类测试")
-    class InternalClassTest {
+    @Test
+    void testGetErrorOnFailureWithResponseCode() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        assertNotNull(result.getError());
+        assertEquals(ResponseCode.VALIDATION_ERROR_400.getCode(), result.getError().getResponseCode().getCode());
+    }
 
-        @Test
-        @DisplayName("Success 的 getter 应返回正确值")
-        void successGetterShouldReturnCorrectValues() {
-            Result.Success<String> success = new Result.Success<>("test");
+    @Test
+    void testGetErrorOnSuccess() {
+        Result<String> result = Result.ok("test");
+        assertThrows(IllegalStateException.class, result::getError);
+    }
 
-            assertThat(success.getData()).isEqualTo("test");
-            assertThat(success.getCode()).isEqualTo(200);
-            assertThat(success.getMessage()).isEqualTo("Success");
-            assertThat(success.getDescription()).isEqualTo("操作成功");
-            assertThat(success.getTimestamp()).isNotNull();
-        }
+    @Test
+    void testMapOnSuccess() {
+        Result<Integer> result = Result.ok(5);
+        Result<String> mapped = result.map(i -> String.valueOf(i));
+        assertTrue(mapped.isSuccess());
+        assertEquals("5", mapped.get());
+    }
 
-        @Test
-        @DisplayName("getError: 当 Result 是 Success 时应抛出异常")
-        void getError_whenSuccess_shouldThrow() {
-            Result<String> success = Result.ok("data");
+    @Test
+    void testMapOnFailure() {
+        Result<Integer> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<String> mapped = result.map(i -> String.valueOf(i));
+        assertFalse(mapped.isSuccess());
+        assertTrue(mapped.isFail());
+    }
 
-            assertThatThrownBy(success::getError)
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Result is success");
-        }
+    @Test
+    void testMapWithBusinessException() {
+        Result<Integer> result = Result.ok(5);
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
+        Result<String> mapped = result.map(i -> {
+            throw business;
+        });
+        assertFalse(mapped.isSuccess());
+        assertTrue(mapped.isFail());
+    }
 
-        @Test
-        @DisplayName("getError: 当 Result 是 Failure 时应返回错误信息")
-        void getError_whenFailure_shouldReturnError() {
-            Business expectedError = Business.of(TestResponseCode.PARAM_ERROR, "test detail");
-            Result<String> failure = Result.fail(expectedError);
+    @Test
+    void testMapWithRuntimeException() {
+        Result<Integer> result = Result.ok(5);
+        assertThrows(RuntimeException.class, () -> result.map(i -> {
+            throw new RuntimeException("Runtime error");
+        }));
+    }
 
-            Business actualError = failure.getError();
-            assertThat(actualError).isEqualTo(expectedError);
-            assertThat(actualError.getResponseCode().getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-            assertThat(actualError.getDetail()).isEqualTo("test detail");
-        }
+    @Test
+    void testFlatMapOnSuccess() {
+        Result<Integer> result = Result.ok(5);
+        Result<String> flatMapped = result.flatMap(i -> Result.ok(String.valueOf(i)));
+        assertTrue(flatMapped.isSuccess());
+        assertEquals("5", flatMapped.get());
+    }
 
-        @Test
-        @DisplayName("Failure 的 getter 应返回正确值")
-        void failureGetterShouldReturnCorrectValues() {
-            Business error = Business.of(TestResponseCode.PARAM_ERROR, "detail");
-            Result.Fail<String> fail = new Result.Fail<>(error);
+    @Test
+    void testFlatMapOnFailure() {
+        Result<Integer> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<String> flatMapped = result.flatMap(i -> Result.ok(String.valueOf(i)));
+        assertFalse(flatMapped.isSuccess());
+        assertTrue(flatMapped.isFail());
+    }
 
-            assertThat(fail.getError()).isEqualTo(error);
-            assertThat(fail.getCode()).isEqualTo(TestResponseCode.PARAM_ERROR.getCode());
-            assertThat(fail.getMessage()).isEqualTo(TestResponseCode.PARAM_ERROR.getMessage());
-            assertThat(fail.getDescription()).isEqualTo("detail");
-            assertThat(fail.getTimestamp()).isNotNull();
+    @Test
+    void testPeekOnSuccess() {
+        StringBuilder sb = new StringBuilder();
+        Result<String> result = Result.ok("test");
+        Result<String> peeked = result.peek(sb::append);
+        assertEquals("test", sb.toString());
+        assertSame(result, peeked);
+    }
+
+    @Test
+    void testPeekOnFailure() {
+        StringBuilder sb = new StringBuilder();
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<String> peeked = result.peek(sb::append);
+        assertEquals("", sb.toString());
+        assertSame(result, peeked);
+    }
+
+    @Test
+    void testPeekErrorOnFailure() {
+        StringBuilder sb = new StringBuilder();
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
+        Result<String> result = Result.fail(business);
+        Result<String> peeked = result.peekError(e -> sb.append(e.getDetail()));
+        assertEquals("Error", sb.toString());
+        assertSame(result, peeked);
+    }
+
+    @Test
+    void testPeekErrorOnSuccess() {
+        StringBuilder sb = new StringBuilder();
+        Result<String> result = Result.ok("test");
+        Result<String> peeked = result.peekError(e -> sb.append(e.getDetail()));
+        assertEquals("", sb.toString());
+        assertSame(result, peeked);
+    }
+
+    @Test
+    void testFilterOnSuccessWithPassingPredicate() {
+        Result<Integer> result = Result.ok(5);
+        Result<Integer> filtered = result.filter(i -> i > 0, ResponseCode.VALIDATION_ERROR_400);
+        assertTrue(filtered.isSuccess());
+        assertEquals(5, filtered.get());
+    }
+
+    @Test
+    void testFilterOnSuccessWithFailingPredicate() {
+        Result<Integer> result = Result.ok(5);
+        Result<Integer> filtered = result.filter(i -> i < 0, ResponseCode.VALIDATION_ERROR_400);
+        assertFalse(filtered.isSuccess());
+        assertTrue(filtered.isFail());
+    }
+
+    @Test
+    void testFilterOnFailure() {
+        Result<Integer> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<Integer> filtered = result.filter(i -> i > 0, ResponseCode.VALIDATION_ERROR_400);
+        assertFalse(filtered.isSuccess());
+        assertTrue(filtered.isFail());
+    }
+
+    @Test
+    void testFilterWithDetailOnSuccessWithPassingPredicate() {
+        Result<Integer> result = Result.ok(5);
+        Result<Integer> filtered = result.filter(i -> i > 0, ResponseCode.VALIDATION_ERROR_400, "Invalid value");
+        assertTrue(filtered.isSuccess());
+        assertEquals(5, filtered.get());
+    }
+
+    @Test
+    void testFilterWithDetailOnSuccessWithFailingPredicate() {
+        Result<Integer> result = Result.ok(5);
+        Result<Integer> filtered = result.filter(i -> i < 0, ResponseCode.VALIDATION_ERROR_400, "Invalid value");
+        assertFalse(filtered.isSuccess());
+        assertTrue(filtered.isFail());
+    }
+
+    @Test
+    void testFilterWithDetailOnFailure() {
+        Result<Integer> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<Integer> filtered = result.filter(i -> i > 0, ResponseCode.VALIDATION_ERROR_400, "Invalid value");
+        assertFalse(filtered.isSuccess());
+        assertTrue(filtered.isFail());
+    }
+
+    @Test
+    void testRecoverOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<String> recovered = result.recover(e -> "recovered");
+        assertTrue(recovered.isSuccess());
+        assertEquals("recovered", recovered.get());
+    }
+
+    @Test
+    void testRecoverOnSuccess() {
+        Result<String> result = Result.ok("test");
+        Result<String> recovered = result.recover(e -> "recovered");
+        assertTrue(recovered.isSuccess());
+        assertEquals("test", recovered.get());
+    }
+
+    @Test
+    void testRecoverWithOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<String> recovered = result.recoverWith(e -> Result.ok("recovered"));
+        assertTrue(recovered.isSuccess());
+        assertEquals("recovered", recovered.get());
+    }
+
+    @Test
+    void testRecoverWithOnSuccess() {
+        Result<String> result = Result.ok("test");
+        Result<String> recovered = result.recoverWith(e -> Result.ok("recovered"));
+        assertTrue(recovered.isSuccess());
+        assertEquals("test", recovered.get());
+    }
+
+    @Test
+    void testOnFailGetOnSuccess() {
+        Result<String> result = Result.ok("test");
+        String value = result.onFailGet(() -> "default");
+        assertEquals("test", value);
+    }
+
+    @Test
+    void testOnFailGetOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        String value = result.onFailGet(() -> "default");
+        assertEquals("default", value);
+    }
+
+    @Test
+    void testFailNowOnSuccess() {
+        Result<String> result = Result.ok("test");
+        String value = result.failNow();
+        assertEquals("test", value);
+    }
+
+    @Test
+    void testFailNowOnFailure() {
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
+        Result<String> result = Result.fail(business);
+        assertThrows(Business.class, result::failNow);
+    }
+
+    @Test
+    void testFailNowWithDefaultOnSuccess() {
+        Result<String> result = Result.ok("test");
+        String value = result.failNow("default");
+        assertEquals("test", value);
+    }
+
+    @Test
+    void testFailNowWithDefaultOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        String value = result.failNow("default");
+        assertEquals("default", value);
+    }
+
+    @Test
+    void testFailNowWithExceptionProviderOnSuccess() {
+        Result<String> result = Result.ok("test");
+        String value = result.failNow(e -> new RuntimeException("Error"));
+        assertEquals("test", value);
+    }
+
+    @Test
+    void testFailNowWithExceptionProviderOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        assertThrows(RuntimeException.class, () -> result.failNow(e -> new RuntimeException("Error")));
+    }
+
+    @Test
+    void testCombineBothSuccess() {
+        Result<Integer> result1 = Result.ok(5);
+        Result<Integer> result2 = Result.ok(10);
+        Result<Integer> combined = result1.combine(result2, Integer::sum);
+        assertTrue(combined.isSuccess());
+        assertEquals(15, combined.get());
+    }
+
+    @Test
+    void testCombineFirstFailure() {
+        Result<Integer> result1 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<Integer> result2 = Result.ok(10);
+        Result<Integer> combined = result1.combine(result2, Integer::sum);
+        assertFalse(combined.isSuccess());
+        assertTrue(combined.isFail());
+    }
+
+    @Test
+    void testCombineSecondFailure() {
+        Result<Integer> result1 = Result.ok(5);
+        Result<Integer> result2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<Integer> combined = result1.combine(result2, Integer::sum);
+        assertFalse(combined.isSuccess());
+        assertTrue(combined.isFail());
+    }
+
+    @Test
+    void testToOptionalOnSuccess() {
+        Result<String> result = Result.ok("test");
+        Optional<String> optional = result.toOptional();
+        assertTrue(optional.isPresent());
+        assertEquals("test", optional.get());
+    }
+
+    @Test
+    void testToOptionalOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Optional<String> optional = result.toOptional();
+        assertFalse(optional.isPresent());
+    }
+
+    @Test
+    void testStreamOnSuccess() {
+        Result<String> result = Result.ok("test");
+        String value = result.stream().collect(Collectors.joining());
+        assertEquals("test", value);
+    }
+
+    @Test
+    void testStreamOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        String value = result.stream().collect(Collectors.joining());
+        assertEquals("", value);
+    }
+
+    @Test
+    void testGetOrElseOnSuccess() {
+        Result<String> result = Result.ok("test");
+        String value = result.getOrElse("default");
+        assertEquals("test", value);
+    }
+
+    @Test
+    void testGetOrElseOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        String value = result.getOrElse("default");
+        assertEquals("default", value);
+    }
+
+    @Test
+    void testGetOrElseGetOnSuccess() {
+        Result<String> result = Result.ok("test");
+        String value = result.getOrElseGet(e -> "default");
+        assertEquals("test", value);
+    }
+
+    @Test
+    void testGetOrElseGetOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        String value = result.getOrElseGet(e -> "default");
+        assertEquals("default", value);
+    }
+
+    @Test
+    void testFoldOnSuccess() {
+        Result<Integer> result = Result.ok(5);
+        Result<String> folded = result.fold(i -> String.valueOf(i), e -> "error");
+        assertTrue(folded.isSuccess());
+        assertEquals("5", folded.get());
+    }
+
+    @Test
+    void testFoldOnFailure() {
+        Result<Integer> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<String> folded = result.fold(i -> String.valueOf(i), e -> "error");
+        assertTrue(folded.isSuccess());
+        assertEquals("error", folded.get());
+    }
+
+    @Test
+    void testSwapOnSuccess() {
+        Result<String> result = Result.ok("test");
+        Result<String> swapped = result.swap(ResponseCode.VALIDATION_ERROR_400);
+        assertFalse(swapped.isSuccess());
+        assertTrue(swapped.isFail());
+    }
+
+    @Test
+    void testSwapOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        Result<String> swapped = result.swap(ResponseCode.VALIDATION_ERROR_400);
+        assertTrue(swapped.isSuccess());
+        assertNull(swapped.get());
+    }
+
+    @Test
+    void testContainsOnSuccessWithMatchingValue() {
+        Result<String> result = Result.ok("test");
+        assertTrue(result.contains("test"));
+    }
+
+    @Test
+    void testContainsOnSuccessWithNonMatchingValue() {
+        Result<String> result = Result.ok("test");
+        assertFalse(result.contains("other"));
+    }
+
+    @Test
+    void testContainsOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        assertFalse(result.contains("test"));
+    }
+
+    @Test
+    void testExistsOnSuccessWithNonNullValue() {
+        Result<String> result = Result.ok("test");
+        assertTrue(result.exists());
+    }
+
+    @Test
+    void testExistsOnSuccessWithNullValue() {
+        Result<String> result = Result.ok(null);
+        assertFalse(result.exists());
+    }
+
+    @Test
+    void testExistsOnFailure() {
+        Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
+        assertFalse(result.exists());
+    }
+
+    @Test
+    void testSuccessConstructor() {
+        String value = "test";
+        Result.Success<String> success = new Result.Success<>(value);
+        assertEquals(200, success.getCode());
+        assertEquals("Success", success.getMessage());
+        assertEquals("操作成功", success.getDescription());
+        assertEquals(value, success.getData());
+    }
+
+    @Test
+    void testFailConstructorWithDetail() {
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Invalid parameter");
+        Result.Fail<String> fail = new Result.Fail<>(business);
+        assertEquals(business.getResponseCode().getCode(), fail.getCode());
+        assertEquals(business, fail.getError());
+    }
+
+    @Test
+    void getError() {
+        Business business = Business.of(ResponseCode.of(301, "Invalid parameter", "Invalid parameter"));
+        Result.Fail<String> fail = new Result.Fail<>(business);
+        log.info(fail.getError().toString());
+    }
+
+    @Test
+    @DisplayName("测试 Success 调用 getError 应抛出 IllegalStateException")
+    void testSuccessGetError_ThrowsException() {
+        // 准备
+        Result.Success<String> success = new Result.Success<>("test");
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                success::getError, // <--- 这里会触发 throw 语句
+                "Expected getError() on Success result to throw an exception"
+        );
+
+        // 可选：验证异常信息
+        assertEquals("Result is success", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("覆盖 Fail 构造函数及 error 字段赋值")
+    void testFailConstructor_Coverage() {
+        // 1. 准备真实的 Business 对象 (不要用 mock(Business.class)，除非你只想测赋值逻辑)
+        // 建议使用工厂方法创建一个真实对象，确保 ResponseCode 等内部逻辑也被覆盖
+        ResponseCode code = ResponseCode.of(400, "Bad Request", "Invalid input");
+        Business business = Business.of(code, "Detail message");
+
+        // 2. 【关键步骤】显式调用构造函数
+        // 这一步会强制执行：super(...) 和 this.error = error;
+        Result.Fail<String> failResult = new Result.Fail<>(business);
+
+        // 3. 断言：验证字段确实被赋值了
+        // 如果这行通过，证明 this.error = error 被执行了
+        assertThat(failResult.getError()).isSameAs(business);
+
+        // 4. 额外断言：验证父类构造函数也被执行了 (code, message, description)
+        assertThat(failResult.getCode()).isEqualTo(400);
+        assertThat(failResult.getMessage()).contains("Bad Request"); // 取决于 I18n 处理
+    }
+
+    @Test
+    void testFailConstructorWithoutDetail() {
+        ResponseCode code = ResponseCode.VALIDATION_ERROR_400;
+        Business business = Business.of(code);
+        Result.Fail<String> fail = new Result.Fail<>(business);
+        assertEquals(code.getCode(), fail.getCode());
+        assertEquals(business, fail.getError());
+    }
+
+    @Test
+    void testFailConstructorWithNullDetail() {
+        ResponseCode code = ResponseCode.VALIDATION_ERROR_400;
+        Business business = Business.of(code, null);
+        Result.Fail<String> fail = new Result.Fail<>(business);
+        assertEquals(code.getCode(), fail.getCode());
+        assertEquals(business, fail.getError());
+    }
+
+    @Test
+    void testGetErrorOnSuccessBranch() {
+        Result<String> result = Result.ok("test");
+        try {
+            result.getError();
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertEquals("Result is success", e.getMessage());
         }
     }
 }

@@ -32,6 +32,10 @@ public class I18nExtension implements BeforeEachCallback, AfterEachCallback {
                 if ("failure.const.unsupported.validation.type".equals(code)) return "不支持的校验类型: ";
                 if ("failure.const.validation.error.prefix".equals(code)) return "校验失败,共";
                 if ("failure.const.error.item.suffix".equals(code)) return " 项问题";
+                if ("failure.const.multiple.validation.errors.count".equals(code)) {
+                    Object n = (args != null && args.length > 0) ? args[0] : null;
+                    return "共" + (n == null ? "" : n) + "项问题";
+                }
                 if ("failure.const.invalid.parameter".equals(code)) return "参数无效";
                 
                 return defaultMessage != null ? defaultMessage : code;

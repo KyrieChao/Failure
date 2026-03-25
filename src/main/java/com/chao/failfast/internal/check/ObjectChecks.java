@@ -4,7 +4,7 @@ package com.chao.failfast.internal.check;
  * Utility class for object validation.
  *
  * @author Kyrie Chao
- * @version 1.0.0
+ * @version 1.2.0
  */
 public final class ObjectChecks {
 
@@ -17,6 +17,16 @@ public final class ObjectChecks {
      * @return true if the object is not null, false otherwise
      */
     public static boolean exists(Object obj) {
+        return obj != null;
+    }
+
+    /**
+     * Checks if the object is not null.
+     *
+     * @param obj the object to check
+     * @return true if the object is not null, false otherwise
+     */
+    public static boolean notNull(Object obj) {
         return obj != null;
     }
 
@@ -68,5 +78,25 @@ public final class ObjectChecks {
             }
         }
         return true;
+    }
+
+    /**
+     * Checks if the collection is not empty.
+     *
+     * @param collection the collection to check
+     * @return true if the collection is not null and not empty, false otherwise
+     */
+    public static boolean notEmpty(java.util.Collection<?> collection) {
+        return collection != null && !collection.isEmpty();
+    }
+
+    /**
+     * Checks if the map is not empty.
+     *
+     * @param map the map to check
+     * @return true if the map is not null and not empty, false otherwise
+     */
+    public static boolean notEmpty(java.util.Map<?, ?> map) {
+        return map != null && !map.isEmpty();
     }
 }
