@@ -686,13 +686,28 @@ public Result<OrderDTO> getOrder(Long userId, Long orderId) {
 
 ```yaml
 fail-fast:
-  # Debug configuration
-  shadow-trace: true        # Include class name and line number of validation point in exception
-  debug-snapshot: true      # Enable debug snapshot to include invalid values (default: false)
-  verbose: true             # Include detailed errors list in multi-error response
+  shadow-trace: false
+  verbose: false
+  debug-snapshot: false
 
   # Spring Method Validation (disabled by default for performance)
   method-validation-enabled: false
+
+  i18n:
+    enabled: true
+    default-locale: zh_CN
+    basename: classpath:i18n/messages
+    encoding: UTF-8
+    cache-seconds: 3600
+
+  trace-id:
+    enabled: true
+    header-name: X-Trace-Id
+    generate-if-missing: true
+    mdc-enabled: true
+    mdc-key: traceId
+    response-header: true
+    response-header-name: X-Trace-Id
   
   # Error code mapping
   code-mapping:
@@ -722,6 +737,14 @@ fail-fast:
       - constraint: NotBlank
         bean: com.foo.UserDTO
         code: 40001
+```
+
+TraceId with logging output (example, keep the same console pattern):
+
+```yaml
+logging:
+  pattern:
+    console: "%clr(%d{${LOG_DATEFORMAT_PATTERN:yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:%5p}) %clr(${PID:-}){magenta} %clr([${spring.application.name:-}]){faint} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%replace([%X{traceId:-}]){'^\\\\[\\\\]$',''}%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
 ```
 
 ### ErrorPolicy (Advanced)

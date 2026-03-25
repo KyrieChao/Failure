@@ -145,16 +145,16 @@ This is an encoding convention used to distinguish different business error scen
 In `application.yml`, you can customize the mapping from response codes to HTTP status codes using numeric HTTP status codes:
 
 ```yaml
-failure:
+fail-fast:
   code-mapping:
     http-status:
-      40001: 400  # BAD_REQUEST
-      40101: 401  # UNAUTHORIZED
-      40301: 403  # FORBIDDEN
-      40401: 404  # NOT_FOUND
-      42201: 422  # UNPROCESSABLE_ENTITY
-      42901: 429  # TOO_MANY_REQUESTS
-      50001: 500  # INTERNAL_SERVER_ERROR
+      40001: 400
+      40101: 401
+      40301: 403
+      40401: 404
+      42201: 422
+      42901: 429
+      50001: 500
 ```
 
 ### 3.5 Mapping Examples
@@ -279,6 +279,16 @@ if (!errors.isEmpty()) {
 5. **Frontend-Backend Consistency**: Frontend and backend use the same response code definitions
 6. **Flexible Configuration**: Customize response code mapping through configuration files
 7. **Detailed Logging**: Record response codes and error information for easy troubleshooting
+
+### TraceId Logging (Recommended)
+
+Enable `fail-fast.trace-id.mdc-enabled=true` and print TraceId via MDC (example):
+
+```yaml
+logging:
+  pattern:
+    console: "%clr(%d{${LOG_DATEFORMAT_PATTERN:yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:%5p}) %clr(${PID:-}){magenta} %clr([${spring.application.name:-}]){faint} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%replace([%X{traceId:-}]){'^\\\\[\\\\]$',''}%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
+```
 
 ## 7. Summary
 

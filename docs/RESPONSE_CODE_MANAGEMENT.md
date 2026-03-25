@@ -146,16 +146,16 @@ HTTP状态码用于表示请求的整体状态，而内部code用于表示具体
 在 `application.yml` 中可以自定义响应码到HTTP状态码的映射，使用数字形式的HTTP状态码：
 
 ```yaml
-failure:
+fail-fast:
   code-mapping:
     http-status:
-      40001: 400  # BAD_REQUEST
-      40101: 401  # UNAUTHORIZED
-      40301: 403  # FORBIDDEN
-      40401: 404  # NOT_FOUND
-      42201: 422  # UNPROCESSABLE_ENTITY
-      42901: 429  # TOO_MANY_REQUESTS
-      50001: 500  # INTERNAL_SERVER_ERROR
+      40001: 400
+      40101: 401
+      40301: 403
+      40401: 404
+      42201: 422
+      42901: 429
+      50001: 500
 ```
 
 ### 3.5 映射示例
@@ -176,4 +176,121 @@ failure:
    - `400`：客户端错误，需要解析 `code` 字段做精细化处理
    - `500`：服务器错误，可能是单个错误或聚合错误
 
-2. **解析响应体中的 `code
+2. **解析响应体中的 `code` 字段**：
+   - 根据 `code` 的具体值展示不同的错误提示
+   - 对于聚合错误，查看 `errors` 字段获取详细信息
+
+### 4.2 前端示例
+
+```javascript
+fetch('/api/user/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ username: '', password: '' })
+})
+.then(response => {
+  if (response.status === 400) {
+    return response.json().then(data => {
+      switch(data.code) {
+        case 40012:
+          showError('密码不能为空');
+          break;
+        case 40013:
+          showError('用户不存在或密码错误');
+          break;
+        default:
+          showError('参数错误');
+      }
+    });
+  } else if (response.status === 500) {
+    return response.json().then(data => {
+      showError('系统错误，请稍后重试');
+      console.error(data);
+    });
+  }
+})
+.catch(error => {
+  showError('网络错误');
+});
+```
+
+## 5. 使用示例
+
+### 5.1 编程式校验
+
+```java
+// 密码为空
+if (password == null || password.isEmpty()) {
+  throw Business.of(
+    UserCode.PASSWORD_BLANK,
+    "密码不能为空"
+  );
+}
+
+// 用户名已存在
+if (userService.existsByUsername(username)) {
+  throw Business.of(
+    UserCode.USERNAME_EXIST,
+    "用户名已存在"
+  );
+}
+```
+
+### 5.2 注解校验（JSR-303）
+
+```java
+public class UserDTO {
+  @NotNull(message = "40014:用户名不能为空")
+  private String username;
+
+  @NotNull(message = "40023:密码不能为空")
+  @Size(min = 6, message = "密码长度不能小于6位")
+  private String password;
+
+  @NotNull(message = "40017:邮箱不能为空")
+  @Email(message = "40016:邮箱格式不正确")
+  private String email;
+}
+```
+
+### 5.3 聚合错误处理
+
+```java
+List<Business> errors = new ArrayList<>();
+if (username == null || username.isEmpty()) {
+  errors.add(Business.of(UserCode.USERNAME_BLANK, "用户名不能为空"));
+}
+if (password == null || password.isEmpty()) {
+  errors.add(Business.of(UserCode.PASSWORD_BLANK, "密码不能为空"));
+}
+if (email == null || email.isEmpty()) {
+  errors.add(Business.of(UserCode.EMAIL_BLANK, "邮箱不能为空"));
+}
+if (!errors.isEmpty()) {
+  throw new MultiBusiness(errors);
+}
+```
+
+## 6. 最佳实践
+
+1. **按模块分组**：用不同的枚举类按业务模块管理响应码
+2. **命名规范**：枚举常量名称应直观表达错误含义
+3. **统一管理**：集中管理响应码，避免散落在各处
+4. **语义清晰**：响应码含义清晰且不可歧义
+5. **前后端一致**：前后端统一响应码定义与含义
+6. **配置灵活**：通过配置文件自定义响应码与 HTTP 状态码映射
+7. **日志可追踪**：记录响应码与关键上下文，便于排查问题
+
+### TraceId 日志（建议）
+
+建议开启 `fail-fast.trace-id.mdc-enabled=true` 并通过 MDC 输出 TraceId（示例）：
+
+```yaml
+logging:
+  pattern:
+    console: "%clr(%d{${LOG_DATEFORMAT_PATTERN:yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:%5p}) %clr(${PID:-}){magenta} %clr([${spring.application.name:-}]){faint} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%replace([%X{traceId:-}]){'^\\\\[\\\\]$',''}%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
+```
+
+## 7. 总结
+
+本方案通过“响应码（内部语义）+ HTTP 状态码（协议语义）”的分离设计，实现了类型安全、易维护且可扩展的错误码体系。配合配置化映射与统一异常处理，可以在保证接口一致性的同时，提供足够精细的业务错误表达与可观测性。
