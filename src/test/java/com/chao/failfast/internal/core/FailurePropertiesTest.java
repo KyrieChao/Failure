@@ -54,12 +54,12 @@ class FailurePropertiesTest {
         FailureProperties properties = new FailureProperties();
         FailureProperties.TraceId traceId = properties.getTraceId();
         
-        assertThat(traceId.isEnabled()).isTrue();
+        assertThat(traceId.isEnabled()).isFalse();
         assertThat(traceId.getHeaderName()).isEqualTo("X-Trace-Id");
-        assertThat(traceId.isGenerateIfMissing()).isTrue();
-        assertThat(traceId.isResponseHeader()).isTrue();
+        assertThat(traceId.isGenerateIfMissing()).isFalse();
+        assertThat(traceId.isResponseHeader()).isFalse();
         assertThat(traceId.getResponseHeaderName()).isEqualTo("X-Trace-Id");
-        assertThat(traceId.isMdcEnabled()).isTrue();
+        assertThat(traceId.isMdcEnabled()).isFalse();
         assertThat(traceId.getMdcKey()).isEqualTo("traceId");
     }
 

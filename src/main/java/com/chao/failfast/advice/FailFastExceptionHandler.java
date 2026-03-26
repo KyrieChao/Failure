@@ -191,7 +191,9 @@ public abstract class FailFastExceptionHandler {
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
         body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
         body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
-        body.put(FailureConst.FIELD_TRACE_ID, getTraceId());
+        if (isTraceIdEnabled()) {
+            body.put(FailureConst.FIELD_TRACE_ID, getTraceId());
+        }
 
         String scene = getScene();
         if (!scene.isBlank() && !FailureConst.DEFAULT_SCENE.equals(scene)) {
@@ -372,7 +374,9 @@ public abstract class FailFastExceptionHandler {
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
         body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
         body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
-        body.put(FailureConst.FIELD_TRACE_ID, getTraceId());
+        if (isTraceIdEnabled()) {
+            body.put(FailureConst.FIELD_TRACE_ID, getTraceId());
+        }
 
         String scene = getScene();
         if (!scene.isBlank() && !FailureConst.DEFAULT_SCENE.equals(scene)) {
@@ -397,6 +401,17 @@ public abstract class FailFastExceptionHandler {
         errorItem.put(FailureConst.FIELD_DETAIL, I18n.get(e.getDetail()));
         errorItem.put(FailureConst.FIELD_REJECTED, e.getInvalidValue());
         return errorItem;
+    }
+
+    private boolean isTraceIdEnabled() {
+        if (properties == null) {
+            return true;
+        }
+        FailureProperties.TraceId traceId = properties.getTraceId();
+        if (traceId == null) {
+            return true;
+        }
+        return traceId.isEnabled();
     }
 
     /**

@@ -1,6 +1,5 @@
 package com.chao.failfast.internal.chain.pipeline;
 
-import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.constant.FailureConst;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -119,10 +118,10 @@ class ScopeMutationTest {
         scope.notNull(FailureConst.NOT_NULL_ERROR);
     }
 
-    // Test done method
+    // Test merge method
     @Test
-    void testDone() {
-        scope.done();
+    void testMerge() {
+        scope.merge();
     }
 
     // Test nested method with null item

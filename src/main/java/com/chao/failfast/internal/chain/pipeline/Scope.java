@@ -656,7 +656,7 @@ public class Scope<T> {
      * End validation for current item.
      *
      */
-    public void done() {
+    public void merge() {
     }
 
     /**

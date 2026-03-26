@@ -446,6 +446,35 @@ class FailFastExceptionHandlerTest {
     }
 
     @Test
+    void testBuildMapWithoutTraceIdWhenDisabled() {
+        FailureProperties.TraceId traceId = new FailureProperties.TraceId();
+        traceId.setEnabled(false);
+        Mockito.when(properties.getTraceId()).thenReturn(traceId);
+
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
+        var map = handler.buildMap(business);
+        assertNotNull(map);
+        assertFalse(map.containsKey(FailureConst.FIELD_TRACE_ID));
+    }
+
+    @Test
+    void testBuildMultiErrorResponseWithoutTraceIdWhenDisabled() {
+        FailureProperties.TraceId traceId = new FailureProperties.TraceId();
+        traceId.setEnabled(false);
+        Mockito.when(properties.getTraceId()).thenReturn(traceId);
+        Mockito.when(properties.isVerbose()).thenReturn(false);
+
+        List<Business> errors = List.of(
+                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1"),
+                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 2")
+        );
+        MultiBusiness multiBusiness = new MultiBusiness(errors);
+        var response = handler.buildMultiErrorResponse(multiBusiness);
+        assertNotNull(response);
+        assertFalse(((Map<?, ?>) response.getBody()).containsKey(FailureConst.FIELD_TRACE_ID));
+    }
+
+    @Test
     void testBuildMapDetail() {
         Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
         var map = handler.buildMapDetail(business);

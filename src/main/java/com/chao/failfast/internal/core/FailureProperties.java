@@ -127,12 +127,12 @@ public class FailureProperties {
 
     @Data
     public static class TraceId {
-        private boolean enabled = true;
+        private boolean enabled = false;
         private String headerName = "X-Trace-Id";
-        private boolean generateIfMissing = true;
-        private boolean responseHeader = true;
+        private boolean generateIfMissing = false;
+        private boolean responseHeader = false;
         private String responseHeaderName = "X-Trace-Id";
-        private boolean mdcEnabled = true;
+        private boolean mdcEnabled = false;
         private String mdcKey = "traceId";
     }
 }

@@ -674,7 +674,7 @@ class ResultsTest {
     void testDeferConcurrency() throws Exception {
         AtomicInteger counter = new AtomicInteger(0);
         CountDownLatch startLatch = new CountDownLatch(1); // 用于让两个线程同时起跑
-        CountDownLatch doneLatch = new CountDownLatch(2);  // 用于等待两个线程结束
+        CountDownLatch mergeLatch = new CountDownLatch(2);  // 用于等待两个线程结束
 
         var supplier = Results.defer(() -> {
             // 模拟一点耗时，增加线程 B 在外层等待锁的概率
@@ -697,7 +697,7 @@ class ResultsTest {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
-                doneLatch.countDown();
+                mergeLatch.countDown();
             }
         });
 
@@ -709,7 +709,7 @@ class ResultsTest {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
-                doneLatch.countDown();
+                mergeLatch.countDown();
             }
         });
 
@@ -720,7 +720,7 @@ class ResultsTest {
         startLatch.countDown();
 
         // 等待两个线程结束 (设置超时防止死锁)
-        boolean finished = doneLatch.await(2, java.util.concurrent.TimeUnit.SECONDS);
+        boolean finished = mergeLatch.await(2, java.util.concurrent.TimeUnit.SECONDS);
         assertThat(finished).isTrue();
 
         // --- 断言验证 ---

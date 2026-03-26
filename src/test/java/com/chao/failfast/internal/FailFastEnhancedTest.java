@@ -277,7 +277,7 @@ public class FailFastEnhancedTest {
 
                         scope.notBlank(itemNo, ResponseCode.VALIDATION_ERROR_400)
                                 .positive(quantity, ResponseCode.VALIDATION_ERROR_400)
-                                .done();
+                                .merge();
                     })
                     .fail();
         }

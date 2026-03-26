@@ -325,7 +325,7 @@ Failure.strict()
     .forEach(items, "items", s -> s
         .notBlank(s.field(Item::getSku).as("sku"), UserCode.SKU_BLANK)
         .positive(s.field(Item::getQty).as("qty"), UserCode.QTY_INVALID)
-        .done()
+        .merge()
     )
     .failAll();
 ```
@@ -353,7 +353,7 @@ Scope 既提供“路径引用构造”，也提供常用断言代理与嵌套�
 - `forEachEntry(getter, action)` / `forEachEntry(fieldName, getter, action)`（对 Map 的 value 嵌套遍历）
 
 **结束与策略**
-- `done()`：结束当前元素 scope
+- `merge()`：结束当前元素 scope
 - `stopItemOnFail()`：当当前元素产生错误后，停止该元素后续校验（不影响其它元素）
 
 完整实现见：[Scope.java](file:///d:/Work/WorkIDEA/SpringBoot/mvn/fail-fast-improved/failure-spring-boot-starter/src/main/java/com/chao/failfast/internal/chain/pipeline/Scope.java)

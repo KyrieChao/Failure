@@ -223,7 +223,7 @@ public class FailFastAutoConfiguration {
 
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    @ConditionalOnProperty(prefix = "fail-fast.trace-id", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "fail-fast.trace-id", name = "enabled", havingValue = "true")
     public FilterRegistrationBean<FailFastTraceIdFilter> failFastTraceIdFilter(FailureContext context) {
         FilterRegistrationBean<FailFastTraceIdFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new FailFastTraceIdFilter(context, properties.getTraceId()));

@@ -1,6 +1,5 @@
 package com.chao.failfast.internal.chain.pipeline;
 
-import com.chao.failfast.internal.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -211,8 +210,8 @@ class ScopeComprehensiveTest {
     }
 
     @Test
-    void testDone() {
-        scope.done();
+    void testMerge() {
+        scope.merge();
     }
 
     @Test

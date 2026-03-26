@@ -322,7 +322,7 @@ Failure.strict()
     .forEach(items, "items", s -> s
         .notBlank(s.field(Item::getSku).as("sku"), UserCode.SKU_BLANK)
         .positive(s.field(Item::getQty).as("qty"), UserCode.QTY_INVALID)
-        .done()
+        .merge()
     )
     .failAll();
 ```
@@ -348,7 +348,7 @@ Conditions & nesting:
 - `forEachEntry(getter, action)` / `forEachEntry(fieldName, getter, action)` for nested maps
 
 End & strategy:
-- `done()` ends current element scope
+- `merge()` ends current element scope
 - `stopItemOnFail()` stops validations for current element after its first error
 
 Full implementation: [Scope.java](file:///d:/Work/WorkIDEA/SpringBoot/mvn/fail-fast-improved/failure-spring-boot-starter/src/main/java/com/chao/failfast/internal/chain/pipeline/Scope.java)

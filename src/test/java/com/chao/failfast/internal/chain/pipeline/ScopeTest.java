@@ -13,9 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -477,9 +475,9 @@ class ScopeTest {
     }
 
     @Test
-    @DisplayName("测试done方法")
-    void testDone() {
-        scope.done();
+    @DisplayName("测试merge方法")
+    void testMerge() {
+        scope.merge();
         // 无异常抛出即可
     }
 

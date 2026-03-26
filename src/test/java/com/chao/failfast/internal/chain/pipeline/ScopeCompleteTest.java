@@ -11,8 +11,6 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.BiConsumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import static org.mockito.Mockito.*;
 
@@ -447,8 +445,8 @@ class ScopeCompleteTest {
 
     // Other methods
     @Test
-    void testDone() {
-        scope.done();
+    void testMerge() {
+        scope.merge();
     }
 
     @Test
