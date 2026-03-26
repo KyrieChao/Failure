@@ -16,7 +16,9 @@
 Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校验与业务异常处理框架。它遵循 "Fail Fast, Fail Strict" 设计哲学，旨在消除样板代码，提供类型安全、流式调用的校验体验。
 
 🔗 **实战示例项目**: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)
+
 🌐 **Failure 框架指南**: [KyrieChao Blogs](https://kyriechao.github.io)
+
 📊 **完整性能报告与测试代码**：[Failure-Benchmark](https://github.com/KyrieChao/Benchmark)
 
 ---

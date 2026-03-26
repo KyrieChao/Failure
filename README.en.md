@@ -19,7 +19,9 @@ Following the "Fail Fast, Fail Strict" philosophy, it eliminates boilerplate cod
 validation experience.
 
 🔗 Practical Example Project: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)
+
 🌐 Failure Framework Guide: [KyrieChao Blogs](https://kyriechao.github.io)
+
 📊 Full Performance Report & Test Code: [Failure-Benchmark](https://github.com/KyrieChao/Benchmark)
 
 ---
