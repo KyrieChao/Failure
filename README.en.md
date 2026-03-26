@@ -18,7 +18,9 @@ Failure is a lightweight, high-performance validation and business-exception fra
 Following the "Fail Fast, Fail Strict" philosophy, it eliminates boilerplate code and provides a type-strict, fluent
 validation experience.
 
-🔗 **Live Demo**: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)
+🔗 Practical Example Project: [Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)
+🌐 Failure Framework Guide: [KyrieChao Blogs](https://kyriechao.github.io)
+📊 Full Performance Report & Test Code: [Failure-Benchmark](https://github.com/KyrieChao/Benchmark)
 
 ---
 
