@@ -21,7 +21,7 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
-        run: mvn clean verify
+        run: mvn clean verify -q  # 添加 -q 参数减少日志输出
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
