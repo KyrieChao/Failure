@@ -22,15 +22,16 @@ jobs:
 
       - name: Build and Test
         run: |
-          mvn clean test -B --no-transfer-progress
-          # 显式生成报告
-          mvn jacoco:report -B --no-transfer-progress
+          mvn clean test jacoco:report -B --no-transfer-progress > build.log 2>&1 || EXIT_CODE=$?
+          if [ -n "$EXIT_CODE" ]; then
+            echo "❌ Build failed"
+            tail -n 100 build.log
+            exit $EXIT_CODE
+          fi
+          echo "✅ Build successful"
 
-      - name: Verify files exist
-        run: |
-          echo "Checking for coverage files..."
-          find . -name "jacoco*.xml" -type f 2>/dev/null || echo "No jacoco XML found"
-          ls -la target/site/jacoco/ 2>/dev/null || echo "Directory not found"
+      - name: Verify coverage file
+        run: ls -la target/site/jacoco/jacoco.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -38,7 +39,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: KyrieChao/Failure
-          files: ./target/site/jacoco/jacoco.xml
-          flags: unittests
-          name: codecov-umbrella
+          files: target/site/jacoco/jacoco.xml
           fail_ci_if_error: false
