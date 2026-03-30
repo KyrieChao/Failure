@@ -20,8 +20,26 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build with Maven
-        run: mvn clean verify -B -q --no-transfer-progress
+      - name: Build with Maven (silent)
+        run: |
+          mvn clean verify \
+            -B \
+            --batch-mode \
+            --quiet \
+            --no-transfer-progress \
+            -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
+            -Dorg.slf4j.simpleLogger.defaultLogLevel=error \
+            -Dorg.apache.maven.user-settings.skip=true \
+            2>&1 | tee maven.log || EXIT_CODE=$?
+          
+          if [ -n "$EXIT_CODE" ]; then
+            echo "❌ Build failed with exit code $EXIT_CODE"
+            tail -n 100 maven.log
+            exit $EXIT_CODE
+          fi
+          
+          echo "✅ Build successful"
+          tail -n 20 maven.log
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
