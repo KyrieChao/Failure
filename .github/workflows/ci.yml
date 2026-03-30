@@ -22,13 +22,8 @@ jobs:
 
       - name: Build and Test
         run: |
-          mvn clean test jacoco:report -B --no-transfer-progress > build.log 2>&1 || EXIT_CODE=$?
-          if [ -n "$EXIT_CODE" ]; then
-            echo "❌ Build failed"
-            tail -n 100 build.log
-            exit $EXIT_CODE
-          fi
-          echo "✅ Build successful"
+          export MAVEN_OPTS="-Duser.language=en -Duser.country=CN"
+          mvn clean test jacoco:report -B --no-transfer-progress
 
       - name: Verify coverage file
         run: ls -la target/site/jacoco/jacoco.xml
