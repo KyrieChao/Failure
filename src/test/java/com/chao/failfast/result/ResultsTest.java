@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -617,7 +618,9 @@ class ResultsTest {
         // 验证错误码是否是中断错误
         assertThat(resultHolder[0].getCode()).isEqualTo(ResponseCode.INTERRUPTED_ERROR.getCode());
         // 或者验证消息
-        assertThat(resultHolder[0].getMessage()).contains("interrupted");
+        // Results.java
+//        String msg = Locale.getDefault().getLanguage().equals("zh") ? "重试被中断" : "Retry interrupted";
+        assertThat(resultHolder[0].getMessage()).contains("重试被中断");
 
         // 验证重试次数：
         // i=0: 执行supplier (count=1), 失败
