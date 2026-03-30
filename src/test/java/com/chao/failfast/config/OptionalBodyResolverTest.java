@@ -1,6 +1,7 @@
 package com.chao.failfast.config;
 
 import com.chao.failfast.annotation.FailFastBody;
+import com.chao.failfast.integration.mvc.OptionalBodyResolver;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.core.MethodParameter;
@@ -251,7 +252,7 @@ class OptionalBodyResolverTest {
         MethodParameter original = new MethodParameter(method, 0);
         FailFastBody ann = method.getParameters()[0].getAnnotation(FailFastBody.class);
 
-        Class<?> wrapperType = Class.forName("com.chao.failfast.config.OptionalBodyResolver$FailFastBodyMethodParameter");
+        Class<?> wrapperType = Class.forName("com.chao.failfast.integration.mvc.OptionalBodyResolver$FailFastBodyMethodParameter");
         var ctor = wrapperType.getDeclaredConstructor(MethodParameter.class, FailFastBody.class);
         ctor.setAccessible(true);
         Object wrapped = ctor.newInstance(original, ann);
@@ -283,7 +284,7 @@ class OptionalBodyResolverTest {
         var method = ControllerLike.class.getDeclaredMethod("create", String.class);
         MethodParameter original = new MethodParameter(method, 0);
 
-        Class<?> wrapperType = Class.forName("com.chao.failfast.config.OptionalBodyResolver$FailFastBodyMethodParameter");
+        Class<?> wrapperType = Class.forName("com.chao.failfast.integration.mvc.OptionalBodyResolver$FailFastBodyMethodParameter");
         var ctor = wrapperType.getDeclaredConstructor(MethodParameter.class, FailFastBody.class);
         ctor.setAccessible(true);
         Object wrapped = ctor.newInstance(original, null);
@@ -307,7 +308,7 @@ class OptionalBodyResolverTest {
         MethodParameter original = new MethodParameter(method, 0);
         FailFastBody ann = method.getParameters()[0].getAnnotation(FailFastBody.class);
 
-        Class<?> wrapperType = Class.forName("com.chao.failfast.config.OptionalBodyResolver$FailFastBodyMethodParameter");
+        Class<?> wrapperType = Class.forName("com.chao.failfast.integration.mvc.OptionalBodyResolver$FailFastBodyMethodParameter");
         var ctor = wrapperType.getDeclaredConstructor(MethodParameter.class, FailFastBody.class);
         ctor.setAccessible(true);
         Object wrapped = ctor.newInstance(original, ann);
@@ -331,7 +332,7 @@ class OptionalBodyResolverTest {
         MethodParameter original = new MethodParameter(method, 0);
         FailFastBody ann = method.getParameters()[0].getAnnotation(FailFastBody.class);
 
-        Class<?> wrapperType = Class.forName("com.chao.failfast.config.OptionalBodyResolver$FailFastBodyMethodParameter");
+        Class<?> wrapperType = Class.forName("com.chao.failfast.integration.mvc.OptionalBodyResolver$FailFastBodyMethodParameter");
         var ctor = wrapperType.getDeclaredConstructor(MethodParameter.class, FailFastBody.class);
         ctor.setAccessible(true);
         Object wrapped = ctor.newInstance(original, ann);

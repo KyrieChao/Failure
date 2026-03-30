@@ -1,6 +1,7 @@
 package com.chao.failfast.config;
 
-import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.properties.FailureProperties;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
@@ -206,6 +207,19 @@ class CodeMappingConfigTest {
         CodeMappingConfig config = new CodeMappingConfig(properties);
         assertEquals(HttpStatus.BAD_REQUEST, config.resolveHttpStatus(400));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, config.resolveHttpStatus(500));
+    }
+
+    @Test
+    void testResolveHttpStatusWithUnknownStandardCodeFallsBack() {
+        FailureProperties properties = Mockito.mock(FailureProperties.class);
+        FailureProperties.CodeMapping codeMapping = Mockito.mock(FailureProperties.CodeMapping.class);
+        Mockito.when(properties.getCodeMapping()).thenReturn(codeMapping);
+        Mockito.when(codeMapping.getHttpStatus()).thenReturn(new HashMap<>());
+        Mockito.when(codeMapping.getGroups()).thenReturn(null);
+
+        CodeMappingConfig config = new CodeMappingConfig(properties);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, config.resolveHttpStatus(199));
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, config.resolveHttpStatus(99));
     }
 
     @Test

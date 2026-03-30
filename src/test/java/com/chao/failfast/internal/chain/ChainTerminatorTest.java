@@ -1,7 +1,7 @@
 package com.chao.failfast.internal.chain;
 
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.internal.chain.pipeline.ChainCore;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;

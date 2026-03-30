@@ -1,6 +1,7 @@
-package com.chao.failfast.internal;
+package com.chao.failfast.exception;
 
-import com.chao.failfast.config.CodeMappingConfig;
+import com.chao.failfast.internal.core.Ex;
+import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
@@ -11,13 +12,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -1,6 +1,6 @@
 package com.chao.failfast.result;
 
-import com.chao.failfast.internal.Business;
+import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;

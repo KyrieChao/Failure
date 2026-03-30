@@ -4,6 +4,8 @@ import com.chao.failfast.annotation.FastValidator;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.Test;
 
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class TypedValidatorTest {
@@ -41,7 +43,7 @@ class TypedValidatorTest {
     @Test
     void testRegisterWithMoreThan10Types() {
         TestTypedValidator validator = new TestTypedValidator();
-        // 使用不同的类型来注册验证器
+        // 使用不同的类型来注册验证�?
         validator.register(String.class, (s, ctx) -> {});
         validator.register(Integer.class, (i, ctx) -> {});
         validator.register(Double.class, (d, ctx) -> {});
@@ -498,6 +500,98 @@ class TypedValidatorTest {
         FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
         validator.validate(new Impl(), context);
         assertFalse(context.isValid());
+    }
+
+    @Test
+    void testRegisterWithMoreThan10TypesUpdatesCache() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // Register 11 types to trigger cache update
+        validator.register(String.class, (s, ctx) -> {});
+        validator.register(Integer.class, (i, ctx) -> {});
+        validator.register(Double.class, (d, ctx) -> {});
+        validator.register(Boolean.class, (b, ctx) -> {});
+        validator.register(Long.class, (l, ctx) -> {});
+        validator.register(Float.class, (f, ctx) -> {});
+        validator.register(Short.class, (s, ctx) -> {});
+        validator.register(Byte.class, (b, ctx) -> {});
+        validator.register(Character.class, (c, ctx) -> {});
+        validator.register(Void.class, (v, ctx) -> {});
+        validator.register(Object.class, (o, ctx) -> {});
+        // Get registered types to ensure cache is used
+        Set<Class<?>> types = validator.getRegisteredTypes();
+        assertEquals(11, types.size());
+    }
+
+    @Test
+    void testRegisterWithLessThan11TypesDoesNotCache() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // Register 10 types (should not trigger cache)
+        validator.register(String.class, (s, ctx) -> {});
+        validator.register(Integer.class, (i, ctx) -> {});
+        validator.register(Double.class, (d, ctx) -> {});
+        validator.register(Boolean.class, (b, ctx) -> {});
+        validator.register(Long.class, (l, ctx) -> {});
+        validator.register(Float.class, (f, ctx) -> {});
+        validator.register(Short.class, (s, ctx) -> {});
+        validator.register(Byte.class, (b, ctx) -> {});
+        validator.register(Character.class, (c, ctx) -> {});
+        validator.register(Void.class, (v, ctx) -> {});
+        // Get registered types (should compute each time)
+        Set<Class<?>> types = validator.getRegisteredTypes();
+        assertEquals(10, types.size());
+    }
+
+    @Test
+    void testValidateWithRegisteredTypeTriggersValidation() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // Register a validator that reports error for empty strings
+        validator.register(String.class, (s, ctx) -> {
+            if (s.isEmpty()) {
+                ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL);
+            }
+        });
+        // Test with empty string (should fail)
+        FastValidator.ValidationContext context1 = new FastValidator.ValidationContext(true);
+        validator.validate("", context1);
+        assertFalse(context1.isValid());
+        // Test with non-empty string (should pass)
+        FastValidator.ValidationContext context2 = new FastValidator.ValidationContext(true);
+        validator.validate("test", context2);
+        assertTrue(context2.isValid());
+    }
+
+    @Test
+    void testValidateIfRegisteredWithRegisteredTypeTriggersValidation() {
+        TestTypedValidator validator = new TestTypedValidator();
+        // Register a validator that reports error for empty strings
+        validator.register(String.class, (s, ctx) -> {
+            if (s.isEmpty()) {
+                ctx.reportError(ResponseCode.VALIDATION_ERROR_NULL);
+            }
+        });
+        // Test with empty string (should trigger validation and return true)
+        FastValidator.ValidationContext context1 = new FastValidator.ValidationContext(true);
+        boolean result1 = validator.validateIfRegistered("", context1);
+        assertTrue(result1);
+        assertFalse(context1.isValid());
+        // Test with non-empty string (should trigger validation and return true)
+        FastValidator.ValidationContext context2 = new FastValidator.ValidationContext(true);
+        boolean result2 = validator.validateIfRegistered("test", context2);
+        assertTrue(result2);
+        assertTrue(context2.isValid());
+    }
+
+    @Test
+    void testDistanceWithDeepInheritance() {
+        class Grandparent {
+        }
+        class Parent extends Grandparent {
+        }
+        class Child extends Parent {
+        }
+
+        TestTypedValidator validator = new TestTypedValidator();
+        assertEquals(2, validator.distance(Child.class, Grandparent.class));
     }
 
     // Test implementation of TypedValidator

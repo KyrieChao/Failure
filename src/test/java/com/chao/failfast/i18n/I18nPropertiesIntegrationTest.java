@@ -2,7 +2,7 @@ package com.chao.failfast.i18n;
 
 import com.chao.failfast.Failure;
 import com.chao.failfast.annotation.Validate;
-import com.chao.failfast.config.FailFastAutoConfiguration;
+import com.chao.failfast.autoconfigure.FailFastAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;

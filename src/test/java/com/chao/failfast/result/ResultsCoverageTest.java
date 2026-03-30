@@ -5,8 +5,6 @@ import com.chao.failfast.model.TestResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,7 +45,7 @@ class ResultsCoverageTest {
     }
 
     @Test
-    @DisplayName("whenOrFail: 异常且无detail时使用异常消息")
+@DisplayName("display")
     void whenOrFail_exceptionNoDetail() {
         Result<String> result = Results.whenOrFail(true, () -> {
             throw new RuntimeException();

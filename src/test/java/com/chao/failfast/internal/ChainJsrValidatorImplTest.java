@@ -2,10 +2,11 @@ package com.chao.failfast.internal;
 
 import com.chao.failfast.annotation.FastValidator.ValidationContext;
 import com.chao.failfast.constant.Scenario;
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.chain.pipeline.ChainCore;
-import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.internal.core.Chain;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.internal.chain.pipeline.ChainCore;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotBlank;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;

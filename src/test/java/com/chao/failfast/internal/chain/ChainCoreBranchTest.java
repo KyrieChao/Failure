@@ -1,15 +1,15 @@
 package com.chao.failfast.internal.chain;
 
 import com.chao.failfast.annotation.FastValidator.ValidationContext;
-import com.chao.failfast.config.CodeMappingConfig;
+import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.i18n.I18nExtension;
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.Ex;
+import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
+import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.chain.pipeline.ChainCore;
 import com.chao.failfast.internal.chain.pipeline.CheckSpec;
-import com.chao.failfast.internal.core.FailureProperties;
-import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.internal.policy.ErrorPolicy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

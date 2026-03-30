@@ -1,6 +1,8 @@
 package com.chao.failfast.internal.check;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -77,6 +79,31 @@ public final class CollectionChecks {
      */
     public static boolean notContains(Collection<?> col, Object o) {
         return col == null || !col.contains(o);
+    }
+
+    public static boolean containsAll(Collection<?> col, Collection<?> required) {
+        return col != null && required != null && col.containsAll(required);
+    }
+
+    public static <T> boolean noneMatch(Collection<T> col, Predicate<T> predicate) {
+        if (col == null || predicate == null) return false;
+        for (T t : col) {
+            if (predicate.test(t)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean uniqueElements(Collection<?> col) {
+        if (col == null) return true;
+        Set<Object> set = new HashSet<>(Math.max(16, (int) (col.size() / 0.75f) + 1));
+        for (Object element : col) {
+            if (!set.add(element)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

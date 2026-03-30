@@ -14,20 +14,20 @@ class DefaultErrorPolicyTest {
     private final DefaultErrorPolicy policy = DefaultErrorPolicy.INSTANCE;
 
     @Test
-    @DisplayName("INSTANCE 应返回单例实例")
+@DisplayName("display")
     void instanceShouldReturnSingletonInstance() {
         assertThat(DefaultErrorPolicy.INSTANCE).isSameAs(DefaultErrorPolicy.INSTANCE);
     }
 
     @Test
-    @DisplayName("defaultCode: 应返回 VALIDATION_ERROR_500_DYNAMIC")
+@DisplayName("display")
     void defaultCodeShouldReturnValidationError500Dynamic() {
         ResponseCode code = policy.defaultCode();
         assertThat(code).isEqualTo(ResponseCode.VALIDATION_ERROR_500_DYNAMIC);
     }
 
     @Test
-    @DisplayName("defaultDetail: 当 code 有描述时应返回描述")
+@DisplayName("display")
     void defaultDetailShouldReturnDescriptionWhenAvailable() {
         ResponseCode code = ResponseCode.of(400, "Message", "Description");
         String detail = policy.defaultDetail(code);
@@ -35,7 +35,7 @@ class DefaultErrorPolicyTest {
     }
 
     @Test
-    @DisplayName("defaultDetail: 当 code 没有描述但有消息时应返回消息")
+@DisplayName("display")
     void defaultDetailShouldReturnMessageWhenDescriptionNotAvailable() {
         ResponseCode code = ResponseCode.of(400, "Message");
         String detail = policy.defaultDetail(code);
@@ -43,7 +43,7 @@ class DefaultErrorPolicyTest {
     }
 
     @Test
-    @DisplayName("defaultDetail: 当 code 既没有描述也没有消息时应返回 null")
+@DisplayName("display")
     void defaultDetailShouldReturnNullWhenNeitherDescriptionNorMessageAvailable() {
         ResponseCode code = ResponseCode.of(400);
         String detail = policy.defaultDetail(code);
@@ -51,14 +51,14 @@ class DefaultErrorPolicyTest {
     }
 
     @Test
-    @DisplayName("captureInvalidValue: 当 context 为 null 时应返回 true")
+@DisplayName("display")
     void captureInvalidValueShouldReturnTrueWhenContextIsNull() {
         boolean result = policy.captureInvalidValue(null);
         assertThat(result).isTrue();
     }
 
     @Test
-    @DisplayName("captureInvalidValue: 当 context 的 debugSnapshot 为 true 时应返回 true")
+@DisplayName("display")
     void captureInvalidValueShouldReturnTrueWhenDebugSnapshotIsTrue() {
         FailureContext context = Mockito.mock(FailureContext.class);
         Mockito.when(context.isDebugSnapshot()).thenReturn(true);
@@ -68,7 +68,7 @@ class DefaultErrorPolicyTest {
     }
 
     @Test
-    @DisplayName("captureInvalidValue: 当 context 的 debugSnapshot 为 false 时应返回 false")
+@DisplayName("display")
     void captureInvalidValueShouldReturnFalseWhenDebugSnapshotIsFalse() {
         FailureContext context = Mockito.mock(FailureContext.class);
         Mockito.when(context.isDebugSnapshot()).thenReturn(false);

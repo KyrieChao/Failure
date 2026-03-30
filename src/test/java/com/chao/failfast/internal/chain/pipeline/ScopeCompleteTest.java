@@ -130,14 +130,14 @@ class ScopeCompleteTest {
     void testCheckWithPredicateAndNullValue() {
         PathEntry<String> nullRef = new PathEntry<>(null, "testPath");
         scope.check(nullRef, s -> true, ResponseCode.VALIDATION_ERROR_400, "detail");
-        verify(chain).checkRef(false, ResponseCode.VALIDATION_ERROR_400, nullRef);
+        verify(chain).checkRef(eq(false), any(ResponseCode.class), eq(nullRef));
     }
 
     @Test
     void testCheckWithPredicateAndNonNullValue() {
         PathEntry<String> nonNullRef = new PathEntry<>("test", "testPath");
         scope.check(nonNullRef, s -> true, ResponseCode.VALIDATION_ERROR_400, "detail");
-        verify(chain).checkRef(true, ResponseCode.VALIDATION_ERROR_400, nonNullRef);
+        verify(chain).checkRef(eq(true), any(ResponseCode.class), eq(nonNullRef));
     }
 
     @Test
@@ -153,7 +153,7 @@ class ScopeCompleteTest {
         setEnded(false);
         PathEntry<String> ref = new PathEntry<>("test", "testPath");
         scope.check(ref, () -> true, ResponseCode.VALIDATION_ERROR_400, "detail");
-        verify(chain).checkRef(true, ResponseCode.VALIDATION_ERROR_400, ref);
+        verify(chain).checkRef(eq(true), any(ResponseCode.class), eq(ref));
     }
 
     // Conditional methods

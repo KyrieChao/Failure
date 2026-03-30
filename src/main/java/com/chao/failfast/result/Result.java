@@ -1,14 +1,17 @@
 package com.chao.failfast.result;
 
 import com.chao.failfast.constant.FailureConst;
-import com.chao.failfast.internal.Business;
+import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.util.I18n;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -376,6 +379,32 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      */
     public Stream<T> stream() {
         return isSuccess() ? Stream.ofNullable(get()) : Stream.empty();
+    }
+
+    public Mono<T> toMono() {
+        return isSuccess() ? Mono.justOrEmpty(getOrNull()) : Mono.error(getError());
+    }
+
+    public Flux<T> toFlux() {
+        if (isFail()) {
+            return Flux.error(getError());
+        }
+        return Mono.justOrEmpty(getOrNull()).flux();
+    }
+
+    @SuppressWarnings("unchecked")
+    public <E> Flux<E> toFluxElements() {
+        if (isFail()) {
+            return Flux.error(getError());
+        }
+        T value = getOrNull();
+        if (value == null) {
+            return Flux.empty();
+        }
+        if (!(value instanceof Collection<?> c)) {
+            return Flux.error(new IllegalStateException("Result value is not a Collection"));
+        }
+        return (Flux<E>) Flux.fromIterable(c);
     }
 
     /**

@@ -2,7 +2,6 @@ package com.chao.failfast.internal.check;
 
 import com.chao.failfast.annotation.FastValidator;
 import com.chao.failfast.internal.chain.pipeline.ChainCore;
-import com.chao.failfast.internal.chain.pipeline.Scope;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,7 +11,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("IterableChecks 工具类测试")
+@DisplayName("display")
 class IterableChecksTest {
 
     static class TestChain extends ChainCore<TestChain> {
@@ -57,10 +56,10 @@ class IterableChecksTest {
     }
 
     @Test
-    @DisplayName("forEach: 当链应跳过验证时应直接返回")
+@DisplayName("display")
     void forEachShouldReturnDirectlyWhenChainShouldSkip() {
         TestChain chain = TestChain.create(true);
-        // 触发失败，使链进入跳过状态
+        // 触发失败，使链进入跳过状�?
         chain.check(false, ResponseCode.VALIDATION_ERROR_400, "Error");
 
         List<String> items = new ArrayList<>();
@@ -92,7 +91,7 @@ class IterableChecksTest {
     }
 
     @Test
-    @DisplayName("forEach: 当集合为空时应直接返回")
+@DisplayName("display")
     void forEachShouldReturnDirectlyWhenItemsIsEmpty() {
         TestChain chain = TestChain.create(false);
         List<String> items = new ArrayList<>();
@@ -107,7 +106,7 @@ class IterableChecksTest {
     }
 
     @Test
-    @DisplayName("forEach: pathPrefix 为 null 时使用默认索引路径")
+@DisplayName("display")
     void forEachShouldUseIndexPathWhenPrefixIsNull() {
         TestChain chain = TestChain.create(false);
         List<String> items = List.of("a", "b");
@@ -119,7 +118,7 @@ class IterableChecksTest {
     }
 
     @Test
-    @DisplayName("forEach: failFast 模式下产生错误后应停止遍历")
+@DisplayName("display")
     void forEachShouldStopWhenFailFastAndErrorOccurs() {
         TestChain chain = TestChain.create(true);
         List<String> items = List.of("a", "b");
@@ -134,7 +133,7 @@ class IterableChecksTest {
     }
 
     @Test
-    @DisplayName("forEach: 错误数达到上限后应停止遍历")
+@DisplayName("display")
     void forEachShouldStopWhenMaxErrorsReached() {
         TestChain chain = TestChain.create(false);
         List<Integer> items = new ArrayList<>();
@@ -150,7 +149,7 @@ class IterableChecksTest {
     }
 
     @Test
-    @DisplayName("forEach: 元素数达到上限后应停止遍历")
+@DisplayName("display")
     void forEachShouldStopWhenMaxItemsReached() {
         TestChain chain = TestChain.create(false);
         List<Integer> items = new ArrayList<>();

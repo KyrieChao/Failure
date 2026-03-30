@@ -1,8 +1,8 @@
 package com.chao.failfast.internal;
 
-import com.chao.failfast.config.CodeMappingConfig;
+import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.internal.core.FailureContext;
-import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.config.properties.FailureProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@DisplayName("FailureContext 上下文测试")
+@DisplayName("display")
 class FailContextTest {
 
     private FailureProperties properties;
@@ -36,7 +36,7 @@ class FailContextTest {
     }
 
     @Test
-    @DisplayName("withPrintMethod 应临时覆盖配置")
+@DisplayName("display")
     void shouldOverrideConfigTemporarily() {
         when(properties.isShadowTrace()).thenReturn(false);
 
@@ -48,7 +48,7 @@ class FailContextTest {
     }
 
     @Test
-    @DisplayName("withPrintMethod (Runnable) 应临时覆盖配置")
+@DisplayName("display")
     void shouldOverrideConfigTemporarilyRunnable() {
         when(properties.isShadowTrace()).thenReturn(false);
 
@@ -60,7 +60,7 @@ class FailContextTest {
     }
 
     @Test
-    @DisplayName("clearThreadContext 应清除覆盖")
+@DisplayName("display")
     void shouldClearThreadContext() {
         when(properties.isShadowTrace()).thenReturn(false);
 
@@ -90,17 +90,17 @@ class FailContextTest {
     class MethodEnabledTest {
 
         @Test
-        @DisplayName("clearThreadContext 应清除 methodEnabledOverride")
+@DisplayName("display")
         void shouldClearMethodEnabledOverride() {
-            // 通过 withPrintMethod 间接测试 clearThreadContext 会清除所有 ThreadLocal
+            // 通过 withPrintMethod 间接测试 clearThreadContext 会清除所�?ThreadLocal
             when(properties.isShadowTrace()).thenReturn(false);
 
             context.withPrintMethod(true, () -> {
-                // 此时 printMethodOverride 被设置
+                // 此时 printMethodOverride 被设�?
                 assertThat(context.isShadowTrace()).isTrue();
             });
 
-            // withPrintMethod 的 finally 会恢复，然后 clearThreadContext 再清除一次
+            // withPrintMethod �?finally 会恢复，然后 clearThreadContext 再清除一�?
             context.clearThreadContext();
             assertThat(context.isShadowTrace()).isFalse();
         }
@@ -111,19 +111,19 @@ class FailContextTest {
     class NestedWithPrintMethodTest {
 
         @Test
-        @DisplayName("嵌套调用 withPrintMethod 应正确恢复")
+@DisplayName("display")
         void shouldHandleNestedCalls() {
             when(properties.isShadowTrace()).thenReturn(false);
 
             context.withPrintMethod(true, () -> {
                 assertThat(context.isShadowTrace()).isTrue();
 
-                // 嵌套调用，设置不同的值
+                // 嵌套调用，设置不同的�?
                 context.withPrintMethod(false, () -> {
                     assertThat(context.isShadowTrace()).isFalse();
                 });
 
-                // 外层应该恢复为 true
+                // 外层应该恢复�?true
                 assertThat(context.isShadowTrace()).isTrue();
             });
 
@@ -132,17 +132,17 @@ class FailContextTest {
         }
 
         @Test
-        @DisplayName("withPrintMethod 异常时也应恢复配置")
+@DisplayName("display")
         void shouldRestoreOnException() {
             when(properties.isShadowTrace()).thenReturn(false);
 
-            // 先设置一个值，让 original != null
+            // 先设置一个值，�?original != null
             context.withPrintMethod(true, () -> {
-                // 外层设置为 true
+                // 外层设置�?true
                 assertThat(context.isShadowTrace()).isTrue();
 
                 try {
-                    // 内层设置为 false，original 会是 true
+                    // 内层设置�?false，original 会是 true
                     context.withPrintMethod(false, () -> {
                         assertThat(context.isShadowTrace()).isFalse();
                         throw new RuntimeException("test exception");
@@ -151,7 +151,7 @@ class FailContextTest {
                     assertThat(e.getMessage()).isEqualTo("test exception");
                 }
 
-                // 内层结束后，应该恢复为 true（不是全局的 false）
+                // 内层结束后，应该恢复�?true（不是全局�?false�?
                 assertThat(context.isShadowTrace()).isTrue();
 
                 return null;
@@ -163,11 +163,11 @@ class FailContextTest {
     }
 
     @Nested
-    @DisplayName("Supplier 返回值测试")
+@DisplayName("display")
     class SupplierReturnTest {
 
         @Test
-        @DisplayName("withPrintMethod(Supplier) 应返回正确值")
+@DisplayName("display")
         void shouldReturnSupplierValue() {
             when(properties.isShadowTrace()).thenReturn(false);
 
@@ -181,11 +181,11 @@ class FailContextTest {
     }
 
     @Nested
-    @DisplayName("全局配置为 true 时测试")
+@DisplayName("display")
     class GlobalTrueTest {
 
         @Test
-        @DisplayName("当全局配置为 true 且覆盖为 false 时应使用覆盖值")
+@DisplayName("display")
         void shouldUseOverrideWhenGlobalTrue() {
             when(properties.isShadowTrace()).thenReturn(true);
 

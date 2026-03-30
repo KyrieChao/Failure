@@ -1,6 +1,6 @@
 package com.chao.failfast.internal;
 
-import com.chao.failfast.constant.FailureConst;
+import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -246,12 +246,20 @@ class ExTest {
             // Given
             StackWalker.StackFrame mockFrame = mock(StackWalker.StackFrame.class);
             when(mockFrame.getClassName()).thenReturn("com.chao.failfast.internal.TestClass");
+            
+            // Set up skip prefix registry
+            com.chao.failfast.config.registry.DefaultSkipPrefixRegistry registry = new com.chao.failfast.config.registry.DefaultSkipPrefixRegistry();
+            registry.add("com.chao.failfast.internal");
+            Ex.setSkipPrefixRegistry(registry);
 
             // When
             boolean result = invokeIsNotSkipped(mockFrame);
 
             // Then
             assertThat(result).isFalse();
+            
+            // Clean up
+            Ex.setSkipPrefixRegistry(null);
         }
 
         @Test
@@ -342,7 +350,7 @@ class ExTest {
                 java.lang.reflect.Constructor<Ex> constructor = Ex.class.getDeclaredConstructor();
                 constructor.setAccessible(true);
                 Ex instance = constructor.newInstance();
-                // 构造函数执行成功，但我们应该确保类是final的，不能被继承
+                // 构造函数执行成功，但我们应该确保类是final的，不能被继�?
                 assertThat(instance).isNotNull();
             } catch (Exception e) {
                 // 如果抛出异常，也接受

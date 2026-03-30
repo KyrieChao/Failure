@@ -275,6 +275,18 @@ public final class FailureConst {
      */
     public static final ResponseCode NOT_CONTAINS_ERROR = ResponseCode.of(500, "Current value notContains", "{response.code.not.contains}");
     /**
+     * containsAll default error.
+     */
+    public static final ResponseCode CONTAINS_ALL_ERROR = ResponseCode.of(500, "Current value containsAll", "{response.code.contains.all}");
+    /**
+     * uniqueElements default error.
+     */
+    public static final ResponseCode UNIQUE_ELEMENTS_ERROR = ResponseCode.of(500, "Current value uniqueElements", "{response.code.unique.elements}");
+    /**
+     * noneMatch default error.
+     */
+    public static final ResponseCode NONE_MATCH_ERROR = ResponseCode.of(500, "Current value noneMatch", "{response.code.none.match}");
+    /**
      * isLowerCase default error.
      */
     public static final ResponseCode IS_LOWER_CASE_ERROR = ResponseCode.of(500, "Current value isLowerCase", "{response.code.is.lower.case}");

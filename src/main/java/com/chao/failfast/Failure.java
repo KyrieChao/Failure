@@ -1,7 +1,7 @@
 package com.chao.failfast;
 
 import com.chao.failfast.annotation.FastValidator.ValidationContext;
-import com.chao.failfast.internal.Chain;
+import com.chao.failfast.internal.core.Chain;
 
 /**
  * Failure static entry class - Chain validation API.

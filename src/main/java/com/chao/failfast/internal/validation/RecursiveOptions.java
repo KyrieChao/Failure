@@ -41,4 +41,10 @@ public class RecursiveOptions {
      */
     @Builder.Default
     private int maxErrors = 100;
+
+    /**
+     * Whether to deduplicate visited objects globally during recursion.
+     */
+    @Builder.Default
+    private boolean dedupeGlobal = true;
 }

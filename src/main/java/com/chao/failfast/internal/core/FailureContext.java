@@ -1,11 +1,16 @@
 package com.chao.failfast.internal.core;
 
-import com.chao.failfast.config.CodeMappingConfig;
+import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.constant.FailureConst;
+import com.chao.failfast.integration.webflux.ReactiveTrace;
 import com.chao.failfast.internal.policy.DefaultErrorPolicy;
 import com.chao.failfast.internal.policy.ErrorPolicy;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 import java.util.function.Supplier;
 
@@ -74,6 +79,18 @@ public class FailureContext {
         return properties.isShadowTrace();
     }
 
+    public boolean isTrimStackTrace() {
+        return properties.isTrimStackTrace();
+    }
+
+    public boolean isMethodEnabled() {
+        Boolean override = methodEnabledOverride.get();
+        if (override != null) {
+            return override;
+        }
+        return properties.isMethodValidationEnabled();
+    }
+
     /**
      * Check if debug snapshot is enabled.
      *
@@ -81,6 +98,11 @@ public class FailureContext {
      */
     public boolean isDebugSnapshot() {
         return properties.isDebugSnapshot();
+    }
+
+    public boolean isReactiveContextFirst() {
+        FailureProperties.Reactive reactive = properties.getReactive();
+        return reactive != null && reactive.isContextFirst();
     }
 
     /**
@@ -129,6 +151,22 @@ public class FailureContext {
         this.scene.set(scene);
     }
 
+    public void setMethodEnabled(Boolean enabled) {
+        if (enabled == null) {
+            methodEnabledOverride.remove();
+        } else {
+            methodEnabledOverride.set(enabled);
+        }
+    }
+
+    public void setShadowTrace(Boolean enabled) {
+        if (enabled == null) {
+            printMethodOverride.remove();
+        } else {
+            printMethodOverride.set(enabled);
+        }
+    }
+
     /**
      * Execute code block under specified method print configuration.
      *
@@ -137,14 +175,88 @@ public class FailureContext {
      * @param <T>         Return value type
      * @return Execution result
      */
+    @SuppressWarnings("unchecked")
     public <T> T withPrintMethod(boolean printMethod, Supplier<T> action) {
         Boolean original = printMethodOverride.get();
         try {
             printMethodOverride.set(printMethod);
-            return action.get();
+            T result = action.get();
+            if (result instanceof Mono<?> mono) {
+                String traceId = getTraceId();
+                String sc = getScene();
+                return (T) mono
+                        .contextWrite(ctx -> {
+                            Context c = ctx.put(ReactiveTrace.SHADOW_TRACE_KEY, printMethod);
+                            if (traceId != null && !traceId.isBlank()) {
+                                c = c.put(ReactiveTrace.TRACE_ID_KEY, traceId);
+                            }
+                            if (sc != null && !sc.isBlank()) {
+                                c = c.put(ReactiveTrace.SCENE_KEY, sc);
+                            }
+                            return c;
+                        });
+            }
+            if (result instanceof Flux<?> flux) {
+                String traceId = getTraceId();
+                String sc = getScene();
+                return (T) flux
+                        .contextWrite(ctx -> {
+                            Context c = ctx.put(ReactiveTrace.SHADOW_TRACE_KEY, printMethod);
+                            if (traceId != null && !traceId.isBlank()) {
+                                c = c.put(ReactiveTrace.TRACE_ID_KEY, traceId);
+                            }
+                            if (sc != null && !sc.isBlank()) {
+                                c = c.put(ReactiveTrace.SCENE_KEY, sc);
+                            }
+                            return c;
+                        });
+            }
+            return result;
         } finally {
             if (original == null) printMethodOverride.remove();
             else printMethodOverride.set(original);
+        }
+    }
+    @SuppressWarnings("unchecked")
+    public <T> T withMethodEnabled(boolean enabled, Supplier<T> action) {
+        Boolean original = methodEnabledOverride.get();
+        try {
+            methodEnabledOverride.set(enabled);
+            T result = action.get();
+            if (result instanceof Mono<?> mono) {
+                String traceId = getTraceId();
+                String sc = getScene();
+                return (T) mono
+                        .contextWrite(ctx -> {
+                            Context c = ctx.put(ReactiveTrace.METHOD_ENABLED_KEY, enabled);
+                            if (traceId != null && !traceId.isBlank()) {
+                                c = c.put(ReactiveTrace.TRACE_ID_KEY, traceId);
+                            }
+                            if (sc != null && !sc.isBlank()) {
+                                c = c.put(ReactiveTrace.SCENE_KEY, sc);
+                            }
+                            return c;
+                        });
+            }
+            if (result instanceof Flux<?> flux) {
+                String traceId = getTraceId();
+                String sc = getScene();
+                return (T) flux
+                        .contextWrite(ctx -> {
+                            Context c = ctx.put(ReactiveTrace.METHOD_ENABLED_KEY, enabled);
+                            if (traceId != null && !traceId.isBlank()) {
+                                c = c.put(ReactiveTrace.TRACE_ID_KEY, traceId);
+                            }
+                            if (sc != null && !sc.isBlank()) {
+                                c = c.put(ReactiveTrace.SCENE_KEY, sc);
+                            }
+                            return c;
+                        });
+            }
+            return result;
+        } finally {
+            if (original == null) methodEnabledOverride.remove();
+            else methodEnabledOverride.set(original);
         }
     }
 

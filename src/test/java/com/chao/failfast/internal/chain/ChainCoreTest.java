@@ -55,14 +55,14 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("core: 应返回当前实例 (self)")
+@DisplayName("display")
     void coreShouldReturnSelf() {
         TestChain chain = TestChain.create(true);
         assertThat(chain.coreTest()).isSameAs(chain);
     }
 
     @Test
-    @DisplayName("or: 当 context 已停止时，应直接返回且不改变状态")
+@DisplayName("display")
     void orShouldReturnImmediatelyWhenContextStopped() {
         FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
         TestChain chain = TestChain.create(context);
@@ -71,18 +71,18 @@ class ChainCoreTest {
 
         chain.orTest();
 
-        // 验证没有进入 orMode (因为直接返回了)
-        // 由于 orMode 是 private，我们通过 check 行为来验证
-        // 如果进入了 orMode，下一个 check 会被认为是 or 的一部分
-        // 如果没进入 orMode，下一个 check 就是普通的 check
+        // 验证没有进入 orMode (因为直接返回�?
+        // 由于 orMode �?private，我们通过 check 行为来验�?
+        // 如果进入�?orMode，下一�?check 会被认为�?or 的一部分
+        // 如果没进�?orMode，下一�?check 就是普通的 check
 
-        // 但这里 context 已经 stop 了，check 也会 skip。
-        // 所以我们主要验证方法调用没有抛出异常，并且返回了 self
+        // 但这�?context 已经 stop 了，check 也会 skip�?
+        // 所以我们主要验证方法调用没有抛出异常，并且返回�?self
         assertThat(context.isStopped()).isTrue();
     }
 
     @Test
-    @DisplayName("shouldSkip: Fail-Fast模式下，不活跃时应返回 true")
+@DisplayName("display")
     void shouldSkipShouldReturnTrueWhenNotAliveAndFailFast() {
         TestChain chain = TestChain.create(true);
         // 触发失败
@@ -99,7 +99,7 @@ class ChainCoreTest {
         // 触发失败
         chain.publicCheck(false);
 
-        assertThat(chain.isAlive()).isTrue(); // Fail-safe 模式下 alive 保持 true
+        assertThat(chain.isAlive()).isTrue(); // Fail-safe 模式�?alive 保持 true
         assertThat(chain.shouldSkipTest()).isFalse();
     }
 
@@ -114,7 +114,7 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("shouldSkip: 当 Context 停止时，应返回 true")
+@DisplayName("display")
     void shouldSkipShouldReturnTrueWhenContextStopped() {
         FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
         TestChain chain = TestChain.create(context);
@@ -125,7 +125,7 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("isValid: 初始状态应为有效")
+@DisplayName("display")
     void shouldBeValidInitially() {
         TestChain chain = TestChain.create(true);
         assertThat(chain.isValid()).isTrue();
@@ -144,7 +144,7 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("check: 当条件为false时，应产生错误")
+@DisplayName("display")
     void shouldErrorWhenConditionIsFalse() {
         TestChain chain = TestChain.create(true);
         chain.publicCheck(false, ResponseCode.of(400, "Error"));
@@ -155,7 +155,7 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("check: Fail-Fast模式下，第一次失败后应标记为不活跃")
+@DisplayName("display")
     void shouldBeNotAliveAfterErrorInFailFastMode() {
         TestChain chain = TestChain.create(true); // failFast = true
         chain.publicCheck(false, ResponseCode.of(400, "Error"));
@@ -164,7 +164,7 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("check: Fail-Strict模式下，失败后仍应保持活跃")
+@DisplayName("display")
     void shouldRemainAliveAfterErrorInFailStrictMode() {
         TestChain chain = TestChain.create(false); // failFast = false
         chain.publicCheck(false, ResponseCode.of(400, "Error"));
@@ -174,7 +174,7 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("check: Fail-Fast模式下，不活跃时应跳过后续检查")
+@DisplayName("display")
     void shouldSkipChecksWhenNotAlive() {
         TestChain chain = TestChain.create(true);
 
@@ -190,7 +190,7 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("check: 无配置 check(boolean) 使用默认错误")
+@DisplayName("display")
     void shouldAddDefaultErrorWhenNoConfig() {
         TestChain chain = TestChain.create(true);
         chain.publicCheck(false);
@@ -217,7 +217,7 @@ class ChainCoreTest {
     }
 
     @Test
-    @DisplayName("isValid: 当使用 Context 时，应反映 Context 的状态")
+@DisplayName("display")
     void isValidShouldReflectContextState() {
         FastValidator.ValidationContext context = new FastValidator.ValidationContext(true);
         TestChain chain = TestChain.create(context);

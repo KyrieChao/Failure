@@ -1,5 +1,7 @@
 package com.chao.failfast.internal;
 
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.Failure;
 import com.chao.failfast.annotation.FailFastBody;
 import com.chao.failfast.annotation.FastValidator;

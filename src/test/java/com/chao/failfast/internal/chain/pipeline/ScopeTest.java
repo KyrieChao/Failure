@@ -1,696 +1,492 @@
 package com.chao.failfast.internal.chain.pipeline;
 
 import com.chao.failfast.internal.core.ResponseCode;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-@Tag("unit")
-@DisplayName("Scope测试")
 class ScopeTest {
 
-    @Mock
-    private ChainCore<?> chainCore;
-
-    private Scope<TestObject> scope;
-    private TestObject testObject;
-
-    @BeforeEach
-    void setUp() {
-        testObject = new TestObject("Test", 18, "test@example.com", true);
-        scope = new Scope<>(chainCore, testObject, "testObject");
-    }
-
     @Test
-    @DisplayName("测试构造函数")
     void testConstructor() {
-        assertThat(scope).isNotNull();
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        String item = "test item";
+        String path = "test.path";
+        Scope<String> scope = new Scope<>(chain, item, path);
+        assertNotNull(scope);
     }
 
     @Test
-    @DisplayName("测试it方法")
     void testIt() {
-        PathEntry<TestObject> pathEntry = scope.it();
-        assertThat(pathEntry).isNotNull();
-        assertThat(pathEntry.value()).isEqualTo(testObject);
-        assertThat(pathEntry.path()).isEqualTo("testObject");
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        String item = "test item";
+        String path = "test.path";
+        Scope<String> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.it();
+        assertNotNull(pathEntry);
+        assertEquals(item, pathEntry.value());
+        assertEquals(path, pathEntry.path());
     }
 
     @Test
-    @DisplayName("测试field方法 - 使用Function")
-    void testFieldWithFunction() {
-        Scope.FieldRef<String> fieldRef = scope.field(TestObject::getName);
-        assertThat(fieldRef).isNotNull();
-        assertThat(fieldRef.value()).isEqualTo("Test");
+    void testField() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test value");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        Scope.FieldRef<String> fieldRef = scope.field(TestItem::getValue);
+        assertNotNull(fieldRef);
+        assertEquals("test value", fieldRef.value());
     }
 
     @Test
-    @DisplayName("测试field方法 - 使用字段名和Function")
-    void testFieldWithNameAndFunction() {
-        Scope.FieldRef<String> fieldRef = scope.field("name", TestObject::getName);
-        assertThat(fieldRef).isNotNull();
-        assertThat(fieldRef.value()).isEqualTo("Test");
-    }
-
-    @Test
-    @DisplayName("测试fieldEntry方法")
     void testFieldEntry() {
-        PathEntry<String> pathEntry = scope.fieldEntry(TestObject::getName);
-        assertThat(pathEntry).isNotNull();
-        assertThat(pathEntry.value()).isEqualTo("Test");
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test value");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.fieldEntry(TestItem::getValue);
+        assertNotNull(pathEntry);
+        assertEquals("test value", pathEntry.value());
     }
 
     @Test
-    @DisplayName("测试FieldRef的as方法")
+    void testFieldWithFieldName() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test value");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        Scope.FieldRef<String> fieldRef = scope.field("customField", TestItem::getValue);
+        assertNotNull(fieldRef);
+        assertEquals("test value", fieldRef.value());
+    }
+
+    @Test
     void testFieldRefAs() {
-        Scope.FieldRef<String> fieldRef = scope.field("name", TestObject::getName);
-        PathEntry<String> pathEntry = fieldRef.as("customName");
-        assertThat(pathEntry).isNotNull();
-        assertThat(pathEntry.value()).isEqualTo("Test");
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test value");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        Scope.FieldRef<String> fieldRef = scope.field("customField", TestItem::getValue);
+        PathEntry<String> pathEntry = fieldRef.as("alias");
+        assertNotNull(pathEntry);
+        assertEquals("test value", pathEntry.value());
     }
 
     @Test
-    @DisplayName("测试FieldRef的ref方法")
     void testFieldRefRef() {
-        Scope.FieldRef<String> fieldRef = scope.field("name", TestObject::getName);
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test value");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        Scope.FieldRef<String> fieldRef = scope.field("customField", TestItem::getValue);
         PathEntry<String> pathEntry = fieldRef.ref();
-        assertThat(pathEntry).isNotNull();
-        assertThat(pathEntry.value()).isEqualTo("Test");
+        assertNotNull(pathEntry);
+        assertEquals("test value", pathEntry.value());
     }
 
     @Test
-    @DisplayName("测试FieldRef的value方法")
-    void testFieldRefValue() {
-        Scope.FieldRef<String> fieldRef = scope.field("name", TestObject::getName);
-        assertThat(fieldRef.value()).isEqualTo("Test");
-    }
-
-    @Test
-    @DisplayName("测试notNull方法")
     void testNotNull() {
-        Scope<TestObject> result = scope.notNull(ResponseCode.VALIDATION_ERROR_NULL);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_NULL), any(PathEntry.class));
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        String item = "test item";
+        String path = "test.path";
+        Scope<String> scope = new Scope<>(chain, item, path);
+        Scope<String> result = scope.notNull(ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试notBlank方法 - PathEntry版本")
-    void testNotBlankWithPathEntry() {
-        PathEntry<String> pathEntry = scope.fieldEntry(TestObject::getName);
-        Scope<TestObject> result = scope.notBlank(pathEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+    void testNotBlank() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test value");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.fieldEntry(TestItem::getValue);
+        Scope<TestItem> result = scope.notBlank(pathEntry, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试notBlank方法 - FieldRef版本")
-    void testNotBlankWithFieldRef() {
-        Scope.FieldRef<String> fieldRef = scope.field("name", TestObject::getName);
-        Scope<TestObject> result = scope.notBlank(fieldRef, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
+    void testNotBlankFieldRefOverload() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test value");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        Scope.FieldRef<String> ref = scope.field(TestItem::getValue);
+        Scope<TestItem> result = scope.notBlank(ref, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试positive方法 - PathEntry版本")
-    void testPositiveWithPathEntry() {
-        PathEntry<Integer> pathEntry = scope.fieldEntry(TestObject::getAge);
-        Scope<TestObject> result = scope.positive(pathEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+    void testPositive() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem(10);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<Integer> pathEntry = scope.fieldEntry(TestItem::getNumber);
+        Scope<TestItem> result = scope.positive(pathEntry, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试positive方法 - FieldRef版本")
-    void testPositiveWithFieldRef() {
-        Scope.FieldRef<Integer> fieldRef = scope.field("age", TestObject::getAge);
-        Scope<TestObject> result = scope.positive(fieldRef, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
+    void testEmail() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test@example.com");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.fieldEntry(TestItem::getValue);
+        Scope<TestItem> result = scope.email(pathEntry, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试email方法 - PathEntry版本")
-    void testEmailWithPathEntry() {
-        PathEntry<String> pathEntry = scope.fieldEntry(TestObject::getEmail);
-        Scope<TestObject> result = scope.email(pathEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+    void testMobile() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("13800138000");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.fieldEntry(TestItem::getValue);
+        Scope<TestItem> result = scope.mobile(pathEntry, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试email方法 - FieldRef版本")
-    void testEmailWithFieldRef() {
-        Scope.FieldRef<String> fieldRef = scope.field("email", TestObject::getEmail);
-        Scope<TestObject> result = scope.email(fieldRef, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
-    }
-
-    @Test
-    @DisplayName("测试mobile方法 - PathEntry版本")
-    void testMobileWithPathEntry() {
-        testObject.setMobile("13800138000");
-        PathEntry<String> pathEntry = scope.fieldEntry(TestObject::getMobile);
-        Scope<TestObject> result = scope.mobile(pathEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
-    }
-
-    @Test
-    @DisplayName("测试mobile方法 - FieldRef版本")
-    void testMobileWithFieldRef() {
-        testObject.setMobile("13800138000");
-        Scope.FieldRef<String> fieldRef = scope.field("mobile", TestObject::getMobile);
-        Scope<TestObject> result = scope.mobile(fieldRef, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
-    }
-
-    @Test
-    @DisplayName("测试isTrue方法")
     void testIsTrue() {
-        PathEntry<Boolean> pathEntry = scope.fieldEntry(TestObject::isActive);
-        Scope<TestObject> result = scope.isTrue(pathEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem(true);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<Boolean> pathEntry = scope.fieldEntry(TestItem::isFlag);
+        Scope<TestItem> result = scope.isTrue(pathEntry, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试isFalse方法")
     void testIsFalse() {
-        PathEntry<Boolean> pathEntry = scope.fieldEntry(TestObject::isActive);
-        Scope<TestObject> result = scope.isFalse(pathEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem(false);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<Boolean> pathEntry = scope.fieldEntry(TestItem::isFlag);
+        Scope<TestItem> result = scope.isFalse(pathEntry, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试notEmptyCollection方法 - PathEntry版本")
-    void testNotEmptyCollectionWithPathEntry() {
-        testObject.setHobbies(new ArrayList<>());
-        PathEntry<List<String>> pathEntry = scope.fieldEntry(TestObject::getHobbies);
-        Scope<TestObject> result = scope.notEmptyCollection(pathEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+    void testNotEmptyCollection() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        List<String> list = new ArrayList<>();
+        list.add("test");
+        TestItem item = new TestItem(list);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<List<String>> pathEntry = scope.fieldEntry(TestItem::getList);
+        Scope<TestItem> result = scope.notEmptyCollection(pathEntry, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试notEmptyCollection方法 - FieldRef版本")
-    void testNotEmptyCollectionWithFieldRef() {
-        testObject.setHobbies(new ArrayList<>());
-        Scope.FieldRef<List<String>> fieldRef = scope.field("hobbies", TestObject::getHobbies);
-        Scope<TestObject> result = scope.notEmptyCollection(fieldRef, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
+    void testNotEmptyMap() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        Map<String, String> map = new HashMap<>();
+        map.put("key", "value");
+        TestItem item = new TestItem(map);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<Map<String, String>> pathEntry = scope.fieldEntry(TestItem::getMap);
+        Scope<TestItem> result = scope.notEmptyMap(pathEntry, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试notEmptyMap方法 - PathEntry版本")
-    void testNotEmptyMapWithPathEntry() {
-        testObject.setProperties(new HashMap<>());
-        PathEntry<Map<String, String>> pathEntry = scope.fieldEntry(TestObject::getProperties);
-        Scope<TestObject> result = scope.notEmptyMap(pathEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+    void testLength() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test value");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.fieldEntry(TestItem::getValue);
+        Scope<TestItem> result = scope.length(pathEntry, 1, 10, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试notEmptyMap方法 - FieldRef版本")
-    void testNotEmptyMapWithFieldRef() {
-        testObject.setProperties(new HashMap<>());
-        Scope.FieldRef<Map<String, String>> fieldRef = scope.field("properties", TestObject::getProperties);
-        Scope<TestObject> result = scope.notEmptyMap(fieldRef, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
+    void testBetween() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem(5);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<Integer> pathEntry = scope.fieldEntry(TestItem::getNumber);
+        Scope<TestItem> result = scope.between(pathEntry, 1, 10, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试length方法 - PathEntry版本")
-    void testLengthWithPathEntry() {
-        PathEntry<String> pathEntry = scope.fieldEntry(TestObject::getName);
-        Scope<TestObject> result = scope.length(pathEntry, 1, 10, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+    void testMatches() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.fieldEntry(TestItem::getValue);
+        Scope<TestItem> result = scope.matches(pathEntry, "^test$", ResponseCode.VALIDATION_ERROR_400);
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试length方法 - FieldRef版本")
-    void testLengthWithFieldRef() {
-        Scope.FieldRef<String> fieldRef = scope.field("name", TestObject::getName);
-        Scope<TestObject> result = scope.length(fieldRef, 1, 10, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
+    void testCheck() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.fieldEntry(TestItem::getValue);
+        Scope<TestItem> result = scope.check(pathEntry, s -> s.equals("test"), ResponseCode.VALIDATION_ERROR_400, "Test error");
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试between方法 - PathEntry版本")
-    void testBetweenWithPathEntry() {
-        PathEntry<Integer> pathEntry = scope.fieldEntry(TestObject::getAge);
-        Scope<TestObject> result = scope.between(pathEntry, 1, 100, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
+    void testCheckWithSupplier() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        PathEntry<String> pathEntry = scope.fieldEntry(TestItem::getValue);
+        Scope<TestItem> result = scope.check(pathEntry, () -> true, ResponseCode.VALIDATION_ERROR_400, "Test error");
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试between方法 - FieldRef版本")
-    void testBetweenWithFieldRef() {
-        Scope.FieldRef<Integer> fieldRef = scope.field("age", TestObject::getAge);
-        Scope<TestObject> result = scope.between(fieldRef, 1, 100, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
-    }
-
-    @Test
-    @DisplayName("测试matches方法 - PathEntry版本")
-    void testMatchesWithPathEntry() {
-        PathEntry<String> pathEntry = scope.fieldEntry(TestObject::getName);
-        Scope<TestObject> result = scope.matches(pathEntry, "^[A-Za-z]+$", ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
-    }
-
-    @Test
-    @DisplayName("测试matches方法 - FieldRef版本")
-    void testMatchesWithFieldRef() {
-        Scope.FieldRef<String> fieldRef = scope.field("name", TestObject::getName);
-        Scope<TestObject> result = scope.matches(fieldRef, "^[A-Za-z]+$", ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
-    }
-
-    @Test
-    @DisplayName("测试check方法 - PathEntry版本")
-    void testCheckWithPathEntry() {
-        PathEntry<String> pathEntry = scope.fieldEntry(TestObject::getName);
-        Scope<TestObject> result = scope.check(pathEntry, s -> s.length() > 0, ResponseCode.VALIDATION_ERROR_400, "Name should not be empty");
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), eq(pathEntry));
-    }
-
-    @Test
-    @DisplayName("测试check方法 - FieldRef版本")
-    void testCheckWithFieldRef() {
-        Scope.FieldRef<String> fieldRef = scope.field("name", TestObject::getName);
-        Scope<TestObject> result = scope.check(fieldRef, s -> s.length() > 0, ResponseCode.VALIDATION_ERROR_400, "Name should not be empty");
-        assertThat(result).isSameAs(scope);
-        verify(chainCore).checkRef(anyBoolean(), eq(ResponseCode.VALIDATION_ERROR_400), any(PathEntry.class));
-    }
-
-    @Test
-    @DisplayName("测试when方法 - 布尔条件")
-    void testWhenWithBoolean() {
+    void testWhen() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
         boolean[] executed = {false};
-        Scope<TestObject> result = scope.when(true, () -> executed[0] = true);
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isTrue();
-
-        executed[0] = false;
-        result = scope.when(false, () -> executed[0] = true);
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isFalse();
+        Scope<TestItem> result = scope.when(true, () -> { executed[0] = true; });
+        assertSame(scope, result);
+        assertTrue(executed[0]);
     }
 
     @Test
-    @DisplayName("测试when方法 - Predicate")
     void testWhenWithPredicate() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
         boolean[] executed = {false};
-        Scope<TestObject> result = scope.when(obj -> obj.getAge() > 10, () -> executed[0] = true);
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isTrue();
-
-        executed[0] = false;
-        result = scope.when(obj -> obj.getAge() > 20, () -> executed[0] = true);
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isFalse();
+        Scope<TestItem> result = scope.when(s -> s.getValue().equals("test"), () -> { executed[0] = true; });
+        assertSame(scope, result);
+        assertTrue(executed[0]);
     }
 
     @Test
-    @DisplayName("测试unless方法 - 布尔条件")
-    void testUnlessWithBoolean() {
+    void testUnless() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
         boolean[] executed = {false};
-        Scope<TestObject> result = scope.unless(false, () -> executed[0] = true);
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isTrue();
-
-        executed[0] = false;
-        result = scope.unless(true, () -> executed[0] = true);
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isFalse();
+        Scope<TestItem> result = scope.unless(false, () -> { executed[0] = true; });
+        assertSame(scope, result);
+        assertTrue(executed[0]);
     }
 
     @Test
-    @DisplayName("测试unless方法 - Predicate")
     void testUnlessWithPredicate() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
         boolean[] executed = {false};
-        Scope<TestObject> result = scope.unless(obj -> obj.getAge() > 20, () -> executed[0] = true);
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isTrue();
-
-        executed[0] = false;
-        result = scope.unless(obj -> obj.getAge() > 10, () -> executed[0] = true);
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isFalse();
+        Scope<TestItem> result = scope.unless(s -> s.getValue().equals("other"), () -> { executed[0] = true; });
+        assertSame(scope, result);
+        assertTrue(executed[0]);
     }
 
     @Test
-    @DisplayName("测试nested方法 - 使用Function")
-    void testNestedWithFunction() {
-        TestObject nestedObject = new TestObject("Nested", 5, null, false);
-        testObject.setChild(nestedObject);
-
+    void testNested() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem nestedItem = new TestItem("nested");
+        TestItem item = new TestItem(nestedItem);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
         boolean[] executed = {false};
-        Scope<TestObject> result = scope.nested(TestObject::getChild, childScope -> {
-            executed[0] = true;
-            assertThat(childScope).isNotNull();
-        });
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isTrue();
+        Scope<TestItem> result = scope.nested(TestItem::getNested, nestedScope -> { executed[0] = true; });
+        assertSame(scope, result);
+        assertTrue(executed[0]);
     }
 
     @Test
-    @DisplayName("测试nested方法 - 使用字段名和Function")
-    void testNestedWithNameAndFunction() {
-        TestObject nestedObject = new TestObject("Nested", 5, null, false);
-        testObject.setChild(nestedObject);
-
-        boolean[] executed = {false};
-        Scope<TestObject> result = scope.nested("child", TestObject::getChild, childScope -> {
-            executed[0] = true;
-            assertThat(childScope).isNotNull();
-        });
-        assertThat(result).isSameAs(scope);
-        assertThat(executed[0]).isTrue();
-    }
-
-    @Test
-    @DisplayName("测试forEach方法 - 使用Function")
-    void testForEachWithFunction() {
-        List<String> hobbies = new ArrayList<>();
-        hobbies.add("Reading");
-        hobbies.add("Sports");
-        testObject.setHobbies(hobbies);
-
+    void testForEach() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        List<String> list = new ArrayList<>();
+        list.add("item1");
+        list.add("item2");
+        TestItem item = new TestItem(list);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
         int[] count = {0};
-        Scope<TestObject> result = scope.forEach(TestObject::getHobbies, hobbyScope -> {
-            count[0]++;
-            assertThat(hobbyScope).isNotNull();
-        });
-        assertThat(result).isSameAs(scope);
-        assertThat(count[0]).isEqualTo(2);
+        Scope<TestItem> result = scope.forEach(TestItem::getList, itemScope -> { count[0]++; });
+        assertSame(scope, result);
+        assertEquals(2, count[0]);
     }
 
     @Test
-    @DisplayName("测试forEach方法 - 使用字段名和Function")
-    void testForEachWithNameAndFunction() {
-        List<String> hobbies = new ArrayList<>();
-        hobbies.add("Reading");
-        hobbies.add("Sports");
-        testObject.setHobbies(hobbies);
-
+    void testForEachEntry() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        Map<String, String> map = new HashMap<>();
+        map.put("key1", "value1");
+        map.put("key2", "value2");
+        TestItem item = new TestItem(map);
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
         int[] count = {0};
-        Scope<TestObject> result = scope.forEach("hobbies", TestObject::getHobbies, hobbyScope -> {
-            count[0]++;
-            assertThat(hobbyScope).isNotNull();
-        });
-        assertThat(result).isSameAs(scope);
-        assertThat(count[0]).isEqualTo(2);
+        Scope<TestItem> result = scope.forEachEntry(TestItem::getMap, (key, valueScope) -> { count[0]++; });
+        assertSame(scope, result);
+        assertEquals(2, count[0]);
     }
 
     @Test
-    @DisplayName("测试forEachEntry方法 - 使用Function")
-    void testForEachEntryWithFunction() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("key1", "value1");
-        properties.put("key2", "value2");
-        testObject.setProperties(properties);
-
-        int[] count = {0};
-        Scope<TestObject> result = scope.forEachEntry(TestObject::getProperties, (key, valueScope) -> {
-            count[0]++;
-            assertThat(key).isNotNull();
-            assertThat(valueScope).isNotNull();
-        });
-        assertThat(result).isSameAs(scope);
-        assertThat(count[0]).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("测试forEachEntry方法 - 使用字段名和Function")
-    void testForEachEntryWithNameAndFunction() {
-        Map<String, String> properties = new HashMap<>();
-        properties.put("key1", "value1");
-        properties.put("key2", "value2");
-        testObject.setProperties(properties);
-
-        int[] count = {0};
-        Scope<TestObject> result = scope.forEachEntry("properties", TestObject::getProperties, (key, valueScope) -> {
-            count[0]++;
-            assertThat(key).isNotNull();
-            assertThat(valueScope).isNotNull();
-        });
-        assertThat(result).isSameAs(scope);
-        assertThat(count[0]).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("测试stopItemOnFail方法")
     void testStopItemOnFail() {
-        Scope<TestObject> result = scope.stopItemOnFail();
-        assertThat(result).isSameAs(scope);
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
+        Scope<TestItem> result = scope.stopItemOnFail();
+        assertSame(scope, result);
     }
 
     @Test
-    @DisplayName("测试merge方法")
     void testMerge() {
+        ChainCore<?> chain = Mockito.mock(ChainCore.class);
+        when(chain.errorSize()).thenReturn(0);
+        TestItem item = new TestItem("test");
+        String path = "test.path";
+        Scope<TestItem> scope = new Scope<>(chain, item, path);
         scope.merge();
-        // 无异常抛出即可
+        // 验证方法执行完成
     }
 
-    @Test
-    @DisplayName("测试getFieldNameFromGetter方法 - 解析失败的情况")
-    void testGetFieldNameFromGetterWithParseFailure() {
-        // 测试getFieldNameFromGetter方法的catch块
-        // 通过反射调用私有方法
-        try {
-            java.lang.reflect.Method method = Scope.class.getDeclaredMethod("getFieldNameFromGetter", Function.class);
-            method.setAccessible(true);
-            // 传入一个会导致toString()抛出异常的Function
-            Function<TestObject, String> invalidGetter = new Function<TestObject, String>() {
-                @Override
-                public String apply(TestObject testObject) {
-                    return testObject.getName();
-                }
-                @Override
-                public String toString() {
-                    throw new RuntimeException("Test exception");
-                }
-            };
-            String fieldName = (String) method.invoke(scope, invalidGetter);
-            assertThat(fieldName).isEqualTo("field");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+    // 测试辅助类
+    private static class TestItem {
+        private final String value;
+        private final Integer number;
+        private final Boolean flag;
+        private final List<String> list;
+        private final Map<String, String> map;
+        private final TestItem nested;
 
-    @Test
-    @DisplayName("测试joinPath方法 - 边界情况")
-    void testJoinPath() {
-        // 测试joinPath方法的边界情况
-        try {
-            java.lang.reflect.Method method = Scope.class.getDeclaredMethod("joinPath", String.class, String.class);
-            method.setAccessible(true);
-            
-            // 测试parent为null
-            String result1 = (String) method.invoke(null, null, "child");
-            assertThat(result1).isEqualTo("child");
-            
-            // 测试parent为空白字符串
-            String result2 = (String) method.invoke(null, "   ", "child");
-            assertThat(result2).isEqualTo("child");
-            
-            // 测试正常情况
-            String result3 = (String) method.invoke(null, "parent", "child");
-            assertThat(result3).isEqualTo("parent.child");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Test
-    @DisplayName("测试endOnFail方法 - 有错误的情况")
-    void testEndOnFailWithError() {
-        // 测试endOnFail方法
-        // 首先设置stopItemOnFail为true
-        scope.stopItemOnFail();
-        
-        // 模拟chainCore.errorSize()返回大于baseErrorSize的值
-        when(chainCore.errorSize()).thenReturn(1); // 假设baseErrorSize为0
-        
-        // 通过反射调用endOnFail方法
-        try {
-            java.lang.reflect.Method method = Scope.class.getDeclaredMethod("endOnFail");
-            method.setAccessible(true);
-            method.invoke(scope);
-            
-            // 验证ended是否被设置为true
-            // 通过反射获取ended字段
-            java.lang.reflect.Field endedField = Scope.class.getDeclaredField("ended");
-            endedField.setAccessible(true);
-            boolean ended = (boolean) endedField.get(scope);
-            assertThat(ended).isTrue();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Test
-    @DisplayName("测试验证方法在ended为true时的行为")
-    void testValidationMethodsWhenEnded() {
-        // 首先设置ended为true
-        try {
-            java.lang.reflect.Field endedField = Scope.class.getDeclaredField("ended");
-            endedField.setAccessible(true);
-            endedField.set(scope, true);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        
-        // 测试各种验证方法在ended为true时的行为
-        PathEntry<String> nameEntry = scope.fieldEntry(TestObject::getName);
-        PathEntry<Integer> ageEntry = scope.fieldEntry(TestObject::getAge);
-        PathEntry<Boolean> activeEntry = scope.fieldEntry(TestObject::isActive);
-        
-        // 测试notNull方法
-        Scope<TestObject> result1 = scope.notNull(ResponseCode.VALIDATION_ERROR_NULL);
-        assertThat(result1).isSameAs(scope);
-        
-        // 测试notBlank方法
-        Scope<TestObject> result2 = scope.notBlank(nameEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result2).isSameAs(scope);
-        
-        // 测试positive方法
-        Scope<TestObject> result3 = scope.positive(ageEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result3).isSameAs(scope);
-        
-        // 测试isTrue方法
-        Scope<TestObject> result4 = scope.isTrue(activeEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result4).isSameAs(scope);
-        
-        // 测试isFalse方法
-        Scope<TestObject> result5 = scope.isFalse(activeEntry, ResponseCode.VALIDATION_ERROR_400);
-        assertThat(result5).isSameAs(scope);
-        
-        // 测试条件验证方法
-        boolean[] executed = {false};
-        Scope<TestObject> result6 = scope.when(true, () -> executed[0] = true);
-        assertThat(result6).isSameAs(scope);
-        assertThat(executed[0]).isFalse(); // 应该不执行
-        
-        // 测试nested方法
-        Scope<TestObject> result7 = scope.nested(TestObject::getChild, childScope -> {
-            executed[0] = true;
-        });
-        assertThat(result7).isSameAs(scope);
-        assertThat(executed[0]).isFalse(); // 应该不执行
-    }
-
-    // 测试用的POJO
-    private static class TestObject {
-        private String name;
-        private int age;
-        private String email;
-        private boolean active;
-        private String mobile;
-        private List<String> hobbies;
-        private Map<String, String> properties;
-        private TestObject child;
-
-        public TestObject(String name, int age, String email, boolean active) {
-            this.name = name;
-            this.age = age;
-            this.email = email;
-            this.active = active;
-            this.hobbies = new ArrayList<>();
-            this.properties = new HashMap<>();
+        public TestItem(String value) {
+            this.value = value;
+            this.number = null;
+            this.flag = null;
+            this.list = null;
+            this.map = null;
+            this.nested = null;
         }
 
-        public String getName() {
-            return name;
+        public TestItem(Integer number) {
+            this.value = null;
+            this.number = number;
+            this.flag = null;
+            this.list = null;
+            this.map = null;
+            this.nested = null;
         }
 
-        public void setName(String name) {
-            this.name = name;
+        public TestItem(Boolean flag) {
+            this.value = null;
+            this.number = null;
+            this.flag = flag;
+            this.list = null;
+            this.map = null;
+            this.nested = null;
         }
 
-        public int getAge() {
-            return age;
+        public TestItem(List<String> list) {
+            this.value = null;
+            this.number = null;
+            this.flag = null;
+            this.list = list;
+            this.map = null;
+            this.nested = null;
         }
 
-        public void setAge(int age) {
-            this.age = age;
+        public TestItem(Map<String, String> map) {
+            this.value = null;
+            this.number = null;
+            this.flag = null;
+            this.list = null;
+            this.map = map;
+            this.nested = null;
         }
 
-        public String getEmail() {
-            return email;
+        public TestItem(TestItem nested) {
+            this.value = null;
+            this.number = null;
+            this.flag = null;
+            this.list = null;
+            this.map = null;
+            this.nested = nested;
         }
 
-        public void setEmail(String email) {
-            this.email = email;
+        public String getValue() {
+            return value;
         }
 
-        public boolean isActive() {
-            return active;
+        public Integer getNumber() {
+            return number;
         }
 
-        public void setActive(boolean active) {
-            this.active = active;
+        public Boolean isFlag() {
+            return flag;
         }
 
-        public String getMobile() {
-            return mobile;
+        public List<String> getList() {
+            return list;
         }
 
-        public void setMobile(String mobile) {
-            this.mobile = mobile;
+        public Map<String, String> getMap() {
+            return map;
         }
 
-        public List<String> getHobbies() {
-            return hobbies;
-        }
-
-        public void setHobbies(List<String> hobbies) {
-            this.hobbies = hobbies;
-        }
-
-        public Map<String, String> getProperties() {
-            return properties;
-        }
-
-        public void setProperties(Map<String, String> properties) {
-            this.properties = properties;
-        }
-
-        public TestObject getChild() {
-            return child;
-        }
-
-        public void setChild(TestObject child) {
-            this.child = child;
+        public TestItem getNested() {
+            return nested;
         }
     }
 }

@@ -82,7 +82,7 @@ class ScopeComprehensiveTest {
     void testCheckWithNullValue() {
         PathEntry<String> nullRef = new PathEntry<>(null, "testPath");
         scope.check(nullRef, s -> true, ResponseCode.VALIDATION_ERROR_400, "detail");
-        verify(chain).checkRef(false, ResponseCode.VALIDATION_ERROR_400, nullRef);
+        verify(chain).checkRef(eq(false), any(ResponseCode.class), eq(nullRef));
     }
 
     @Test

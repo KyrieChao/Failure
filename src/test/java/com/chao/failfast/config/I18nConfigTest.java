@@ -1,6 +1,7 @@
 package com.chao.failfast.config;
 
-import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.config.i18n.I18nConfig;
+import com.chao.failfast.config.properties.FailureProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

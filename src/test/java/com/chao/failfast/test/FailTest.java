@@ -1,8 +1,8 @@
 package com.chao.failfast.test;
 
 import com.chao.failfast.Failure;
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.model.TestResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

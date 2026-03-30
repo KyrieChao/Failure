@@ -6,7 +6,7 @@ import com.chao.failfast.annotation.SkipValidation;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.constant.Scenario;
-import com.chao.failfast.internal.Business;
+import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.validator.TypedValidator;
 import jakarta.servlet.ServletRequest;
@@ -23,7 +23,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -80,14 +79,6 @@ class ValidationAspectFullTest {
         Field factoryCache = ValidationAspect.class.getDeclaredField("VALIDATOR_FACTORY_CACHE");
         factoryCache.setAccessible(true);
         ((ConcurrentHashMap<?, ?>) factoryCache.get(null)).clear();
-
-        Field fieldCache = ValidationAspect.class.getDeclaredField("FIELD_CACHE");
-        fieldCache.setAccessible(true);
-        ((ConcurrentHashMap<?, ?>) fieldCache.get(null)).clear();
-
-        Field sceneCache = ValidationAspect.class.getDeclaredField("SCENE_CACHE");
-        sceneCache.setAccessible(true);
-        ((ConcurrentHashMap<?, ?>) sceneCache.get(null)).clear();
 
         validationAspect = new ValidationAspect();
         setField(validationAspect, "applicationContext", applicationContext);

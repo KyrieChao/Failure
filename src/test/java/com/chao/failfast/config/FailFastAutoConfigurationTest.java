@@ -1,10 +1,12 @@
 package com.chao.failfast.config;
 
-import com.chao.failfast.advice.DefaultExceptionHandler;
-import com.chao.failfast.advice.FailFastExceptionHandler;
+import com.chao.failfast.integration.mvc.DefaultExceptionHandler;
+import com.chao.failfast.integration.mvc.FailFastExceptionHandler;
 import com.chao.failfast.aspect.ValidationAspect;
 import com.chao.failfast.internal.core.FailureContext;
-import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.autoconfigure.FailFastAutoConfiguration;
+import com.chao.failfast.integration.mvc.OptionalBodyResolver;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,7 +21,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.MessageSource;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -138,7 +140,7 @@ class FailFastAutoConfigurationTest {
                 // 根据需要添加其他配置
         };
 
-        new ApplicationContextRunner()
+        new WebApplicationContextRunner()
                 // ✅ 修正 1: 使用标准的 AutoConfigurations.of
                 .withConfiguration(AutoConfigurations.of(FailFastAutoConfiguration.class))
 
@@ -166,7 +168,7 @@ class FailFastAutoConfigurationTest {
     @Test
     @DisplayName("测试错误码映射配置加载")
     void testCodeMappingConfig() {
-        new ApplicationContextRunner()
+        new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(FailFastAutoConfiguration.class))
                 // 【关键】直接通过属性值模拟 application.yml 中的配置
                 // 注意：YAML 中的列表 "- " 对应 properties 中的 [0], [1]...
@@ -258,7 +260,7 @@ class FailFastAutoConfigurationTest {
     @Test
     @DisplayName("测试错误策略相关配置加载")
     void testErrorPolicy() {
-        new ApplicationContextRunner()
+        new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(FailFastAutoConfiguration.class))
                 // 替换为你实际 YAML 中的真实配置项
                 // 移除了不存在的 "fail-fast.enabled" 和 "fail-fast.error-policy"
@@ -324,7 +326,7 @@ class FailFastAutoConfigurationTest {
                 // 根据需要添加更多配置...
         };
 
-        new ApplicationContextRunner()
+        new WebApplicationContextRunner()
                 // ✅ 修正 1: 使用 AutoConfigurations.of 包裹自动配置类
                 .withConfiguration(AutoConfigurations.of(FailFastAutoConfiguration.class))
 
@@ -359,7 +361,7 @@ class FailFastAutoConfigurationTest {
                 // 根据需要添加其他配置
         };
 
-        new ApplicationContextRunner()
+        new WebApplicationContextRunner()
                 // ✅ 修正 1: 使用标准的 AutoConfigurations.of
                 .withConfiguration(AutoConfigurations.of(FailFastAutoConfiguration.class))
 
@@ -401,7 +403,7 @@ class FailFastAutoConfigurationTest {
                 // 根据需要添加其他配置
         };
 
-        new ApplicationContextRunner()
+        new WebApplicationContextRunner()
                 // ✅ 修正 1: 使用 AutoConfigurations.of 包裹自动配置类
                 .withConfiguration(AutoConfigurations.of(FailFastAutoConfiguration.class))
 
@@ -435,7 +437,7 @@ class FailFastAutoConfigurationTest {
                 "fail-fast.debug-snapshot=true"
         };
 
-        new ApplicationContextRunner()
+        new WebApplicationContextRunner()
                 // ✅ 修正关键：同时加载 FailFast 和 Spring 原生的 Validation 自动配置
                 // 这样 MethodValidationPostProcessor 和 Validator 才会被自动创建
                 .withConfiguration(
@@ -470,7 +472,7 @@ class FailFastAutoConfigurationTest {
     @Test
     @DisplayName("FailFastAutoConfiguration 在存在 Validator Bean 时应创建 MethodValidationPostProcessor")
     void testMethodValidationPostProcessorCreatedByFailFastAutoConfiguration() {
-        new ApplicationContextRunner()
+        new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(FailFastAutoConfiguration.class))
                 .withPropertyValues(
                         "fail-fast.method-validation-enabled=true",
@@ -484,7 +486,9 @@ class FailFastAutoConfigurationTest {
     @Test
     void testExInitializer() {
         // 测试ExInitializer内部类
-        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, validator);
+        com.chao.failfast.spi.SkipPrefixRegistry skipPrefixRegistry = mock(com.chao.failfast.spi.SkipPrefixRegistry.class);
+        com.chao.failfast.spi.SkipTypeRegistry skipTypeRegistry = mock(com.chao.failfast.spi.SkipTypeRegistry.class);
+        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, validator, skipPrefixRegistry, skipTypeRegistry);
         assertNotNull(initializer);
         // 验证Ex.setContext被调用
         // 验证Chain.setValidator被调用
@@ -494,7 +498,9 @@ class FailFastAutoConfigurationTest {
     @Test
     void testExInitializerWithoutValidator() {
         // 测试ExInitializer内部类（无validator）
-        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, null);
+        com.chao.failfast.spi.SkipPrefixRegistry skipPrefixRegistry = mock(com.chao.failfast.spi.SkipPrefixRegistry.class);
+        com.chao.failfast.spi.SkipTypeRegistry skipTypeRegistry = mock(com.chao.failfast.spi.SkipTypeRegistry.class);
+        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, null, skipPrefixRegistry, skipTypeRegistry);
         assertNotNull(initializer);
         // 验证Ex.setContext被调用
         // 验证Chain.setFailureProperties被调用

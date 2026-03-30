@@ -1,6 +1,6 @@
 package com.chao.failfast.internal;
 
-import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.config.properties.FailureProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -11,11 +11,11 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("FailFastProperties 配置属性测试")
+@DisplayName("display")
 class FailPropertiesTest {
 
     @Test
-    @DisplayName("应当正确设置和获取属性")
+@DisplayName("display")
     void shouldSetAndGetProperties() {
         FailureProperties properties = new FailureProperties();
         properties.setShadowTrace(true);

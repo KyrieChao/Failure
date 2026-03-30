@@ -1,25 +1,27 @@
 package com.chao.failfast.internal.chain.pipeline;
 
 import com.chao.failfast.annotation.FastValidator.ValidationContext;
-import com.chao.failfast.annotation.ToImprove;
 import com.chao.failfast.constant.Scenario;
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.Ex;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
-import com.chao.failfast.internal.validation.RecursiveOptions;
-import com.chao.failfast.internal.validation.ValidationObservers;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.internal.policy.DefaultErrorPolicy;
 import com.chao.failfast.internal.policy.ErrorPolicy;
+import com.chao.failfast.internal.validation.ObjectGraphWalker;
+import com.chao.failfast.internal.validation.RecursiveOptions;
+import com.chao.failfast.internal.validation.ValidationObservers;
 import com.chao.failfast.validator.TypedValidator;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -30,7 +32,6 @@ import java.util.function.Supplier;
  * @author Kyrie Chao
  * @version 1.2.0
  */
-@ToImprove(value = "代码过长待优化",version = "1.2.0",tag = "1.8.0")
 public abstract class ChainCore<S extends ChainCore<S>> {
 
 
@@ -80,12 +81,19 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     @Getter
     protected boolean alive = true;
     // Dynamic skip state (true=execute, false=skip)
+    @Getter
     private boolean conditionState = true;
     // OR state
     private boolean orMode = false;
     private boolean orHasSuccess = false;
     protected final ValidationContext context;
     protected final List<Business> errors = new ArrayList<>();
+    private final List<AsyncCheck> asyncChecks = new ArrayList<>();
+
+    private record AsyncCheck(CompletionStage<Boolean> stage, ResponseCode code, String detail) {
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(ChainCore.class);
 
     protected ChainCore(boolean failFast, ValidationContext context) {
         this.failFast = failFast;
@@ -97,6 +105,49 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         return errors.size();
     }
 
+    public S checkAsync(CompletionStage<Boolean> stage, ResponseCode code) {
+        return checkAsync(stage, code, null);
+    }
+
+    public S checkAsync(CompletionStage<Boolean> stage, ResponseCode code, String detail) {
+        if (shouldSkip()) {
+            return self();
+        }
+        if (stage == null) {
+            return check(false, code, detail);
+        }
+        asyncChecks.add(new AsyncCheck(stage, code, detail));
+        return self();
+    }
+
+    protected CompletableFuture<Void> applyAsyncChecks() {
+        if (asyncChecks.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+        for (AsyncCheck async : asyncChecks) {
+            future = future.thenCompose(ignored -> {
+                if (shouldSkip()) {
+                    return CompletableFuture.completedFuture(null);
+                }
+                CompletableFuture<Boolean> cf = async.stage.toCompletableFuture();
+                return cf.handle((ok, ex) -> {
+                    boolean pass = ex == null && Boolean.TRUE.equals(ok);
+                    if (!pass) {
+                        String d = async.detail;
+                        if (d == null && ex != null) {
+                            d = ex.getMessage();
+                        }
+                        check(false, async.code, d);
+                    }
+                    return null;
+                }).thenAccept(v -> {
+                });
+            });
+        }
+        return future.whenComplete((v, e) -> asyncChecks.clear());
+    }
+
     /**
      * Dynamically control whether to execute subsequent validation.
      *
@@ -105,6 +156,26 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      */
     public S when(boolean condition) {
         this.conditionState = condition;
+        return self();
+    }
+
+    /**
+     * Conditionally execute a validation block.
+     *
+     * @param condition The condition to evaluate
+     * @param block     The validation block to execute if the condition is true
+     * @return Current chain instance
+     */
+    public S ifTrue(boolean condition, Consumer<S> block) {
+        if (condition && alive) {
+            boolean originalState = conditionState;
+            try {
+                conditionState = true;
+                block.accept(self());
+            } finally {
+                conditionState = originalState;
+            }
+        }
         return self();
     }
 
@@ -637,195 +708,57 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      */
     public S recursive(Object object, TypedValidator typedValidator, RecursiveOptions options) {
         if (shouldSkip()) return self();
-        
+
         // Create validation context if not provided
         ValidationContext validationContext = context != null ? context : new ValidationContext(failFast);
-        
+
         // Start recursive validation
         IdentityHashMap<Object, Boolean> visited = new IdentityHashMap<>();
-        recursiveValidate(object, "", typedValidator, validationContext, options, 0, visited);
-        
-        // Add errors to current chain
+        ObjectGraphWalker.walk(object, "", typedValidator, validationContext, options, 0, visited);
+
         if (validationContext.isFailed()) {
-            if (context != null) {
-                // Context already has errors
-            } else {
+            if (context == null) {
                 errors.addAll(validationContext.hasCauses());
                 if (failFast && !errors.isEmpty()) {
                     alive = false;
                 }
             }
         }
-        
+
         return self();
     }
 
     /**
-     * Recursive validation helper method.
+     * Print the current state of the chain to the standard logger.
+     * Useful for debugging complex chains.
+     *
+     * @param msg A custom message to prefix the log
+     * @return Current chain instance
      */
-    private void recursiveValidate(Object object, String path, TypedValidator typedValidator, 
-                                 ValidationContext context, RecursiveOptions options, 
-                                 int depth, IdentityHashMap<Object, Boolean> visited) {
-        // Check if validation should stop
-        if (context.isStopped() || depth > options.getMaxDepth() || 
-            (context.errorSize() >= options.getMaxErrors())) {
-            return;
-        }
-        
-        // Check for circular reference
-        if (object != null && visited.containsKey(object)) {
-            return;
-        }
-        
-        // Mark as visited
-        if (object != null) {
-            visited.put(object, Boolean.TRUE);
-        }
-        
-        try {
-            // Check if object is null
-            if (object == null) {
-                return;
-            }
-            
-            // Check if path is excluded
-            if (isExcluded(path, options.getExclude())) {
-                return;
-            }
-            
-            // Check if path is included (if include list is specified)
-            if (!isIncluded(path, options.getInclude())) {
-                return;
-            }
-            
-            // Validate current object if there's a validator for it
-            boolean validated = typedValidator.validateIfRegistered(object, context);
-            
-            // If object was validated, don't recurse further
-            if (validated) {
-                return;
-            }
-            
-            // Recurse into collections
-            if (object instanceof Collection<?> collection) {
-                int index = 0;
-                for (Object item : collection) {
-                    if (index >= options.getMaxItems()) {
-                        context.reportError(ResponseCode.VALIDATION_ERROR_400, "Collection size exceeds limit");
-                        break;
-                    }
-                    String itemPath = path.isEmpty() ? "[" + index + "]" : path + "[" + index + "]";
-                    recursiveValidate(item, itemPath, typedValidator, context, options, depth + 1, visited);
-                    index++;
-                }
-            }
-            // Recurse into maps
-            else if (object instanceof Map<?, ?> map) {
-                for (Map.Entry<?, ?> entry : map.entrySet()) {
-                    Object key = entry.getKey();
-                    Object value = entry.getValue();
-                    String entryPath = path.isEmpty() ? "[" + key + "]" : path + "[" + key + "]";
-                    recursiveValidate(value, entryPath, typedValidator, context, options, depth + 1, visited);
-                }
-            }
-            // Recurse into arrays
-            else if (object.getClass().isArray()) {
-                if (object instanceof Object[]) {
-                    // Object array
-                    Object[] array = (Object[]) object;
-                    for (int i = 0; i < array.length; i++) {
-                        if (i >= options.getMaxItems()) {
-                            context.reportError(ResponseCode.VALIDATION_ERROR_400, "Array size exceeds limit");
-                            break;
-                        }
-                        String itemPath = path.isEmpty() ? "[" + i + "]" : path + "[" + i + "]";
-                        recursiveValidate(array[i], itemPath, typedValidator, context, options, depth + 1, visited);
-                    }
-                } else {
-                    // Primitive array (int[], long[], etc.)
-                    // Just validate the array itself, don't recurse into primitive elements
-                    // as they don't have fields to validate
-                }
-            }
-            // Recurse into POJOs using reflection
-            else if (!isPrimitiveOrWrapper(object.getClass()) && !isStringOrEnum(object.getClass())) {
-                java.lang.reflect.Field[] fields = object.getClass().getDeclaredFields();
-                for (java.lang.reflect.Field field : fields) {
-                    if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-                        continue;
-                    }
-
-                    Object fieldValue;
-                    try {
-                        field.setAccessible(true);
-                        fieldValue = field.get(object);
-                    } catch (Exception e) {
-                        continue;
-                    }
-
-                    String fieldName = field.getName();
-                    String fieldPath = path.isEmpty() ? fieldName : path + "." + fieldName;
-                    recursiveValidate(fieldValue, fieldPath, typedValidator, context, options, depth + 1, visited);
-                }
-            }
-        } finally {
-            // Remove from visited to allow re-validation in different paths
-            if (object != null) {
-                visited.remove(object);
+    public S console(String msg) {
+        if (log.isDebugEnabled()) {
+            log.debug("[FailFast] {}: valid={}, errorCount={}", msg, errors.isEmpty(), errors.size());
+            for (Business err : errors) {
+                log.debug("  -> {}", err.getMessage());
             }
         }
+        return self();
     }
 
     /**
-     * Check if a class is a primitive type or its wrapper.
+     * Expose the current state of the chain to a custom printer.
+     *
+     * @param printer Consumer to handle the status string
+     * @return Current chain instance
      */
-    private boolean isPrimitiveOrWrapper(Class<?> clazz) {
-        return clazz.isPrimitive() || 
-               clazz == Boolean.class ||
-               clazz == Byte.class ||
-               clazz == Character.class ||
-               clazz == Double.class ||
-               clazz == Float.class ||
-               clazz == Integer.class ||
-               clazz == Long.class ||
-               clazz == Short.class ||
-               clazz == Void.class;
-    }
-
-    /**
-     * Check if a class is String or Enum.
-     */
-    private boolean isStringOrEnum(Class<?> clazz) {
-        return clazz == String.class || clazz.isEnum();
-    }
-
-    /**
-     * Check if path is excluded.
-     */
-    private boolean isExcluded(String path, List<String> exclude) {
-        if (exclude == null || exclude.isEmpty()) {
-            return false;
+    public S print(Consumer<String> printer) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Chain status: ").append(errors.isEmpty() ? "VALID" : "INVALID").append("\n");
+        sb.append("Error count: ").append(errors.size()).append("\n");
+        for (Business err : errors) {
+            sb.append("  - ").append(err.getDetail() != null ? err.getDetail() : err.getMessage()).append("\n");
         }
-        for (String excluded : exclude) {
-            if (path.startsWith(excluded)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Check if path is included (if include list is specified).
-     */
-    private boolean isIncluded(String path, List<String> include) {
-        if (include == null || include.isEmpty()) {
-            return true;
-        }
-        for (String included : include) {
-            if (path.startsWith(included)) {
-                return true;
-            }
-        }
-        return false;
+        printer.accept(sb.toString());
+        return self();
     }
 }

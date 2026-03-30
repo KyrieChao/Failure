@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * 模拟 Failure-in-Action 示例中的最佳实践用法
+ * 模拟 Failure-in-Action 示例中的最佳实践用�?
  * 验证 TypedValidator + Failure.with(ctx) + 手动中断模式
  */
 public class FailFastInActionTest {
@@ -75,7 +75,7 @@ public class FailFastInActionTest {
                     .email(dto.email, UserCode.EMAIL_INVALID)
                     .verify();
 
-            // 2. 检查是否需要继续 (关键点：避免昂贵的业务校验)
+            // 2. 检查是否需要继�?(关键点：避免昂贵的业务校�?
             if (ctx.isFailed()) {
                 return;
             }

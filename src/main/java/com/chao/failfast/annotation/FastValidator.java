@@ -1,7 +1,7 @@
 package com.chao.failfast.annotation;
 
 import com.chao.failfast.constant.Scenario;
-import com.chao.failfast.internal.Business;
+import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +35,10 @@ public interface FastValidator<T> {
      */
     default Class<?> getSupportedType() {
         return Object.class;
+    }
+
+    default boolean allowObjectSupportedType() {
+        return false;
     }
 
     @RequiredArgsConstructor

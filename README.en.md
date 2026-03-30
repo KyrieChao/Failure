@@ -372,6 +372,14 @@ fail-fast:
   shadow-trace: true   # Include class name and line number of the validation point in exception stack trace
   debug-snapshot: true # Enable debug snapshot to include invalid values (default: false)
   verbose: true        # Include detailed errors list in multi-error response
+  trace-id:
+    enabled: true
+    header-name: X-Trace-Id
+    generate-if-missing: true
+    response-header: true
+    response-header-name: X-Trace-Id
+  reactive:
+    context-first: true # WebFlux recommended: prefer Reactor Context over ThreadLocal (default: false)
   code-mapping:
     http-status:
       40001: 400       # Error Code 40001 -> HTTP 400
@@ -380,6 +388,10 @@ fail-fast:
       auth: [ "40100..40199" ]      # Range mapping
       business: [ "40000..40099" ]
 ```
+
+### WebFlux Context-First (Recommended)
+
+In WebFlux (reactive) applications, execution may hop across threads and ThreadLocal may lose request context. Enabling `fail-fast.reactive.context-first=true` makes the framework read `traceId/scene/shadow-trace` from Reactor Context first, then fall back to ThreadLocal for compatibility.
 
 ### Custom default rules (ErrorPolicy)
 

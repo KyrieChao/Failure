@@ -1,12 +1,12 @@
 package com.chao.failfast.internal.policy;
 
-import com.chao.failfast.config.CodeMappingConfig;
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.Chain;
-import com.chao.failfast.internal.Ex;
+import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.internal.core.Chain;
+import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
-import com.chao.failfast.internal.core.FailureProperties;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.exception.Business;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

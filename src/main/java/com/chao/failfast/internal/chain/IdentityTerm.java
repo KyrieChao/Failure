@@ -57,6 +57,13 @@ public interface IdentityTerm<S extends ChainCore<S>> {
         return core().check(IdentityChecks.equals(obj1, obj2), code, detail);
     }
 
+    /**
+     * Cross-field equals check with explicit path attribution.
+     */
+    default S equalsTo(String path, Object obj1, Object obj2, ResponseCode code, String detail) {
+        return core().checkWithPathAndConstraint(IdentityChecks.equals(obj1, obj2), code, detail, obj1, path, null);
+    }
+
     default S notEquals(Object obj1, Object obj2) {
         return notEquals(obj1, obj2, FailureConst.NOT_EQUALS_ERROR, null);
     }

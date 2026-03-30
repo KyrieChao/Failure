@@ -99,12 +99,12 @@ public class Scope<T> {
      * @return FieldRef for field
      */
     public <R> FieldRef<R> field(Function<T, R> getter) {
-        String fieldName = getFieldNameFromGetter(getter);
+        String fieldName = getFieldNameFromGetter();
         return field(fieldName, getter);
     }
 
     public <R> PathEntry<R> fieldEntry(Function<T, R> getter) {
-        String fieldName = getFieldNameFromGetter(getter);
+        String fieldName = getFieldNameFromGetter();
         return field(fieldName, getter).ref();
     }
 
@@ -394,7 +394,7 @@ public class Scope<T> {
     public <R> Scope<T> check(PathEntry<R> ref, Predicate<R> predicate, ResponseCode code, String detail) {
         if (ended) return this;
         boolean condition = ref.value() != null && predicate.test(ref.value());
-        chain.checkRef(condition, code, ref);
+        chain.checkRef(condition, ResponseCode.of(code.getCode(), code.getMessage(), detail), ref);
         endOnFail();
         return this;
     }
@@ -426,7 +426,7 @@ public class Scope<T> {
     public <R> Scope<T> check(PathEntry<R> ref, Supplier<Boolean> ok, ResponseCode code, String detail) {
         if (ended) return this;
         boolean condition = ok.get();
-        chain.checkRef(condition, code, ref);
+        chain.checkRef(condition, ResponseCode.of(code.getCode(), code.getMessage(), detail), ref);
         endOnFail();
         return this;
     }
@@ -521,7 +521,7 @@ public class Scope<T> {
         if (ended) return this;
         N nestedItem = getter.apply(item);
         if (nestedItem != null) {
-            String nestedPath = joinPath(path, getFieldNameFromGetter(getter));
+            String nestedPath = joinPath(path, getFieldNameFromGetter());
             Scope<N> nestedScope = new Scope<>(chain, nestedItem, nestedPath);
             action.accept(nestedScope);
         }
@@ -552,7 +552,7 @@ public class Scope<T> {
         if (ended) return this;
         C collection = getter.apply(item);
         if (collection != null) {
-            String collectionPath = joinPath(path, getFieldNameFromGetter(getter));
+            String collectionPath = joinPath(path, getFieldNameFromGetter());
             int index = 0;
             for (E element : collection) {
                 String elementPath = collectionPath + "[" + index + "]";
@@ -593,7 +593,7 @@ public class Scope<T> {
         if (ended) return this;
         Map<K, V> map = getter.apply(item);
         if (map != null) {
-            String mapPath = joinPath(path, getFieldNameFromGetter(getter));
+            String mapPath = joinPath(path, getFieldNameFromGetter());
             for (Map.Entry<K, V> entry : map.entrySet()) {
                 K key = entry.getKey();
                 V value = entry.getValue();
@@ -625,24 +625,15 @@ public class Scope<T> {
 
     /**
      * Get field name from getter function.
+     * <p>
+     * Note: Lambda string parsing is unstable across different JDKs and compilers.
+     * It is recommended to use the overloaded methods that accept an explicit fieldName.
      *
-     * @param getter Getter function
      * @param <R>    Return type
-     * @return Field name
+     * @return Field name (defaults to "field")
      */
-    private <R> String getFieldNameFromGetter(Function<T, R> getter) {
-        String fieldName = "field";
-        try {
-            String getterStr = getter.toString();
-            int dotIndex = getterStr.indexOf('.');
-            int parenIndex = getterStr.indexOf('(');
-            if (dotIndex > 0 && parenIndex > dotIndex) {
-                fieldName = getterStr.substring(dotIndex + 1, parenIndex);
-            }
-        } catch (Exception e) {
-            // 解析失败时使用默认字段名
-        }
-        return fieldName;
+    private <R> String getFieldNameFromGetter() {
+        return "field";
     }
 
     private static String joinPath(String parent, String child) {

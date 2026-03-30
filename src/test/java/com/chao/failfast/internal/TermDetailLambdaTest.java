@@ -1,6 +1,7 @@
 package com.chao.failfast.internal;
 
 import com.chao.failfast.Failure;
+import com.chao.failfast.internal.core.Chain;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.model.TestResponseCode;
 import org.junit.jupiter.api.DisplayName;
@@ -16,8 +17,8 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 补充测试：覆盖所有 Term 接口中 (args, code, detail) 重载版本的 lambda 表达式。
- * 这些 lambda 只有在校验失败时才会执行。
+ * 补充测试：覆盖所�?Term 接口�?(args, code, detail) 重载版本�?lambda 表达式�?
+ * 这些 lambda 只有在校验失败时才会执行�?
  */
 @DisplayName("Term 接口 Lambda 覆盖测试")
 class TermDetailLambdaTest {

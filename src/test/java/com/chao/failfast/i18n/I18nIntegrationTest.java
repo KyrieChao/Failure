@@ -1,7 +1,7 @@
 package com.chao.failfast.i18n;
 
 import com.chao.failfast.annotation.Validate;
-import com.chao.failfast.config.FailFastAutoConfiguration;
+import com.chao.failfast.autoconfigure.FailFastAutoConfiguration;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ public class I18nIntegrationTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("参数校验失败")) // response.code.validation.error_400 in Chinese
-                .andExpect(jsonPath("$.description").value(containsString("当前值 不能为空"))); // response.code.not.blank in Chinese
+                .andExpect(jsonPath("$.description").value(containsString("当前值不能为空"))); // response.code.not.blank in Chinese
     }
 
     @Test

@@ -1,8 +1,8 @@
 package com.chao.failfast.result;
 
 import com.chao.failfast.constant.FailureConst;
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.internal.core.ResponseCode;
 
 import java.time.Duration;

@@ -2,7 +2,7 @@ package com.chao.failfast.web;
 
 import com.chao.failfast.annotation.FastValidator;
 import com.chao.failfast.annotation.Validate;
-import com.chao.failfast.config.FailFastAutoConfiguration;
+import com.chao.failfast.autoconfigure.FailFastAutoConfiguration;
 import com.chao.failfast.internal.core.ResponseCode;
 import lombok.Data;
 import org.junit.jupiter.api.DisplayName;

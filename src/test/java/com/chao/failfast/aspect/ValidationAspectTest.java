@@ -6,10 +6,10 @@ import com.chao.failfast.annotation.SkipValidation;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.constant.Scenario;
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.Ex;
+import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.policy.ErrorPolicy;
 import com.chao.failfast.validator.TypedValidator;
 import jakarta.servlet.ServletRequest;
@@ -29,7 +29,6 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -57,7 +56,7 @@ class ValidationAspectTest {
         Ex.setContext(context);
     }
 
-    // 测试子类，暴露私有方法
+    // 测试子类，暴露私有方�?
     private static class TestValidationAspect extends ValidationAspect {
         public void setApplicationContext(ApplicationContext applicationContext) {
             try {
@@ -230,6 +229,32 @@ class ValidationAspectTest {
 
         Object result = aspect.around(point, validate);
         assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void testAroundWithExceptionAndSceneRestoration() throws Throwable {
+        ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
+        MethodSignature signature = Mockito.mock(MethodSignature.class);
+        Method method = getClass().getMethod("testMethod");
+        Mockito.when(point.getSignature()).thenReturn(signature);
+        Mockito.when(signature.getMethod()).thenReturn(method);
+        Mockito.when(point.getArgs()).thenReturn(new Object[]{});
+
+        Validate validate = Mockito.mock(Validate.class);
+        Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.CREATE});
+        Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
+        Mockito.when(validate.fast()).thenReturn(true);
+        Mockito.when(validate.value()).thenReturn(new Class[]{});
+
+        Mockito.when(context.getScene()).thenReturn(FailureConst.DEFAULT_SCENE);
+
+        Mockito.when(point.proceed()).thenThrow(new RuntimeException("Simulated exception"));
+
+        assertThrows(RuntimeException.class, () -> aspect.around(point, validate));
+
+        // verify scene is set to CREATE, and then restored to DEFAULT
+        verify(context).setScene("CREATE");
+        verify(context).setScene(FailureConst.DEFAULT_SCENE);
     }
 
     @Test
@@ -458,22 +483,22 @@ class ValidationAspectTest {
     }
 
     @Test
-    @DisplayName("测试未注册规则的验证器 - 应报告'不支持的类型'错误")
+@DisplayName("display")
     void testExecutePlainValidatorWithObjectType() {
-        // 1. 准备：这是一个没有注册任何规则的验证器
+        // 1. 准备：这是一个没有注册任何规则的验证�?
         ObjectValidator validator = new ObjectValidator();
         com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(false);
 
-        // 2. 执行：传入任意对象 (如 "test" 或 new Object())
+        // 2. 执行：传入任意对�?(�?"test" �?new Object())
         Object testData = new Object();
         aspect.executePlainValidator(validator, List.of(testData), ctx);
 
         // 3. 【关键修正】断言验证应该失败
-        // 因为 validators 地图为空，resolveHandler 返回 null，触发 "Unsupported validation type" 错误
+        // 因为 validators 地图为空，resolveHandler 返回 null，触�?"Unsupported validation type" 错误
         assertFalse(ctx.isValid(), "未注册任何规则的验证器应导致验证失败");
 
         // 4. 进阶断言：验证错误确实被记录，且错误数量大于 0
-        assertTrue(ctx.errorSize() > 0, "验证失败后，上下文中应包含至少一个错误");
+        assertTrue(ctx.errorSize() > 0, "validation should record at least one error");
 
         Business firstError = ctx.getFirstError();
         assertTrue(firstError.getDetail().contains("Object"));
@@ -555,7 +580,7 @@ class ValidationAspectTest {
 
     @Test
     void testShouldKeepViolationWithSceneFiltering() throws NoSuchFieldException {
-        // 使用原始类型来避免Mockito的类型推断问题
+        // 使用原始类型来避免Mockito的类型推断问�?
         @SuppressWarnings("rawtypes")
         ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
         jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
@@ -572,7 +597,7 @@ class ValidationAspectTest {
 
     @Test
     void testShouldKeepViolationWithFieldNotFound() {
-        // 使用原始类型来避免Mockito的类型推断问题
+        // 使用原始类型来避免Mockito的类型推断问�?
         @SuppressWarnings("rawtypes")
         ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
         jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
@@ -586,7 +611,7 @@ class ValidationAspectTest {
 
     @Test
     void testFormatValidationLocationWithCglibProxy() {
-        // 创建一个模拟的 CGLIB 代理类
+        // 创建一个模拟的 CGLIB 代理�?
         class CglibProxyTestClass {
         }
         String proxyClassName = CglibProxyTestClass.class.getName() + "$$EnhancerByCGLIB$$123456";
@@ -637,7 +662,7 @@ class ValidationAspectTest {
         Validate validate = Mockito.mock(Validate.class);
         Mockito.when(validate.scene()).thenReturn(new Scenario[]{Scenario.DEFAULT});
         Mockito.when(validate.groups()).thenReturn(new Class<?>[]{});
-        Mockito.when(validate.fast()).thenReturn(false); // 不使用failFast，收集所有错误
+        Mockito.when(validate.fast()).thenReturn(false); // 不使用failFast，收集所有错�?
         Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class, TestValidator.class});
 
         ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
@@ -645,12 +670,12 @@ class ValidationAspectTest {
         Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
 
         Exception exception = assertThrows(Exception.class, () -> aspect.around(point, validate));
-        assertTrue(exception instanceof com.chao.failfast.internal.MultiBusiness);
+        assertTrue(exception instanceof com.chao.failfast.exception.MultiBusiness);
     }
 
     @Test
     void testGetValidatorSupportedTypeWithGenericInference() {
-        // 使用已定义的 GenericValidator 类
+        // 使用已定义的 GenericValidator �?
         GenericValidator validator = new GenericValidator();
         Class<?> type = aspect.getValidatorSupportedType(validator);
         assertEquals(String.class, type);
@@ -658,7 +683,7 @@ class ValidationAspectTest {
 
     @Test
     void testGetValidatorSupportedTypeWithNullGeneric() {
-        // 使用已定义的 NonGenericValidator 类
+        // 使用已定义的 NonGenericValidator �?
         NonGenericValidator validator = new NonGenericValidator();
         Class<?> type = aspect.getValidatorSupportedType(validator);
         assertEquals(Object.class, type);
@@ -666,7 +691,7 @@ class ValidationAspectTest {
 
     @Test
     void testBuildValidatorFactoryWithApplicationContext() throws Exception {
-        // 测试通过 ApplicationContext 获取验证器
+        // 测试通过 ApplicationContext 获取验证�?
         TestValidator testValidator = new TestValidator();
         ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
@@ -681,7 +706,7 @@ class ValidationAspectTest {
 
     @Test
     void testBuildValidatorFactoryWithBeanNames() throws Exception {
-        // 测试通过 BeanNames 获取验证器
+        // 测试通过 BeanNames 获取验证�?
         TestValidator testValidator = new TestValidator();
         ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
@@ -698,8 +723,8 @@ class ValidationAspectTest {
 
     @Test
     void testBuildValidatorFactoryWithNullApplicationContext() throws Exception {
-        // 测试 ApplicationContext 为 null 的情况
-        // 通过反射设置 applicationContext 为 null
+        // 测试 ApplicationContext �?null 的情�?
+        // 通过反射设置 applicationContext �?null
         Field field = ValidationAspect.class.getDeclaredField("applicationContext");
         field.setAccessible(true);
         field.set(aspect, null);
@@ -713,7 +738,7 @@ class ValidationAspectTest {
 
     @Test
     void testNewValidatorInstance() throws Exception {
-        // 测试正常创建验证器实例
+        // 测试正常创建验证器实�?
         Method method = ValidationAspect.class.getDeclaredMethod("newValidatorInstance", Class.class);
         method.setAccessible(true);
         Object validator = method.invoke(aspect, TestValidator.class);
@@ -724,7 +749,7 @@ class ValidationAspectTest {
     void testNewValidatorInstanceWithException() {
         // 测试创建验证器实例失败的情况
         class InvalidValidator extends TypedValidator {
-            // 私有构造函数，无法实例化
+            // 私有构造函数，无法实例�?
             private InvalidValidator() {
             }
 
@@ -765,7 +790,7 @@ class ValidationAspectTest {
 
     @Test
     void testShouldKeepViolationWithNullScenes() {
-        // 测试 scenes 为 null 的情况
+        // 测试 scenes �?null 的情�?
         @SuppressWarnings("rawtypes")
         ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
         jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
@@ -777,7 +802,7 @@ class ValidationAspectTest {
 
     @Test
     void testShouldKeepViolationWithEmptySceneSet() throws NoSuchFieldException {
-        // 测试场景集合为空的情况
+        // 测试场景集合为空的情�?
         @SuppressWarnings("rawtypes")
         ConstraintViolation violation = Mockito.mock(ConstraintViolation.class);
         jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
@@ -787,7 +812,7 @@ class ValidationAspectTest {
 
         // 移除字段上的 @Scene 注解
         Field field = TestClass.class.getDeclaredField("name");
-        // 创建一个没有 @Scene 注解的字段
+        // 创建一个没�?@Scene 注解的字�?
         class TestClassWithoutScene {
             private String name;
         }
@@ -805,7 +830,7 @@ class ValidationAspectTest {
             Method method = getClass().getMethod("testMethod");
             Mockito.when(point.getSignature()).thenReturn(signature);
             Mockito.when(signature.getMethod()).thenReturn(method);
-            Mockito.when(point.getArgs()).thenReturn(new Object[]{}); // 使用空数组而不是 null
+            Mockito.when(point.getArgs()).thenReturn(new Object[]{}); // 使用空数组而不�?null
 
             List<Object> args = aspect.collectValidatableArgs(point);
             assertNotNull(args);
@@ -884,7 +909,7 @@ class ValidationAspectTest {
     }
 
     @Test
-    void testAroundDoesNotRestoreSceneOnFailure() throws Throwable {
+    void testAroundRestoresSceneOnFailure() throws Throwable {
         ProceedingJoinPoint point = Mockito.mock(ProceedingJoinPoint.class);
         MethodSignature signature = Mockito.mock(MethodSignature.class);
         Method method = getClass().getMethod("testMethod");
@@ -906,7 +931,8 @@ class ValidationAspectTest {
 
         assertThrows(Business.class, () -> aspect.around(point, validate));
         verify(context).setScene("CREATE");
-        verify(context, Mockito.never()).setScene("ORIGINAL");
+        // Verify scene IS restored when failure occurs
+        verify(context).setScene("ORIGINAL");
     }
 
     @Test
@@ -1237,13 +1263,13 @@ class ValidationAspectTest {
     public void testMethodWithServletRequest(ServletRequest request) {
     }
 
-    // 测试类
+    // 测试�?
     static class TestClass {
         @Scene(value = {Scenario.CREATE, Scenario.UPDATE})
         private String name;
     }
 
-    // 测试验证器
+    // 测试验证�?
     static class TestValidator extends TypedValidator {
         @Override
         protected void registerValidators() {
@@ -1260,7 +1286,7 @@ class ValidationAspectTest {
         }
     }
 
-    // 测试验证器（返回Object.class）
+    // 测试验证器（返回Object.class�?
     static class ObjectValidator extends TypedValidator {
         @Override
         protected void registerValidators() {
@@ -1272,7 +1298,7 @@ class ValidationAspectTest {
         }
     }
 
-    // 测试验证器（用于泛型推断测试）
+    // 测试验证器（用于泛型推断测试�?
     static class GenericValidator implements com.chao.failfast.annotation.FastValidator<String> {
         @Override
         public void validate(String value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
@@ -1280,7 +1306,7 @@ class ValidationAspectTest {
 
         @Override
         public Class<?> getSupportedType() {
-            return Object.class; // 返回Object.class，触发泛型推断
+            return Object.class; // 返回Object.class，触发泛型推�?
         }
     }
 

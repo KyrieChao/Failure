@@ -58,7 +58,7 @@ class ChainCorePipelineTest {
     }
 
     @Test
-    @DisplayName("notifyViolation: 应调用 ValidationObservers.notifyViolation")
+@DisplayName("display")
     void notifyViolationShouldCallValidationObservers() {
         TestChain chain = TestChain.create(true);
 
@@ -72,7 +72,7 @@ class ChainCorePipelineTest {
     }
 
     @Test
-    @DisplayName("notifyValidationStart: 应调用 ValidationObservers.notifyStart")
+@DisplayName("display")
     void notifyValidationStartShouldCallValidationObservers() {
         TestChain chain = TestChain.create(true);
 
@@ -86,7 +86,7 @@ class ChainCorePipelineTest {
     }
 
     @Test
-    @DisplayName("notifyValidationEnd: 应调用 ValidationObservers.notifyEnd")
+@DisplayName("display")
     void notifyValidationEndShouldCallValidationObservers() {
         TestChain chain = TestChain.create(true);
 
@@ -100,7 +100,7 @@ class ChainCorePipelineTest {
     }
 
     @Test
-    @DisplayName("notifyValidationFailure: 应调用 ValidationObservers.notifyFailure")
+@DisplayName("display")
     void notifyValidationFailureShouldCallValidationObservers() {
         TestChain chain = TestChain.create(true);
 
@@ -119,7 +119,7 @@ class ChainCorePipelineTest {
         TestChain chain = TestChain.create(true);
 
         try (MockedStatic<ValidationObservers> mocked = Mockito.mockStatic(ValidationObservers.class)) {
-            // 执行测试 - 条件为 false，会触发错误
+            // 执行测试 - 条件�?false，会触发错误
             chain.publicCheckWithPathAndConstraint(false, ResponseCode.VALIDATION_ERROR_400, "Test error", "test-value", "test-path", "test-constraint", "test-source");
 
             // 验证调用

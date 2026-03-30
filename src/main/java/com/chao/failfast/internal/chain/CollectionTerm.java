@@ -96,6 +96,42 @@ public interface CollectionTerm<S extends ChainCore<S>> {
         return core().check(CollectionChecks.notContains(col, o), code, detail);
     }
 
+    default S containsAll(Collection<?> col, Collection<?> required) {
+        return containsAll(col, required, FailureConst.CONTAINS_ALL_ERROR, null);
+    }
+
+    default S containsAll(Collection<?> col, Collection<?> required, ResponseCode code) {
+        return containsAll(col, required, code, null);
+    }
+
+    default S containsAll(Collection<?> col, Collection<?> required, ResponseCode code, String detail) {
+        return core().check(CollectionChecks.containsAll(col, required), code, detail);
+    }
+
+    default <T> S noneMatch(Collection<T> col, Predicate<T> predicate) {
+        return noneMatch(col, predicate, FailureConst.NONE_MATCH_ERROR, null);
+    }
+
+    default <T> S noneMatch(Collection<T> col, Predicate<T> predicate, ResponseCode code) {
+        return noneMatch(col, predicate, code, null);
+    }
+
+    default <T> S noneMatch(Collection<T> col, Predicate<T> predicate, ResponseCode code, String detail) {
+        return core().check(CollectionChecks.noneMatch(col, predicate), code, detail);
+    }
+
+    default S uniqueElements(Collection<?> col) {
+        return uniqueElements(col, FailureConst.UNIQUE_ELEMENTS_ERROR, null);
+    }
+
+    default S uniqueElements(Collection<?> col, ResponseCode code) {
+        return uniqueElements(col, code, null);
+    }
+
+    default S uniqueElements(Collection<?> col, ResponseCode code, String detail) {
+        return core().check(CollectionChecks.uniqueElements(col), code, detail);
+    }
+
     default S hasNoNullElements(Collection<?> col) {
         return hasNoNullElements(col, FailureConst.HAS_NO_NULL_ELEMENTS_ERROR, null);
     }

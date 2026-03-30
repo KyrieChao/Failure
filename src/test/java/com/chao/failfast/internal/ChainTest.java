@@ -1,7 +1,10 @@
 package com.chao.failfast.internal;
 
 import com.chao.failfast.Failure;
+import com.chao.failfast.internal.core.Chain;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.model.TestResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,8 +16,8 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Chain 类 100% 覆盖率测试
- * 覆盖所有公共方法及其重载版本
+ * Chain �?100% 覆盖率测�?
+ * 覆盖所有公共方法及其重载版�?
  */
 @DisplayName("Chain 完整覆盖测试")
 public class ChainTest {
@@ -23,10 +26,10 @@ public class ChainTest {
     private static final ResponseCode TEST_CODE_2 = TestResponseCode.PARAM_REQUIRED;
     private static final String TEST_DETAIL = "test detail";
 
-    // ==================== 基础构造与状态管理 ====================
+    // ==================== 基础构造与状态管�?====================
 
     @Test
-    @DisplayName("测试 Chain.begin() 构造")
+@DisplayName("display")
     void testBegin() {
         Chain chain = Chain.begin(true);
         assertNotNull(chain);
@@ -46,7 +49,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isValid() 状态变化")
+@DisplayName("display")
     void testIsValidStateChange() {
         Chain chain = Chain.begin(true);
         assertTrue(chain.isValid());
@@ -75,11 +78,11 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 fail() 使用无参check导致alive=false但errors为空的情况")
+@DisplayName("display")
     void testFailWithAliveFalseButNoErrors() {
         Chain chain = Chain.begin(true);
-        // 使用无参 check 使 alive=false 但不添加错误
-        chain.state(false); // 这会使 alive=false
+        // 使用无参 check �?alive=false 但不添加错误
+        chain.state(false); // 这会�?alive=false
 
         Business exception = assertThrows(Business.class, chain::fail);
         assertEquals(500, exception.getResponseCode().getCode());
@@ -95,7 +98,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 failAll() 单个错误时抛出 Business")
+@DisplayName("display")
     void testFailAllSingleError() {
         Chain chain = Chain.begin(false); // strict 模式
         chain.exists(null, TEST_CODE);
@@ -105,7 +108,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 failAll() 多个错误时抛出 MultiBusiness")
+@DisplayName("display")
     void testFailAllMultipleErrors() {
         Chain chain = Chain.begin(false); // strict 模式
         chain.exists(null, TEST_CODE);
@@ -116,7 +119,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 failAll() alive=false但errors为空的情况")
+@DisplayName("display")
     void testFailAllWithAliveFalseButNoErrors() {
         Chain chain = Chain.begin(true);
         chain.state(false);
@@ -134,7 +137,7 @@ public class ChainTest {
         Chain chain = Chain.begin(true);
         assertDoesNotThrow(() -> chain.failNow(TEST_CODE));
 
-        // alive=false 时抛出
+        // alive=false 时抛�?
         Chain failChain = Chain.begin(true);
         failChain.state(false);
         Business exception = assertThrows(Business.class, () -> failChain.failNow(TEST_CODE));
@@ -152,7 +155,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("failNow 无错误时不应抛异常")
+@DisplayName("display")
     void testFailNowNoError() {
         assertDoesNotThrow(() ->
                 Failure.begin()
@@ -192,7 +195,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 onFail(Runnable) 在成功时不执行")
+@DisplayName("display")
     void testOnFailDoesNotExecuteOnSuccess() {
         final boolean[] executed = {false};
         Chain chain = Chain.begin(true);
@@ -201,7 +204,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 onFailGet(Supplier) 在失败时返回值")
+@DisplayName("display")
     void testOnFailGetReturnsOnFailure() {
         Chain chain = Chain.begin(true);
         Optional<String> result = chain.state(false, TEST_CODE).onFailGet(() -> "default");
@@ -210,7 +213,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 onFailGet(Supplier) 在成功时返回空")
+@DisplayName("display")
     void testOnFailGetEmptyOnSuccess() {
         Chain chain = Chain.begin(true);
         Optional<String> result = chain.state(true, TEST_CODE).onFailGet(() -> "default");
@@ -220,7 +223,7 @@ public class ChainTest {
     // ==================== Object 校验 ====================
 
     @Test
-    @DisplayName("测试 exists() 所有重载")
+@DisplayName("display")
     void testExistsAllVariants() {
         Object obj = new Object();
 
@@ -240,7 +243,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notNull() 所有重载")
+@DisplayName("display")
     void testNotNullAllVariants() {
         Object obj = new Object();
 
@@ -252,7 +255,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isNull() 所有重载")
+@DisplayName("display")
     void testIsNullAllVariants() {
         Object obj = new Object();
 
@@ -264,7 +267,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 instanceOf() 所有重载")
+@DisplayName("display")
     void testInstanceOfAllVariants() {
         String str = "test";
 
@@ -276,7 +279,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notInstanceOf() 所有重载")
+@DisplayName("display")
     void testNotInstanceOfAllVariants() {
         String str = "test";
 
@@ -288,7 +291,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 allNotNull() 所有重载")
+@DisplayName("display")
     void testAllNotNullAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().allNotNull("a", "b", "c").fail());
         assertDoesNotThrow(() -> Failure.begin().allNotNull(TEST_CODE, (Object) "", "a", "b").fail());
@@ -300,7 +303,7 @@ public class ChainTest {
     // ==================== Boolean 校验 ====================
 
     @Test
-    @DisplayName("测试 state() 所有重载")
+@DisplayName("display")
     void testStateAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().state(true).fail());
         assertDoesNotThrow(() -> Failure.begin().state(true, TEST_CODE).fail());
@@ -310,7 +313,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isTrue() 所有重载")
+@DisplayName("display")
     void testIsTrueAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isTrue(true).fail());
         assertDoesNotThrow(() -> Failure.begin().isTrue(true, TEST_CODE).fail());
@@ -320,7 +323,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isFalse() 所有重载")
+@DisplayName("display")
     void testIsFalseAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isFalse(false).fail());
         assertDoesNotThrow(() -> Failure.begin().isFalse(false, TEST_CODE).fail());
@@ -332,7 +335,7 @@ public class ChainTest {
     // ==================== String 校验 ====================
 
     @Test
-    @DisplayName("测试 blank() 所有重载")
+@DisplayName("display")
     void testBlankAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().blank("").fail());
         assertDoesNotThrow(() -> Failure.begin().blank("", TEST_CODE).fail());
@@ -342,7 +345,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notBlank() 所有重载")
+@DisplayName("display")
     void testNotBlankAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().notBlank("a").fail());
         assertDoesNotThrow(() -> Failure.begin().notBlank("a", TEST_CODE).fail());
@@ -352,7 +355,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notEmpty(String) 所有重载")
+@DisplayName("display")
     void testNotEmptyStringAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().notEmpty("a").fail());
         assertDoesNotThrow(() -> Failure.begin().notEmpty("a", TEST_CODE).fail());
@@ -362,7 +365,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 lengthBetween() 所有重载")
+@DisplayName("display")
     void testLengthBetweenAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().lengthBetween("abc", 1, 5).fail());
         assertDoesNotThrow(() -> Failure.begin().lengthBetween("abc", 1, 5, TEST_CODE).fail());
@@ -372,7 +375,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 match() 所有重载")
+@DisplayName("display")
     void testMatchAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().match("123", "\\d+").fail());
         assertDoesNotThrow(() -> Failure.begin().match("123", "\\d+", TEST_CODE).fail());
@@ -382,7 +385,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 email() 所有重载")
+@DisplayName("display")
     void testEmailAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().email("test@example.com").fail());
         assertDoesNotThrow(() -> Failure.begin().email("test@example.com", TEST_CODE).fail());
@@ -392,7 +395,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 equalsIgnoreCase() 所有重载")
+@DisplayName("display")
     void testEqualsIgnoreCaseAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().equalsIgnoreCase("abc", "ABC").fail());
         assertDoesNotThrow(() -> Failure.begin().equalsIgnoreCase("abc", "ABC", TEST_CODE).fail());
@@ -402,7 +405,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 startsWith() 所有重载")
+@DisplayName("display")
     void testStartsWithAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().startsWith("abc", "a").fail());
         assertDoesNotThrow(() -> Failure.begin().startsWith("abc", "a", TEST_CODE).fail());
@@ -412,7 +415,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 endsWith() 所有重载")
+@DisplayName("display")
     void testEndsWithAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().endsWith("abc", "c").fail());
         assertDoesNotThrow(() -> Failure.begin().endsWith("abc", "c", TEST_CODE).fail());
@@ -422,7 +425,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 contains(String) 所有重载")
+@DisplayName("display")
     void testContainsStringAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().contains("abc", "b").fail());
         assertDoesNotThrow(() -> Failure.begin().contains("abc", "b", TEST_CODE).fail());
@@ -432,7 +435,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notContains(String) 所有重载")
+@DisplayName("display")
     void testNotContainsStringAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().notContains("abc", "x").fail());
         assertDoesNotThrow(() -> Failure.begin().notContains("abc", "x", TEST_CODE).fail());
@@ -442,7 +445,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 lengthMin() 所有重载")
+@DisplayName("display")
     void testLengthMinAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().lengthMin("abc", 2).fail());
         assertDoesNotThrow(() -> Failure.begin().lengthMin("abc", 2, TEST_CODE).fail());
@@ -452,7 +455,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 lengthMax() 所有重载")
+@DisplayName("display")
     void testLengthMaxAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().lengthMax("a", 5).fail());
         assertDoesNotThrow(() -> Failure.begin().lengthMax("a", 5, TEST_CODE).fail());
@@ -462,7 +465,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isNumeric() 所有重载")
+@DisplayName("display")
     void testIsNumericAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isNumeric("123").fail());
         assertDoesNotThrow(() -> Failure.begin().isNumeric("123", TEST_CODE).fail());
@@ -472,7 +475,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isAlpha() 所有重载")
+@DisplayName("display")
     void testIsAlphaAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isAlpha("abc").fail());
         assertDoesNotThrow(() -> Failure.begin().isAlpha("abc", TEST_CODE).fail());
@@ -482,7 +485,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isAlphanumeric() 所有重载")
+@DisplayName("display")
     void testIsAlphanumericAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isAlphanumeric("abc123").fail());
         assertDoesNotThrow(() -> Failure.begin().isAlphanumeric("abc123", TEST_CODE).fail());
@@ -492,7 +495,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isLowerCase() 所有重载")
+@DisplayName("display")
     void testIsLowerCaseAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isLowerCase("abc").fail());
         assertDoesNotThrow(() -> Failure.begin().isLowerCase("abc", TEST_CODE).fail());
@@ -502,7 +505,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isUpperCase() 所有重载")
+@DisplayName("display")
     void testIsUpperCaseAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isUpperCase("ABC").fail());
         assertDoesNotThrow(() -> Failure.begin().isUpperCase("ABC", TEST_CODE).fail());
@@ -512,7 +515,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 mobile() 所有重载")
+@DisplayName("display")
     void testMobileAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().mobile("13800138000").fail());
         assertDoesNotThrow(() -> Failure.begin().mobile("13800138000", TEST_CODE).fail());
@@ -522,7 +525,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 url() 所有重载")
+@DisplayName("display")
     void testUrlAllVariants() {
         assertThrows(Business.class, () -> Failure.begin().url("").fail());
         assertThrows(Business.class, () -> Failure.begin().url(null).fail());
@@ -537,7 +540,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 ipAddress() 所有重载")
+@DisplayName("display")
     void testIpAddressAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().ipAddress("192.168.1.1").fail());
         assertDoesNotThrow(() -> Failure.begin().ipAddress("192.168.1.1", TEST_CODE).fail());
@@ -547,7 +550,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 uuid() 所有重载")
+@DisplayName("display")
     void testUuidAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().uuid("550e8400-e29b-41d4-a716-446655440000").fail());
         assertDoesNotThrow(() -> Failure.begin().uuid("550e8400-e29b-41d4-a716-446655440000", TEST_CODE).fail());
@@ -559,7 +562,7 @@ public class ChainTest {
     // ==================== Collection 校验 ====================
 
     @Test
-    @DisplayName("测试 notEmpty(Collection) 所有重载")
+@DisplayName("display")
     void testNotEmptyCollectionAllVariants() {
         List<String> list = List.of("a");
 
@@ -571,7 +574,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 sizeBetween(Collection) 所有重载")
+@DisplayName("display")
     void testSizeBetweenCollectionAllVariants() {
         List<String> list = List.of("a", "b");
 
@@ -583,7 +586,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 sizeEquals(Collection) 所有重载")
+@DisplayName("display")
     void testSizeEqualsCollectionAllVariants() {
         List<String> list = List.of("a", "b");
 
@@ -595,7 +598,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 contains(Collection) 所有重载")
+@DisplayName("display")
     void testContainsCollectionAllVariants() {
         List<String> list = List.of("a", "b");
 
@@ -607,7 +610,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notContains(Collection) 所有重载")
+@DisplayName("display")
     void testNotContainsCollectionAllVariants() {
         List<String> list = List.of("a", "b");
 
@@ -619,7 +622,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isEmpty(Collection) 所有重载")
+@DisplayName("display")
     void testIsEmptyCollectionAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isEmpty(Collections.emptyList()).fail());
         assertDoesNotThrow(() -> Failure.begin().isEmpty(Collections.emptyList(), TEST_CODE).fail());
@@ -629,7 +632,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 hasNoNullElements(Collection) 所有重载")
+@DisplayName("display")
     void testHasNoNullElementsCollectionAllVariants() {
         List<String> list = List.of("a", "b");
 
@@ -644,7 +647,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 allMatch(Collection) 所有重载")
+@DisplayName("display")
     void testAllMatchCollectionAllVariants() {
         List<Integer> list = List.of(2, 4, 6);
 
@@ -656,7 +659,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 anyMatch(Collection) 所有重载")
+@DisplayName("display")
     void testAnyMatchCollectionAllVariants() {
         List<Integer> list = List.of(1, 2, 3);
 
@@ -670,7 +673,7 @@ public class ChainTest {
     // ==================== Array 校验 ====================
 
     @Test
-    @DisplayName("测试 notEmpty(Array) 所有重载")
+@DisplayName("display")
     void testNotEmptyArrayAllVariants() {
         String[] arr = {"a"};
 
@@ -682,7 +685,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 sizeBetween(Array) 所有重载")
+@DisplayName("display")
     void testSizeBetweenArrayAllVariants() {
         String[] arr = {"a", "b"};
 
@@ -693,7 +696,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 sizeEquals(Array) 所有重载")
+@DisplayName("display")
     void testSizeEqualsArrayAllVariants() {
         String[] arr = {"a", "b"};
 
@@ -705,7 +708,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 contains(Array) 所有重载")
+@DisplayName("display")
     void testContainsArrayAllVariants() {
         String[] arr = {"a", "b"};
 
@@ -717,7 +720,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notContains(Array) 所有重载")
+@DisplayName("display")
     void testNotContainsArrayAllVariants() {
         String[] arr = {"a", "b"};
 
@@ -729,7 +732,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isEmpty(Array) 所有重载")
+@DisplayName("display")
     void testIsEmptyArrayAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isEmpty(new String[]{}).fail());
         assertDoesNotThrow(() -> Failure.begin().isEmpty(new String[]{}, TEST_CODE).fail());
@@ -739,7 +742,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 hasNoNullElements(Array) 所有重载")
+@DisplayName("display")
     void testHasNoNullElementsArrayAllVariants() {
         String[] arr = {"a", "b"};
 
@@ -751,7 +754,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 allMatch(Array) 所有重载")
+@DisplayName("display")
     void testAllMatchArrayAllVariants() {
         Integer[] arr = {2, 4, 6};
 
@@ -763,7 +766,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 anyMatch(Array) 所有重载")
+@DisplayName("display")
     void testAnyMatchArrayAllVariants() {
         Integer[] arr = {1, 2, 3};
 
@@ -777,7 +780,7 @@ public class ChainTest {
     // ==================== Number 校验 ====================
 
     @Test
-    @DisplayName("测试 positive() 所有重载")
+@DisplayName("display")
     void testPositiveAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().positive(1).fail());
         assertDoesNotThrow(() -> Failure.begin().positive(1, TEST_CODE).fail());
@@ -787,7 +790,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 positive 所有重载")
+@DisplayName("display")
     void testPositiveNumberAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().positive(1).fail());
         assertDoesNotThrow(() -> Failure.begin().positive(1, TEST_CODE).fail());
@@ -797,7 +800,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 inRange() 所有重载")
+@DisplayName("display")
     void testInRangeAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().inRange(5, 1, 10).fail());
         assertDoesNotThrow(() -> Failure.begin().inRange(5, 1, 10, TEST_CODE).fail());
@@ -807,7 +810,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 inRangeNumber() 所有重载")
+@DisplayName("display")
     void testInRangeNumberAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().inRangeNumber(5, 1, 10).fail());
         assertDoesNotThrow(() -> Failure.begin().inRangeNumber(5, 1, 10, TEST_CODE).fail());
@@ -817,7 +820,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 nonNegative() 所有重载")
+@DisplayName("display")
     void testNonNegativeAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().nonNegative(0).fail());
         assertDoesNotThrow(() -> Failure.begin().nonNegative(0, TEST_CODE).fail());
@@ -827,7 +830,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 greaterThan() 所有重载")
+@DisplayName("display")
     void testGreaterThanAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().greaterThan(5, 3).fail());
         assertDoesNotThrow(() -> Failure.begin().greaterThan(5, 3, TEST_CODE).fail());
@@ -837,7 +840,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 greaterOrEqual() 所有重载")
+@DisplayName("display")
     void testGreaterOrEqualAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().greaterOrEqual(5, 5).fail());
         assertDoesNotThrow(() -> Failure.begin().greaterOrEqual(5, 5, TEST_CODE).fail());
@@ -847,7 +850,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 lessThan() 所有重载")
+@DisplayName("display")
     void testLessThanAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().lessThan(3, 5).fail());
         assertDoesNotThrow(() -> Failure.begin().lessThan(3, 5, TEST_CODE).fail());
@@ -857,7 +860,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 lessOrEqual() 所有重载")
+@DisplayName("display")
     void testLessOrEqualAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().lessOrEqual(5, 5).fail());
         assertDoesNotThrow(() -> Failure.begin().lessOrEqual(5, 5, TEST_CODE).fail());
@@ -867,7 +870,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notZero() 所有重载")
+@DisplayName("display")
     void testNotZeroAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().notZero(5).fail());
         assertDoesNotThrow(() -> Failure.begin().notZero(5, TEST_CODE).fail());
@@ -877,7 +880,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isZero() 所有重载")
+@DisplayName("display")
     void testIsZeroAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isZero(0).fail());
         assertDoesNotThrow(() -> Failure.begin().isZero(0, TEST_CODE).fail());
@@ -887,7 +890,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 negative() 所有重载")
+@DisplayName("display")
     void testNegativeAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().negative(-5).fail());
         assertDoesNotThrow(() -> Failure.begin().negative(-5, TEST_CODE).fail());
@@ -897,7 +900,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 multipleOf() 所有重载")
+@DisplayName("display")
     void testMultipleOfAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().multipleOf(10, 5).fail());
         assertDoesNotThrow(() -> Failure.begin().multipleOf(10, 5, TEST_CODE).fail());
@@ -907,7 +910,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 decimalScale() 所有重载")
+@DisplayName("display")
     void testDecimalScaleAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().decimalScale(new BigDecimal("1.23"), 2).fail());
         assertDoesNotThrow(() -> Failure.begin().decimalScale(new BigDecimal("1.23"), 2, TEST_CODE).fail());
@@ -919,7 +922,7 @@ public class ChainTest {
     // ==================== Date 校验 ====================
 
     @Test
-    @DisplayName("测试 after(Date) 所有重载")
+@DisplayName("display")
     void testAfterDateAllVariants() {
         Date now = new Date();
         Date future = new Date(now.getTime() + 10000);
@@ -927,7 +930,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 before(Date) 所有重载")
+@DisplayName("display")
     void testBeforeDateAllVariants() {
         Date now = new Date();
         Date future = new Date(now.getTime() + 10000);
@@ -940,7 +943,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 after(Comparable) 所有重载")
+@DisplayName("display")
     void testAfterComparableAllVariants() {
         LocalDate now = LocalDate.now();
         LocalDate future = now.plusDays(1);
@@ -953,7 +956,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 afterOrEqual(Comparable) 所有重载")
+@DisplayName("display")
     void testAfterOrEqualAllVariants() {
         LocalDate now = LocalDate.now();
 
@@ -965,7 +968,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 before(Comparable) 所有重载")
+@DisplayName("display")
     void testBeforeComparableAllVariants() {
         LocalDate now = LocalDate.now();
         LocalDate past = now.minusDays(1);
@@ -978,7 +981,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 beforeOrEqual(Comparable) 所有重载")
+@DisplayName("display")
     void testBeforeOrEqualAllVariants() {
         LocalDate now = LocalDate.now();
 
@@ -990,7 +993,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 between(Comparable) 所有重载")
+@DisplayName("display")
     void testBetweenAllVariants() {
         LocalDate now = LocalDate.now();
 
@@ -1002,7 +1005,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isPast(Date) 所有重载")
+@DisplayName("display")
     void testIsPastDateAllVariants() {
         Date past = new Date(System.currentTimeMillis() - 10000);
 
@@ -1015,7 +1018,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isFuture(Date) 所有重载")
+@DisplayName("display")
     void testIsFutureDateAllVariants() {
         Date future = new Date(System.currentTimeMillis() + 10000);
 
@@ -1028,7 +1031,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isPast(LocalDate) 所有重载")
+@DisplayName("display")
     void testIsPastLocalDateAllVariants() {
         LocalDate past = LocalDate.now().minusDays(1);
 
@@ -1041,7 +1044,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isFuture(LocalDate) 所有重载")
+@DisplayName("display")
     void testIsFutureLocalDateAllVariants() {
         LocalDate future = LocalDate.now().plusDays(1);
 
@@ -1054,7 +1057,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isToday(LocalDate) 所有重载")
+@DisplayName("display")
     void testIsTodayAllVariants() {
         LocalDate today = LocalDate.now();
 
@@ -1071,7 +1074,7 @@ public class ChainTest {
     enum TestEnum {A, B, C}
 
     @Test
-    @DisplayName("测试 enumValue() 所有重载")
+@DisplayName("display")
     void testEnumValueAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().enumValue(TestEnum.class, "A").fail());
         assertDoesNotThrow(() -> Failure.begin().enumValue(TestEnum.class, "A", TEST_CODE).fail());
@@ -1081,20 +1084,20 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 enumConstant() 所有重载")
+@DisplayName("display")
     void testEnumConstantAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().enumConstant(TestEnum.A, TestEnum.class).fail());
         assertDoesNotThrow(() -> Failure.begin().enumConstant(TestEnum.A, TestEnum.class, TEST_CODE).fail());
         assertDoesNotThrow(() -> Failure.begin().enumConstant(TestEnum.A, TestEnum.class, TEST_CODE, TEST_DETAIL).fail());
 
-        // 这里传入 null 会失败，因为 null 不是有效的枚举常量
+        // 这里传入 null 会失败，因为 null 不是有效的枚举常�?
         assertThrows(Business.class, () -> Failure.begin().enumConstant(null, TestEnum.class, TEST_CODE).fail());
     }
 
     // ==================== Identity 校验 ====================
 
     @Test
-    @DisplayName("测试 same() 所有重载")
+@DisplayName("display")
     void testSameAllVariants() {
         Object obj = new Object();
 
@@ -1107,7 +1110,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notSame() 所有重载")
+@DisplayName("display")
     void testNotSameAllVariants() {
         Object obj1 = new Object();
         Object obj2 = new Object();
@@ -1120,7 +1123,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 equals(Object) 所有重载")
+@DisplayName("display")
     void testEqualsAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().equals("a", "a").fail());
         assertDoesNotThrow(() -> Failure.begin().equals("a", "a", TEST_CODE).fail());
@@ -1130,7 +1133,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notEquals(Object) 所有重载")
+@DisplayName("display")
     void testNotEqualsAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().notEquals("a", "b").fail());
         assertDoesNotThrow(() -> Failure.begin().notEquals("a", "b", TEST_CODE).fail());
@@ -1142,7 +1145,7 @@ public class ChainTest {
     // ==================== Map 校验 ====================
 
     @Test
-    @DisplayName("测试 notEmpty(Map) 所有重载")
+@DisplayName("display")
     void testNotEmptyMapAllVariants() {
         Map<String, String> map = Map.of("key", "value");
 
@@ -1154,7 +1157,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isEmpty(Map) 所有重载")
+@DisplayName("display")
     void testIsEmptyMapAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().isEmpty(Collections.emptyMap()).fail());
         assertDoesNotThrow(() -> Failure.begin().isEmpty(Collections.emptyMap(), TEST_CODE).fail());
@@ -1164,7 +1167,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 containsKey() 所有重载")
+@DisplayName("display")
     void testContainsKeyAllVariants() {
         Map<String, String> map = Map.of("key", "value");
 
@@ -1176,7 +1179,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 notContainsKey() 所有重载")
+@DisplayName("display")
     void testNotContainsKeyAllVariants() {
         Map<String, String> map = Map.of("key", "value");
 
@@ -1188,7 +1191,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 containsValue() 所有重载")
+@DisplayName("display")
     void testContainsValueAllVariants() {
         Map<String, String> map = Map.of("key", "value");
 
@@ -1200,7 +1203,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 sizeBetween(Map) 所有重载")
+@DisplayName("display")
     void testSizeBetweenMapAllVariants() {
         Map<String, String> map = Map.of("k1", "v1", "k2", "v2");
 
@@ -1212,7 +1215,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 sizeEquals(Map) 所有重载")
+@DisplayName("display")
     void testSizeEqualsMapAllVariants() {
         Map<String, String> map = Map.of("k1", "v1", "k2", "v2");
 
@@ -1226,7 +1229,7 @@ public class ChainTest {
     // ==================== Optional 校验 ====================
 
     @Test
-    @DisplayName("测试 isPresent() 所有重载")
+@DisplayName("display")
     void testIsPresentAllVariants() {
         Optional<String> present = Optional.of("value");
 
@@ -1239,7 +1242,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 isEmpty(Optional) 所有重载")
+@DisplayName("display")
     void testIsEmptyOptionalAllVariants() {
         Optional<String> empty = Optional.empty();
 
@@ -1251,10 +1254,10 @@ public class ChainTest {
         assertThrows(Business.class, () -> Failure.begin().isEmpty(present, TEST_CODE).fail());
     }
 
-    // ==================== 自定义条件校验 ====================
+    // ==================== 自定义条件校�?====================
 
     @Test
-    @DisplayName("测试 satisfies() 所有重载")
+@DisplayName("display")
     void testSatisfiesAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().satisfies(5, n -> n > 3).fail());
         assertDoesNotThrow(() -> Failure.begin().satisfies(5, n -> n > 3, TEST_CODE).fail());
@@ -1264,10 +1267,10 @@ public class ChainTest {
         assertThrows(Business.class, () -> Failure.begin().satisfies(null, (Integer n) -> n > 3, TEST_CODE).fail());
     }
 
-    // ==================== 跨字段比较校验 ====================
+    // ==================== 跨字段比较校�?====================
 
     @Test
-    @DisplayName("测试 compare() 所有重载")
+@DisplayName("display")
     void testCompareAllVariants() {
         assertDoesNotThrow(() -> Failure.begin().compare(5, 5, Integer::compare).fail());
         assertDoesNotThrow(() -> Failure.begin().compare(5, 5, Integer::compare, TEST_CODE).fail());
@@ -1284,18 +1287,18 @@ public class ChainTest {
         Chain chain = Chain.begin(true); // fail-fast = true
 
         chain.exists(null, TEST_CODE);
-        // 此时 alive = false，后续检查应该跳过
+        // 此时 alive = false，后续检查应该跳�?
 
-        // 这个检查不应该添加新的错误（因为 shouldSkip() 返回 true）
+        // 这个检查不应该添加新的错误（因�?shouldSkip() 返回 true�?
         chain.exists(null, TEST_CODE_2);
 
         List<Business> errors = chain.getCauses();
-        assertEquals(1, errors.size()); // 只有一个错误
+        assertEquals(1, errors.size()); // 只有一个错�?
         assertEquals(TEST_CODE.getCode(), errors.get(0).getResponseCode().getCode());
     }
 
     @Test
-    @DisplayName("测试 strict 模式下收集所有错误")
+@DisplayName("display")
     void testStrictModeCollectsAllErrors() {
         Chain chain = Chain.begin(false); // fail-fast = false
 
@@ -1328,7 +1331,7 @@ public class ChainTest {
     // ==================== 链式调用返回 this 测试 ====================
 
     @Test
-    @DisplayName("测试链式调用返回同一个 Chain 实例")
+@DisplayName("display")
     void testChainingReturnsSameInstance() {
         Chain chain = Chain.begin(true);
 
@@ -1350,21 +1353,21 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试 null 字符串边界")
+@DisplayName("display")
     void testNullStringBoundary() {
         assertDoesNotThrow(() -> Failure.begin().blank(null).fail());
         assertThrows(Business.class, () -> Failure.begin().notBlank(null, TEST_CODE).fail());
     }
 
     @Test
-    @DisplayName("测试空白字符串边界")
+@DisplayName("display")
     void testWhitespaceStringBoundary() {
         assertDoesNotThrow(() -> Failure.begin().blank("   ").fail());
         assertThrows(Business.class, () -> Failure.begin().notBlank("   ", TEST_CODE).fail());
     }
 
     @Test
-    @DisplayName("测试数值边界")
+@DisplayName("display")
     void testNumberBoundary() {
         assertDoesNotThrow(() -> Failure.begin().inRange(0, 0, 10).fail());
         assertDoesNotThrow(() -> Failure.begin().inRange(10, 0, 10).fail());
@@ -1387,7 +1390,7 @@ public class ChainTest {
     }
 
     @Test
-    @DisplayName("测试空数组边界")
+@DisplayName("display")
     void testEmptyArrayBoundary() {
         assertThrows(Business.class, () -> Failure.begin().notEmpty(new String[]{}, TEST_CODE).fail());
         assertDoesNotThrow(() -> Failure.begin().isEmpty(new String[]{}).fail());

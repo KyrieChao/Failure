@@ -1,7 +1,7 @@
 package com.chao.failfast.result;
 
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.MultiBusiness;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.model.TestResponseCode;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;

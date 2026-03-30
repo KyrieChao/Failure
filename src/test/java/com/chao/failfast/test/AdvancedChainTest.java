@@ -2,10 +2,10 @@ package com.chao.failfast.test;
 
 import com.chao.failfast.Failure;
 import com.chao.failfast.annotation.FastValidator;
-import com.chao.failfast.config.CodeMappingConfig;
-import com.chao.failfast.internal.Business;
-import com.chao.failfast.internal.core.FailureProperties;
+import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.exception.Business;
 import com.chao.failfast.result.Result;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

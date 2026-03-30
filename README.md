@@ -383,6 +383,14 @@ fail-fast:
   shadow-trace: true   # 异常中包含校验点的类名与行号（调试推荐开启）
   debug-snapshot: true # 开启调试快照，异常包含失败值（默认 false）
   verbose: true        # 多错误响应是否包含详细的 errors 列表
+  trace-id:
+    enabled: true
+    header-name: X-Trace-Id
+    generate-if-missing: true
+    response-header: true
+    response-header-name: X-Trace-Id
+  reactive:
+    context-first: true # WebFlux 推荐：优先从 Reactor Context 读取上下文（默认 false，兼容优先）
   code-mapping:
     http-status:
       40001: 400       # 错误码 40001 -> HTTP 400
@@ -391,6 +399,10 @@ fail-fast:
       auth: ["40100..40199"]      # 范围映射
       business: ["40000..40099"]
 ```
+
+### WebFlux Context-First（推荐）
+
+在 WebFlux（Reactive）模型下，线程会切换，ThreadLocal 可能出现上下文丢失。开启 `fail-fast.reactive.context-first=true` 后，框架内部关键决策（如 `shadow-trace`、`scene`、`traceId`）会优先从 Reactor Context 读取，再回退到 ThreadLocal，从而更稳定。
 
 ---
 

@@ -261,4 +261,44 @@ class CollectionChecksTest {
             assertThat(CollectionChecks.anyMatch(Arrays.asList(1, 2), null)).isFalse();
         }
     }
+
+    @Test
+    @DisplayName("noneMatch 全部不命中时应返回true")
+    void noneMatchShouldReturnTrueWhenNoElementMatches() {
+        List<Integer> list = Arrays.asList(1, 3, 5);
+        assertThat(CollectionChecks.noneMatch(list, n -> n % 2 == 0)).isTrue();
+    }
+
+    @Test
+    @DisplayName("uniqueElements 全部唯一时应返回true")
+    void uniqueElementsShouldReturnTrueWhenAllUnique() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        assertThat(CollectionChecks.uniqueElements(list)).isTrue();
+    }
+
+    @Test
+    @DisplayName("containsAll 对 null 入参分支覆盖")
+    void containsAllHandlesNulls() {
+        assertThat(CollectionChecks.containsAll(null, List.of(1))).isFalse();
+        assertThat(CollectionChecks.containsAll(List.of(1), null)).isFalse();
+        assertThat(CollectionChecks.containsAll(List.of(1), List.of(2))).isFalse();
+    }
+
+    @Test
+    @DisplayName("noneMatch 对 null collection 分支覆盖")
+    void noneMatchReturnsFalseWhenCollectionIsNull() {
+        assertThat(CollectionChecks.noneMatch(null, n -> true)).isFalse();
+    }
+
+    @Test
+    @DisplayName("noneMatch 对 null predicate 分支覆盖")
+    void noneMatchReturnsFalseWhenPredicateIsNull() {
+        assertThat(CollectionChecks.noneMatch(Arrays.asList(1, 2), null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("uniqueElements 对 null collection 分支覆盖")
+    void uniqueElementsReturnsTrueWhenCollectionIsNull() {
+        assertThat(CollectionChecks.uniqueElements(null)).isTrue();
+    }
 }

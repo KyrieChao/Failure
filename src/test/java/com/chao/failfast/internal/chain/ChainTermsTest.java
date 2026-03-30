@@ -10,12 +10,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Chain Terms 接口覆盖测试")
 class ChainTermsTest {
 
-    // 实现所有 Term 接口的测试类
+    // 实现所�?Term 接口的测试类
     static class AllTermsChain extends ChainCore<AllTermsChain> implements
             ObjectTerm<AllTermsChain>,
             StringTerm<AllTermsChain>,
             NumberTerm<AllTermsChain>
-            // ... 其他接口在 ChainTest 中已充分覆盖，这里主要验证 NO_OP 和 detail 重载的有效性
+            // ... 其他接口�?ChainTest 中已充分覆盖，这里主要验�?NO_OP �?detail 重载的有效�?
     {
         protected AllTermsChain() {
             super(true, null);

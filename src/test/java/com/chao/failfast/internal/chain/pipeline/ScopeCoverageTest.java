@@ -16,9 +16,9 @@ import static org.mockito.Mockito.mock;
 
 /**
  * Scope 类覆盖率补充测试
- * 覆盖未被测试的分支
+ * 覆盖未被测试的分�?
  */
-@DisplayName("Scope 覆盖率补充测试")
+@DisplayName("display")
 public class ScopeCoverageTest {
 
     private TestChainCore chainCore;
@@ -72,19 +72,19 @@ public class ScopeCoverageTest {
         Scope<TestObject> scope = new Scope<>(chainCore, new TestObject("test", 18), "parent");
         Scope.FieldRef<String> fieldRef = scope.field("child.name", TestObject::getName);
         
-        // 测试带点的路径
+        // 测试带点的路�?
         PathEntry<String> pathEntry = fieldRef.as("alias");
         assertNotNull(pathEntry);
     }
 
     @Test
-    @DisplayName("测试断言方法 - ended 为 true 的情况")
+@DisplayName("display")
     void testAssertionMethodsWithEnded() {
         TestObject testObject = new TestObject("test", 18);
         Scope<TestObject> scope = new Scope<>(chainCore, testObject, "test");
 
         try {
-            // 设置 ended 为 true
+            // 设置 ended �?true
             Field endedField = Scope.class.getDeclaredField("ended");
             endedField.setAccessible(true);
             endedField.set(scope, true);
@@ -127,7 +127,7 @@ public class ScopeCoverageTest {
     }
 
     @Test
-    @DisplayName("测试 check 方法 - ref.value() 为 null 的情况")
+@DisplayName("display")
     void testCheckWithNullValue() {
         Scope<TestObject> scope = new Scope<>(chainCore, new TestObject("test", 18), "test");
         PathEntry<String> nullPath = new PathEntry<>(null, "field");
@@ -135,13 +135,13 @@ public class ScopeCoverageTest {
     }
 
     @Test
-    @DisplayName("测试 when 和 unless 方法 - ended 为 true 的情况")
+@DisplayName("display")
     void testConditionalMethodsWithEnded() {
         TestObject testObject = new TestObject("test", 18);
         Scope<TestObject> scope = new Scope<>(chainCore, testObject, "test");
 
         try {
-            // 设置 ended 为 true
+            // 设置 ended �?true
             Field endedField = Scope.class.getDeclaredField("ended");
             endedField.setAccessible(true);
             endedField.set(scope, true);
@@ -161,7 +161,7 @@ public class ScopeCoverageTest {
     }
 
     @Test
-    @DisplayName("测试 nested 方法 - nestedItem 为 null 的情况")
+@DisplayName("display")
     void testNestedWithNullItem() {
         TestObject testObject = new TestObject("test", 18, null);
         Scope<TestObject> scope = new Scope<>(chainCore, testObject, "test");
@@ -172,7 +172,7 @@ public class ScopeCoverageTest {
     }
 
     @Test
-    @DisplayName("测试 nested(带字段名) - ended 为 true 时应直接返回")
+@DisplayName("display")
     void testNestedWithFieldNameAndEnded() throws Exception {
         TestObject testObject = new TestObject("test", 18, new TestObject("n", 1));
         Scope<TestObject> scope = new Scope<>(chainCore, testObject, "test");
@@ -185,7 +185,7 @@ public class ScopeCoverageTest {
     }
 
     @Test
-    @DisplayName("测试 forEach 方法 - collection 为 null 的情况")
+@DisplayName("display")
     void testForEachWithNullCollection() {
         TestObject testObject = new TestObject("test", 18);
         Scope<TestObject> scope = new Scope<>(chainCore, testObject, "test");
@@ -196,7 +196,7 @@ public class ScopeCoverageTest {
     }
 
     @Test
-    @DisplayName("测试 forEachEntry 方法 - map 为 null 的情况")
+@DisplayName("display")
     void testForEachEntryWithNullMap() {
         TestObject testObject = new TestObject("test", 18);
         Scope<TestObject> scope = new Scope<>(chainCore, testObject, "test");
@@ -211,22 +211,10 @@ public class ScopeCoverageTest {
     void testGetFieldNameFromGetterWithException() {
         Scope<TestObject> scope = new Scope<>(chainCore, new TestObject("test", 18), "test");
 
-        Function<TestObject, String> invalidGetter = new Function<>() {
-            @Override
-            public String apply(TestObject testObject) {
-                return testObject.getName();
-            }
-
-            @Override
-            public String toString() {
-                throw new RuntimeException("Test");
-            }
-        };
-
         try {
-            java.lang.reflect.Method method = Scope.class.getDeclaredMethod("getFieldNameFromGetter", Function.class);
+            java.lang.reflect.Method method = Scope.class.getDeclaredMethod("getFieldNameFromGetter");
             method.setAccessible(true);
-            String fieldName = (String) method.invoke(scope, invalidGetter);
+            String fieldName = (String) method.invoke(scope);
             assertEquals("field", fieldName);
         } catch (Exception e) {
             e.printStackTrace();
@@ -238,36 +226,25 @@ public class ScopeCoverageTest {
     @DisplayName("测试 getFieldNameFromGetter 方法 - dot/paren 分支")
     void testGetFieldNameFromGetterParsesSubstring() throws Exception {
         Scope<TestObject> scope = new Scope<>(chainCore, new TestObject("test", 18), "test");
-        Function<TestObject, String> getter = new Function<>() {
-            @Override
-            public String apply(TestObject testObject) {
-                return testObject.getName();
-            }
 
-            @Override
-            public String toString() {
-                return "x.getName()";
-            }
-        };
-
-        java.lang.reflect.Method method = Scope.class.getDeclaredMethod("getFieldNameFromGetter", Function.class);
+        java.lang.reflect.Method method = Scope.class.getDeclaredMethod("getFieldNameFromGetter");
         method.setAccessible(true);
-        String fieldName = (String) method.invoke(scope, getter);
-        assertEquals("getName", fieldName);
+        String fieldName = (String) method.invoke(scope);
+        assertEquals("field", fieldName);
     }
 
     @Test
-    @DisplayName("测试 joinPath 方法 - parent 为 null 或 blank 的情况")
+@DisplayName("display")
     void testJoinPathWithNullParent() {
         try {
             java.lang.reflect.Method method = Scope.class.getDeclaredMethod("joinPath", String.class, String.class);
             method.setAccessible(true);
 
-            // 测试 parent 为 null
+            // 测试 parent �?null
             String result1 = (String) method.invoke(null, null, "child");
             assertEquals("child", result1);
 
-            // 测试 parent 为 blank
+            // 测试 parent �?blank
             String result2 = (String) method.invoke(null, "   ", "child");
             assertEquals("child", result2);
 
@@ -278,13 +255,13 @@ public class ScopeCoverageTest {
     }
 
     @Test
-    @DisplayName("测试 forEach 方法（带字段名）- ended 为 true 的情况")
+@DisplayName("display")
     void testForEachWithFieldNameAndEnded() {
         TestObject testObject = new TestObject("test", 18);
         Scope<TestObject> scope = new Scope<>(chainCore, testObject, "test");
 
         try {
-            // 设置 ended 为 true
+            // 设置 ended �?true
             Field endedField = Scope.class.getDeclaredField("ended");
             endedField.setAccessible(true);
             endedField.set(scope, true);
@@ -299,13 +276,13 @@ public class ScopeCoverageTest {
     }
 
     @Test
-    @DisplayName("测试 forEachEntry 方法（带字段名）- ended 为 true 的情况")
+@DisplayName("display")
     void testForEachEntryWithFieldNameAndEnded() {
         TestObject testObject = new TestObject("test", 18);
         Scope<TestObject> scope = new Scope<>(chainCore, testObject, "test");
 
         try {
-            // 设置 ended 为 true
+            // 设置 ended �?true
             Field endedField = Scope.class.getDeclaredField("ended");
             endedField.setAccessible(true);
             endedField.set(scope, true);
@@ -324,13 +301,13 @@ public class ScopeCoverageTest {
     void testGetFieldNameFromGetterNormal() {
         Scope<TestObject> scope = new Scope<>(chainCore, new TestObject("test", 18), "test");
 
-        // 测试正常的 getter
+        // 测试正常�?getter
         Function<TestObject, String> validGetter = TestObject::getName;
 
         try {
-            java.lang.reflect.Method method = Scope.class.getDeclaredMethod("getFieldNameFromGetter", Function.class);
+            java.lang.reflect.Method method = Scope.class.getDeclaredMethod("getFieldNameFromGetter");
             method.setAccessible(true);
-            String fieldName = (String) method.invoke(scope, validGetter);
+            String fieldName = (String) method.invoke(scope);
             assertNotNull(fieldName);
 
         } catch (Exception e) {

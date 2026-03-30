@@ -1,0 +1,81 @@
+package com.chao.failfast.exception;
+
+import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.internal.core.Ex;
+import com.chao.failfast.internal.core.FailureContext;
+import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.spi.SkipPrefixRegistry;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class BusinessTrimStackTraceTest {
+
+    @AfterEach
+    void tearDown() {
+        Ex.setContext(null);
+        Ex.setSkipPrefixRegistry(null);
+    }
+
+    @Test
+    void materializeTrimsStackTraceWhenEnabled() {
+        FailureProperties props = new FailureProperties();
+        props.setShadowTrace(true);
+        props.setTrimStackTrace(true);
+        FailureContext ctx = new FailureContext(props, new CodeMappingConfig(props), null);
+        Ex.setContext(ctx);
+
+        SkipPrefixRegistry registry = mock(SkipPrefixRegistry.class);
+        when(registry.add(anyString())).thenReturn(registry);
+        when(registry.shouldSkip(anyString())).thenAnswer(inv -> {
+            String cls = inv.getArgument(0, String.class);
+            return cls != null && cls.startsWith("com.chao.failfast.exception.Business");
+        });
+        Ex.setSkipPrefixRegistry(registry);
+
+        Business b = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .materialize();
+
+        assertThat(b.getStackTrace()).isNotEmpty();
+        assertThat(b.getStackTrace()[0].getClassName()).doesNotStartWith("com.chao.failfast.exception.Business");
+    }
+
+    @Test
+    void trimStackTraceCoversNullEmptyAndRegistryBranches() throws Exception {
+        Method m = Business.class.getDeclaredMethod("trimStackTrace", StackTraceElement[].class);
+        m.setAccessible(true);
+
+        Ex.setSkipPrefixRegistry(null);
+        assertThat(m.invoke(null, new Object[]{null})).isNull();
+
+        StackTraceElement[] empty = new StackTraceElement[0];
+        assertThat(m.invoke(null, new Object[]{empty})).isSameAs(empty);
+
+        StackTraceElement[] stack = new StackTraceElement[]{
+                new StackTraceElement("A", "m", "A.java", 1),
+                new StackTraceElement("B", "m", "B.java", 1)
+        };
+        Ex.setSkipPrefixRegistry(null);
+        assertThat(m.invoke(null, new Object[]{stack})).isSameAs(stack);
+
+        SkipPrefixRegistry noneSkip = mock(SkipPrefixRegistry.class);
+        when(noneSkip.shouldSkip(anyString())).thenReturn(false);
+        Ex.setSkipPrefixRegistry(noneSkip);
+        assertThat(m.invoke(null, new Object[]{stack})).isSameAs(stack);
+
+        SkipPrefixRegistry allSkip = mock(SkipPrefixRegistry.class);
+        when(allSkip.shouldSkip(anyString())).thenReturn(true);
+        Ex.setSkipPrefixRegistry(allSkip);
+        assertThat(m.invoke(null, new Object[]{stack})).isSameAs(stack);
+    }
+}
+
