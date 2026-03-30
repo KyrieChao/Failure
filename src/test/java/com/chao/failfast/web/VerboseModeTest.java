@@ -34,6 +34,8 @@ class VerboseModeTest {
     @Autowired
     private MockMvc mockMvc;
 
+
+
     @Test
     @DisplayName("开启Verbose模式应返回errors数组")
     void shouldReturnErrorsArrayWhenVerboseEnabled() throws Exception {
