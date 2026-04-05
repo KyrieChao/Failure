@@ -97,6 +97,13 @@ class ChainCoreTest {
     }
 
     @Test
+    void testCheckWithSupplierAndResponseCode() {
+        TestChainCore chain = new TestChainCore(true, null);
+        TestChainCore result = chain.check(() -> true, ResponseCode.VALIDATION_ERROR_400);
+        assertSame(chain, result);
+    }
+
+    @Test
     void testCheckWithCondition() {
         TestChainCore chain = new TestChainCore(true, null);
         TestChainCore result = chain.check(true, ResponseCode.VALIDATION_ERROR_400, "Test error");
