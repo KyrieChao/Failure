@@ -499,7 +499,9 @@ public class ValidationAspect {
         }
         String declaredReason = "getSupportedType() returned null";
         String genericReason = type == null ? "generic type cannot be resolved" : "generic type resolved to Object.class";
-        log.warn("[FailFast] Skip validator {}: cannot resolve supported type ({}; {}). Fix: override getSupportedType() to return a concrete class, or override allowObjectSupportedType() to return true to validate all arguments.",
+        log.warn("[FailFast] Skip validator {}: cannot resolve supported type ({}; {}). " +
+                        "Fix: override getSupportedType() to return a concrete class, " +
+                        "or override allowObjectSupportedType() to return true to validate all arguments.",
                 validator.getClass().getName(), declaredReason, genericReason);
         return null;
     }

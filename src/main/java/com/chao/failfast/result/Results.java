@@ -431,7 +431,7 @@ public final class Results {
                     Thread.sleep(delay.toMillis());
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    return Result.fail(ResponseCode.INTERRUPTED_ERROR, "Retry interrupted");
+                    return Result.fail(ResponseCode.INTERRUPTED_ERROR, "{response.code.interrupted.error}");
                 }
             }
             lastResult = supplier.get();

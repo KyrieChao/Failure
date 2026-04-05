@@ -3,12 +3,14 @@ package com.chao.failfast.result;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.util.I18n;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,6 +21,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Results测试")
 class ResultsTest {
+
+    static {
+        // 初始化 I18 工具
+        ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
+        messageSource.setBasename("i18n/messages");
+        messageSource.setDefaultEncoding("UTF-8");
+
+        // 反射设置 I18 实例
+        try {
+            I18n i18n = new I18n(messageSource);
+            Method initMethod = I18n.class.getDeclaredMethod("init");
+            initMethod.setAccessible(true);
+            initMethod.invoke(i18n);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Test
     @DisplayName("tryOf方法 - 成功")
@@ -463,7 +482,7 @@ class ResultsTest {
     @DisplayName("ensure方法 - 成功且条件满足")
     void testEnsureSuccess() {
         Result<String> result = Result.ok("test");
-        Result<String> ensured = Results.ensure(result, s -> s.length() > 0, ResponseCode.VALIDATION_ERROR_400);
+        Result<String> ensured = Results.ensure(result, s -> !s.isEmpty(), ResponseCode.VALIDATION_ERROR_400);
         assertThat(ensured.isSuccess()).isTrue();
     }
 
@@ -479,7 +498,7 @@ class ResultsTest {
     @DisplayName("ensure方法 - 失败状态")
     void testEnsureWithFail() {
         Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> ensured = Results.ensure(result, s -> s.length() > 0, ResponseCode.VALIDATION_ERROR_400);
+        Result<String> ensured = Results.ensure(result, s -> !s.isEmpty(), ResponseCode.VALIDATION_ERROR_400);
         assertThat(ensured.isFail()).isTrue();
     }
 
@@ -617,10 +636,9 @@ class ResultsTest {
 
         // 验证错误码是否是中断错误
         assertThat(resultHolder[0].getCode()).isEqualTo(ResponseCode.INTERRUPTED_ERROR.getCode());
-        // 或者验证消息
-        // Results.java
-//        String msg = Locale.getDefault().getLanguage().equals("zh") ? "重试被中断" : "Retry interrupted";
-        assertThat(resultHolder[0].getMessage()).contains("重试被中断");
+        // 验证描述
+        String expectedMessage = I18n.get("{response.code.interrupted.error}");
+        assertThat(resultHolder[0].getDescription()).contains(expectedMessage);
 
         // 验证重试次数：
         // i=0: 执行supplier (count=1), 失败

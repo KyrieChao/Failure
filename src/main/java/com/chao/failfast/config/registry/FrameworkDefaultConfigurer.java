@@ -21,20 +21,24 @@ public class FrameworkDefaultConfigurer implements FailFastConfigurer {
     @Override
     public void addExceptionSkipPrefixes(SkipPrefixRegistry registry) {
         registry.add(
-                "com.chao.failfast.advice",     // 异常处理切面包
-                "com.chao.failfast.annotation", // 内部工具包
-                "com.chao.failfast.aspect",     // 切面包
-                "com.chao.failfast.config",     // 配置类
-                "com.chao.failfast.integration",// 集成包
-                "com.chao.failfast.internal",   // 内部工具包
-                "com.chao.failfast.result",     // 响应结果类
-                "com.chao.failfast.Failure",    // 失败处理类
-                "org.springframework",          // Spring框架
-                "org.apache",                   // Apache相关组件
-                "jakarta",                      // Jakarta EE规范
-                "java.",                        // Java标准库
-                "jdk.",                         // JDK内部类
-                "sun."                          // Sun Microsystems遗留类
+                "com.chao.failfast.annotation",   // 注解类
+                "com.chao.failfast.aspect",       // 切面类
+                "com.chao.failfast.autoconfigure",// 自动配置类
+                "com.chao.failfast.config",       // 配置类
+                "com.chao.failfast.constant",     // 常量类
+                "com.chao.failfast.exception",    // 异常类
+                "com.chao.failfast.integration",  // 集成类
+                "com.chao.failfast.internal",     // 内部类
+                "com.chao.failfast.result",       // Result类
+                "com.chao.failfast.spi",          // SPI接口
+                "com.chao.failfast.util",         // 工具类
+                "com.chao.failfast.Failure",      // 入口
+                "org.springframework",            // Spring框架
+                "org.apache",                     // Apache相关组件
+                "jakarta",                        // Jakarta EE规范
+                "java.",                          // Java标准库
+                "jdk.",                           // JDK内部类
+                "sun."                            // Sun Microsystems遗留类
         );
     }
 

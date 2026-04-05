@@ -6,17 +6,14 @@ import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.internal.validation.RecursiveOptions;
 import com.chao.failfast.validator.TypedValidator;
+import lombok.Getter;
+import lombok.Setter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -48,7 +45,7 @@ class ChainCoreCompleteTest {
         // Test without context
         TestChainCore coreWithoutContext = new TestChainCore(false, null);
         assertEquals(0, coreWithoutContext.errorSize());
-        
+
         // Test with context
         TestChainCore coreWithContext = new TestChainCore(false, context);
         when(context.errorSize()).thenReturn(5);
@@ -140,7 +137,7 @@ class ChainCoreCompleteTest {
         assertFalse(failFastCore.isAlive());
         failFastCore.or();
         assertTrue(failFastCore.isAlive());
-        
+
         // Test normal case with OR logic
         TestChainCore core = new TestChainCore(false, null);
         core.check(false, ResponseCode.VALIDATION_ERROR_400, "First error");
@@ -165,7 +162,7 @@ class ChainCoreCompleteTest {
         chainCore.when(true);
         chainCore.setAlive(true);
         assertFalse(chainCore.shouldSkip());
-        
+
         // Test when context is stopped
         TestChainCore coreWithContext = new TestChainCore(false, context);
         when(context.isStopped()).thenReturn(true);
@@ -260,7 +257,7 @@ class ChainCoreCompleteTest {
     @Test
     void testWhenSceneArray() {
         // Test with empty array
-        chainCore.whenScene(new Scenario[0]);
+        chainCore.whenScene();
         assertTrue(chainCore.isConditionState());
 
         // Test with DEFAULT scene
@@ -375,9 +372,10 @@ class ChainCoreCompleteTest {
     }
 
     // Test implementation of ChainCore
+    @Getter
     private static class TestChainCore extends ChainCore<TestChainCore> {
 
-        private boolean orMode = false;
+        private final boolean orMode = false;
 
         public TestChainCore(boolean failFast, ValidationContext context) {
             super(failFast, context);
@@ -395,10 +393,6 @@ class ChainCoreCompleteTest {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        }
-
-        public boolean isOrMode() {
-            return orMode;
         }
 
         public void setAlive(boolean alive) {
@@ -427,33 +421,11 @@ class ChainCoreCompleteTest {
     }
 
     // Test object for recursive validation
+    @Setter
+    @Getter
     private static class TestObject {
         private String name;
         private int age;
         private List<String> hobbies;
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public int getAge() {
-            return age;
-        }
-
-        public void setAge(int age) {
-            this.age = age;
-        }
-
-        public List<String> getHobbies() {
-            return hobbies;
-        }
-
-        public void setHobbies(List<String> hobbies) {
-            this.hobbies = hobbies;
-        }
     }
 }

@@ -212,7 +212,10 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         if (shouldSkip()) return self();
         return check(conditionSupplier.get(), spec);
     }
-
+    public S check(Supplier<Boolean> conditionSupplier, ResponseCode code) {
+        if (shouldSkip()) return self();
+        return check(conditionSupplier.get(), code, null, null);
+    }
     /**
      * Lazy calculation validation - Support Supplier.
      *

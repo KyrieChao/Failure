@@ -445,6 +445,309 @@ public class Scope<T> {
         return check(ref.ref(), ok, code, detail);
     }
 
+    // ===== 数字比较方法 =====
+
+    /**
+     * Check if number is greater than threshold.
+     *
+     * @param ref       PathEntry for number
+     * @param threshold Threshold value
+     * @param code      Response code
+     * @param <N>       Number type
+     * @return Current scope
+     */
+    public <N extends Number & Comparable<N>> Scope<T> greaterThan(PathEntry<N> ref, N threshold, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(NumberChecks.greaterThan(ref.value(), threshold), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if number is greater than threshold (overload for FieldRef).
+     *
+     * @param ref       FieldRef for number
+     * @param threshold Threshold value
+     * @param code      Response code
+     * @param <N>       Number type
+     * @return Current scope
+     */
+    public <N extends Number & Comparable<N>> Scope<T> greaterThan(FieldRef<N> ref, N threshold, ResponseCode code) {
+        return greaterThan(ref.ref(), threshold, code);
+    }
+
+    /**
+     * Check if number is greater than or equal to threshold.
+     *
+     * @param ref       PathEntry for number
+     * @param threshold Threshold value
+     * @param code      Response code
+     * @param <N>       Number type
+     * @return Current scope
+     */
+    public <N extends Number & Comparable<N>> Scope<T> greaterOrEqual(PathEntry<N> ref, N threshold, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(NumberChecks.greaterOrEqual(ref.value(), threshold), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if number is greater than or equal to threshold (overload for FieldRef).
+     *
+     * @param ref       FieldRef for number
+     * @param threshold Threshold value
+     * @param code      Response code
+     * @param <N>       Number type
+     * @return Current scope
+     */
+    public <N extends Number & Comparable<N>> Scope<T> greaterOrEqual(FieldRef<N> ref, N threshold, ResponseCode code) {
+        return greaterOrEqual(ref.ref(), threshold, code);
+    }
+
+    /**
+     * Check if number is less than threshold.
+     *
+     * @param ref       PathEntry for number
+     * @param threshold Threshold value
+     * @param code      Response code
+     * @param <N>       Number type
+     * @return Current scope
+     */
+    public <N extends Number & Comparable<N>> Scope<T> lessThan(PathEntry<N> ref, N threshold, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(NumberChecks.lessThan(ref.value(), threshold), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if number is less than threshold (overload for FieldRef).
+     *
+     * @param ref       FieldRef for number
+     * @param threshold Threshold value
+     * @param code      Response code
+     * @param <N>       Number type
+     * @return Current scope
+     */
+    public <N extends Number & Comparable<N>> Scope<T> lessThan(FieldRef<N> ref, N threshold, ResponseCode code) {
+        return lessThan(ref.ref(), threshold, code);
+    }
+
+    /**
+     * Check if number is less than or equal to threshold.
+     *
+     * @param ref       PathEntry for number
+     * @param threshold Threshold value
+     * @param code      Response code
+     * @param <N>       Number type
+     * @return Current scope
+     */
+    public <N extends Number & Comparable<N>> Scope<T> lessOrEqual(PathEntry<N> ref, N threshold, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(NumberChecks.lessOrEqual(ref.value(), threshold), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if number is less than or equal to threshold (overload for FieldRef).
+     *
+     * @param ref       FieldRef for number
+     * @param threshold Threshold value
+     * @param code      Response code
+     * @param <N>       Number type
+     * @return Current scope
+     */
+    public <N extends Number & Comparable<N>> Scope<T> lessOrEqual(FieldRef<N> ref, N threshold, ResponseCode code) {
+        return lessOrEqual(ref.ref(), threshold, code);
+    }
+
+    // ===== 字符串比较方法 =====
+
+    /**
+     * Check if string length is between min and max (inclusive).
+     *
+     * @param ref  PathEntry for string
+     * @param min  Minimum length
+     * @param max  Maximum length
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> lengthBetween(PathEntry<String> ref, int min, int max, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(StringChecks.lengthBetween(ref.value(), min, max), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if string length is between min and max (overload for FieldRef).
+     *
+     * @param ref  FieldRef for string
+     * @param min  Minimum length
+     * @param max  Maximum length
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> lengthBetween(FieldRef<String> ref, int min, int max, ResponseCode code) {
+        return lengthBetween(ref.ref(), min, max, code);
+    }
+
+    /**
+     * Check if string length is at least min.
+     *
+     * @param ref  PathEntry for string
+     * @param min  Minimum length
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> lengthMin(PathEntry<String> ref, int min, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(StringChecks.lengthMin(ref.value(), min), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if string length is at least min (overload for FieldRef).
+     *
+     * @param ref  FieldRef for string
+     * @param min  Minimum length
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> lengthMin(FieldRef<String> ref, int min, ResponseCode code) {
+        return lengthMin(ref.ref(), min, code);
+    }
+
+    /**
+     * Check if string length is at most max.
+     *
+     * @param ref  PathEntry for string
+     * @param max  Maximum length
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> lengthMax(PathEntry<String> ref, int max, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(StringChecks.lengthMax(ref.value(), max), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if string length is at most max (overload for FieldRef).
+     *
+     * @param ref  FieldRef for string
+     * @param max  Maximum length
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> lengthMax(FieldRef<String> ref, int max, ResponseCode code) {
+        return lengthMax(ref.ref(), max, code);
+    }
+
+    /**
+     * Check if string is a valid credit card number.
+     *
+     * @param ref  PathEntry for string
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> isCreditCard(PathEntry<String> ref, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(StringChecks.isCreditCard(ref.value()), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if string is a valid credit card number (overload for FieldRef).
+     *
+     * @param ref  FieldRef for string
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> isCreditCard(FieldRef<String> ref, ResponseCode code) {
+        return isCreditCard(ref.ref(), code);
+    }
+
+    /**
+     * Check if string is a valid URL.
+     *
+     * @param ref  PathEntry for string
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> url(PathEntry<String> ref, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(StringChecks.url(ref.value()), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if string is a valid URL (overload for FieldRef).
+     *
+     * @param ref  FieldRef for string
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> url(FieldRef<String> ref, ResponseCode code) {
+        return url(ref.ref(), code);
+    }
+
+    /**
+     * Check if string is a valid IP address.
+     *
+     * @param ref  PathEntry for string
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> ipAddress(PathEntry<String> ref, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(StringChecks.ipAddress(ref.value()), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if string is a valid IP address (overload for FieldRef).
+     *
+     * @param ref  FieldRef for string
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> ipAddress(FieldRef<String> ref, ResponseCode code) {
+        return ipAddress(ref.ref(), code);
+    }
+
+    /**
+     * Check if string is a valid UUID.
+     *
+     * @param ref  PathEntry for string
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> uuid(PathEntry<String> ref, ResponseCode code) {
+        if (ended) return this;
+        chain.checkRef(StringChecks.uuid(ref.value()), code, ref);
+        endOnFail();
+        return this;
+    }
+
+    /**
+     * Check if string is a valid UUID (overload for FieldRef).
+     *
+     * @param ref  FieldRef for string
+     * @param code Response code
+     * @return Current scope
+     */
+    public Scope<T> uuid(FieldRef<String> ref, ResponseCode code) {
+        return uuid(ref.ref(), code);
+    }
+
     // ===== Conditional validation methods =====
 
     /**

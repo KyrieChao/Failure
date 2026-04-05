@@ -20,13 +20,17 @@ class FrameworkDefaultConfigurerTest {
         
         // 验证
         verify(registry).add(
-                "com.chao.failfast.advice",
                 "com.chao.failfast.annotation",
                 "com.chao.failfast.aspect",
+                "com.chao.failfast.autoconfigure",
                 "com.chao.failfast.config",
+                "com.chao.failfast.constant",
+                "com.chao.failfast.exception",
                 "com.chao.failfast.integration",
                 "com.chao.failfast.internal",
                 "com.chao.failfast.result",
+                "com.chao.failfast.spi",
+                "com.chao.failfast.util",
                 "com.chao.failfast.Failure",
                 "org.springframework",
                 "org.apache",
