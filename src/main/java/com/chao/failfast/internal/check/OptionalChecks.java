@@ -6,7 +6,7 @@ import java.util.Optional;
  * Utility class for optional validation.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public final class OptionalChecks {
     private OptionalChecks() {

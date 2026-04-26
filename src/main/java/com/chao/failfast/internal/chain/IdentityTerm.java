@@ -10,7 +10,7 @@ import com.chao.failfast.internal.core.ResponseCode;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public interface IdentityTerm<S extends ChainCore<S>> {
 

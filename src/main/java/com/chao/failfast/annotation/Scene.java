@@ -8,7 +8,7 @@ import java.lang.annotation.*;
  * Scene annotation for enum grouping.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

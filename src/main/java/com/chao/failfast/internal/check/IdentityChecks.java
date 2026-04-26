@@ -6,7 +6,7 @@ import java.util.Objects;
  * Utility class for object identity and equality checks.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public final class IdentityChecks {
 
