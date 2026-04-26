@@ -1,6 +1,6 @@
 package com.chao.failfast.internal;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.internal.core.Chain;

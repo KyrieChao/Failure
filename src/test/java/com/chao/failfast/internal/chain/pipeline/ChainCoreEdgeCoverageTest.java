@@ -2,15 +2,16 @@ package com.chao.failfast.internal.chain.pipeline;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.annotation.Scene;
+import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.internal.validation.ObjectGraphWalker;
-import com.chao.failfast.internal.validation.RecursiveOptions;
-import com.chao.failfast.spi.SkipTypeRegistry;
+import com.chao.failfast.internal.validation.RecursiveOption;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
 import com.chao.failfast.util.ReflectionCache;
 import com.chao.failfast.validator.TypedValidator;
 import org.junit.jupiter.api.AfterEach;
@@ -233,6 +234,37 @@ class ChainCoreEdgeCoverageTest {
     }
 
     @Test
+    void addErrorShouldReturnEarlyWhenStrictErrorLimitAlreadyReached() {
+        TestChainCore chain = new TestChainCore(false, null);
+
+        for (int i = 0; i < 50; i++) {
+            chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d", "v", "p", "c");
+        }
+        int before = chain.errorSize();
+
+        chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d2", "v2", "p2", "c2");
+
+        assertThat(chain.errorSize()).isEqualTo(before);
+        assertThat(chain.isErrorsTruncated()).isTrue();
+    }
+
+    @Test
+    void hasReachedErrorLimitShouldReturnFalseWhenConfiguredLimitIsNonPositive() throws Exception {
+        TestChainCore chain = new TestChainCore(false, null);
+        chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d", "v", "p", "c");
+
+        Method method = ChainCore.class.getDeclaredMethod("hasReachedErrorLimit");
+        method.setAccessible(true);
+
+        com.chao.failfast.internal.core.FailureContext ctx = mock(com.chao.failfast.internal.core.FailureContext.class);
+        when(ctx.getStrictMaxErrors()).thenReturn(0);
+        try (MockedStatic<Ex> ex = mockStatic(Ex.class)) {
+            ex.when(Ex::getContext).thenReturn(ctx);
+            assertThat(method.invoke(chain)).isEqualTo(false);
+        }
+    }
+
+    @Test
     void whenSceneAndGroupBranchesCoveredWithContext() {
         ValidationContext ctx = new ValidationContext(true, new Scenario[]{Scenario.CREATE}, new Class<?>[]{String.class});
         TestChainCore chain = new TestChainCore(true, ctx);
@@ -271,7 +303,7 @@ class ChainCoreEdgeCoverageTest {
             vc.reportError(ResponseCode.VALIDATION_ERROR_400, "x");
             return true;
         });
-        chain.recursive(new Object(), typed, RecursiveOptions.builder().build());
+        chain.recursive(new Object(), typed, RecursiveOption.builder().build());
         assertThat(chain.isValid()).isFalse();
         assertThat(chain.getCauses()).isNotEmpty();
     }
@@ -286,7 +318,7 @@ class ChainCoreEdgeCoverageTest {
             vc.reportError(ResponseCode.VALIDATION_ERROR_400, "x");
             return true;
         });
-        chain.recursive(new Object(), typed, RecursiveOptions.builder().build());
+        chain.recursive(new Object(), typed, RecursiveOption.builder().build());
         assertThat(chain.isValid()).isFalse();
         assertThat(chain.getCauses()).isEmpty();
     }
@@ -297,22 +329,22 @@ class ChainCoreEdgeCoverageTest {
         when(typed.validateIfRegistered(any(), any())).thenReturn(false);
 
         TestChainCore chain = new TestChainCore(true, null);
-        chain.recursive(null, typed, RecursiveOptions.builder().build());
+        chain.recursive(null, typed, RecursiveOption.builder().build());
 
         chain = new TestChainCore(true, null);
-        chain.recursive(new Object(), typed, RecursiveOptions.builder().maxErrors(0).build());
+        chain.recursive(new Object(), typed, RecursiveOption.builder().maxErrors(0).build());
 
         chain = new TestChainCore(true, null);
-        chain.recursive(List.of(1, 2), typed, RecursiveOptions.builder().maxItems(1).build());
+        chain.recursive(List.of(1, 2), typed, RecursiveOption.builder().maxItems(1).build());
 
         chain = new TestChainCore(true, null);
-        chain.recursive(Map.of("k", 1), typed, RecursiveOptions.builder().build());
+        chain.recursive(Map.of("k", 1), typed, RecursiveOption.builder().build());
 
         chain = new TestChainCore(true, null);
-        chain.recursive(new Object[]{"a", "b"}, typed, RecursiveOptions.builder().maxItems(1).build());
+        chain.recursive(new Object[]{"a", "b"}, typed, RecursiveOption.builder().maxItems(1).build());
 
         chain = new TestChainCore(true, null);
-        chain.recursive(new int[]{1, 2}, typed, RecursiveOptions.builder().build());
+        chain.recursive(new int[]{1, 2}, typed, RecursiveOption.builder().build());
     }
 
     @Test
@@ -323,7 +355,7 @@ class ChainCoreEdgeCoverageTest {
 
         TypedValidator typed = mock(TypedValidator.class);
         when(typed.validateIfRegistered(any(), any())).thenReturn(false);
-        chain.recursive(new Object(), typed, RecursiveOptions.builder().build());
+        chain.recursive(new Object(), typed, RecursiveOption.builder().build());
     }
 
     @Test
@@ -335,7 +367,7 @@ class ChainCoreEdgeCoverageTest {
             vc.reportError(ResponseCode.VALIDATION_ERROR_400, "x");
             return true;
         });
-        chain.recursive(new Object(), typed, RecursiveOptions.builder().build());
+        chain.recursive(new Object(), typed, RecursiveOption.builder().build());
         assertThat(readAlive(chain)).isTrue();
     }
 
@@ -348,7 +380,7 @@ class ChainCoreEdgeCoverageTest {
             vc.reportError(ResponseCode.VALIDATION_ERROR_400, "x");
             return true;
         });
-        chain.recursive(new Object(), typed, RecursiveOptions.builder().build());
+        chain.recursive(new Object(), typed, RecursiveOption.builder().build());
         assertThat(readAlive(chain)).isFalse();
     }
 
@@ -361,7 +393,7 @@ class ChainCoreEdgeCoverageTest {
             vc.stop();
             return true;
         });
-        chain.recursive(new Object(), typed, RecursiveOptions.builder().build());
+        chain.recursive(new Object(), typed, RecursiveOption.builder().build());
         assertThat(readAlive(chain)).isTrue();
     }
 
@@ -371,7 +403,7 @@ class ChainCoreEdgeCoverageTest {
         TypedValidator typed = mock(TypedValidator.class);
         when(typed.validateIfRegistered(any(), any())).thenReturn(false);
 
-        chain.recursive(new NestedHolder(), typed, RecursiveOptions.builder().maxItems(2).build());
+        chain.recursive(new NestedHolder(), typed, RecursiveOption.builder().maxItems(2).build());
         assertThat(chain.isValid()).isTrue();
     }
 
@@ -385,7 +417,7 @@ class ChainCoreEdgeCoverageTest {
         when(skip.shouldSkip(eq(SkippedPojo.class))).thenReturn(true);
         Ex.setSkipTypeRegistry(skip);
 
-        chain.recursive(new SkippedPojo(), typed, RecursiveOptions.builder().build());
+        chain.recursive(new SkippedPojo(), typed, RecursiveOption.builder().build());
         assertThat(chain.isValid()).isTrue();
     }
 
@@ -406,7 +438,7 @@ class ChainCoreEdgeCoverageTest {
             ));
             cache.when(() -> ReflectionCache.getSceneValues(org.mockito.ArgumentMatchers.any(java.lang.reflect.Field.class))).thenCallRealMethod();
 
-            chain.recursive(new ScenePojo(), typed, RecursiveOptions.builder().dedupeGlobal(false).include(List.of("createOnly", "other")).build());
+            chain.recursive(new ScenePojo(), typed, RecursiveOption.builder().dedupeGlobal(false).include(List.of("createOnly", "other")).build());
         }
     }
 
@@ -416,13 +448,13 @@ class ChainCoreEdgeCoverageTest {
         TypedValidator typed = mock(TypedValidator.class);
         when(typed.validateIfRegistered(any(), any())).thenReturn(false);
 
-        chain.recursive(new SimplePojo(), typed, RecursiveOptions.builder().exclude(List.of("")).build());
+        chain.recursive(new SimplePojo(), typed, RecursiveOption.builder().exclude(List.of("")).build());
 
-        chain.recursive(new SimplePojo(), typed, RecursiveOptions.builder().include(List.of("other")).build());
+        chain.recursive(new SimplePojo(), typed, RecursiveOption.builder().include(List.of("other")).build());
 
         CircularPojo c = new CircularPojo();
         c.self = c;
-        chain.recursive(c, typed, RecursiveOptions.builder().build());
+        chain.recursive(c, typed, RecursiveOption.builder().build());
     }
 
     @Test
@@ -430,7 +462,7 @@ class ChainCoreEdgeCoverageTest {
         TestChainCore chain = new TestChainCore(true, null);
         TypedValidator typed = mock(TypedValidator.class);
         when(typed.validateIfRegistered(any(), any())).thenReturn(false);
-        chain.recursive(null, typed, RecursiveOptions.builder().dedupeGlobal(false).build());
+        chain.recursive(null, typed, RecursiveOption.builder().dedupeGlobal(false).build());
         assertThat(chain.isValid()).isTrue();
     }
 
@@ -460,7 +492,7 @@ class ChainCoreEdgeCoverageTest {
         TypedValidator typed = mock(TypedValidator.class);
         when(typed.validateIfRegistered(any(), any())).thenReturn(false);
 
-        chain.recursive(new IncludePojo(), typed, RecursiveOptions.builder().exclude(List.of("x")).include(List.of("includeMe")).build());
+        chain.recursive(new IncludePojo(), typed, RecursiveOption.builder().exclude(List.of("x")).include(List.of("includeMe")).build());
         assertThat(chain.isValid()).isTrue();
     }
 
@@ -626,9 +658,9 @@ class ChainCoreEdgeCoverageTest {
     void recursiveValidateEarlyReturnBranchesCoveredByReflection() throws Exception {
         Class<?> walkerClass = Class.forName("com.chao.failfast.internal.validation.ObjectGraphWalker");
         TypedValidator typed = mock(TypedValidator.class);
-        RecursiveOptions options = RecursiveOptions.builder().maxDepth(0).maxErrors(Integer.MAX_VALUE).build();
+        RecursiveOption options = RecursiveOption.builder().maxDepth(0).maxErrors(Integer.MAX_VALUE).build();
 
-        Method m = walkerClass.getDeclaredMethod("walk", Object.class, String.class, TypedValidator.class, ValidationContext.class, RecursiveOptions.class, int.class, IdentityHashMap.class);
+        Method m = walkerClass.getDeclaredMethod("walk", Object.class, String.class, TypedValidator.class, ValidationContext.class, RecursiveOption.class, int.class, IdentityHashMap.class);
         m.setAccessible(true);
 
         ValidationContext stopped = new ValidationContext(true);
@@ -644,9 +676,9 @@ class ChainCoreEdgeCoverageTest {
         Class<?> walkerClass = Class.forName("com.chao.failfast.internal.validation.ObjectGraphWalker");
         TypedValidator typed = mock(TypedValidator.class);
         when(typed.validateIfRegistered(any(), any())).thenReturn(false);
-        RecursiveOptions options = RecursiveOptions.builder().maxDepth(2).build();
+        RecursiveOption options = RecursiveOption.builder().maxDepth(2).build();
 
-        Method m = walkerClass.getDeclaredMethod("walk", Object.class, String.class, TypedValidator.class, ValidationContext.class, RecursiveOptions.class, int.class, IdentityHashMap.class);
+        Method m = walkerClass.getDeclaredMethod("walk", Object.class, String.class, TypedValidator.class, ValidationContext.class, RecursiveOption.class, int.class, IdentityHashMap.class);
         m.setAccessible(true);
 
         ValidationContext ctx = new ValidationContext(true);
@@ -658,7 +690,80 @@ class ChainCoreEdgeCoverageTest {
         TestChainCore chain = new TestChainCore(true, null);
         TypedValidator typed = mock(TypedValidator.class);
         when(typed.validateIfRegistered(any(), any())).thenReturn(false);
-        chain.recursive(new Object(), typed, RecursiveOptions.builder().dedupeGlobal(true).build());
+        chain.recursive(new Object(), typed, RecursiveOption.builder().dedupeGlobal(true).build());
+    }
+
+    @Test
+    void should_treatNullPredicateAsTrue_when_whenPredicateReceivesNull() {
+        TestChainCore chain = new TestChainCore(true, null);
+
+        assertThat(chain.when((com.chao.failfast.condition.Predicate) null)).isSameAs(chain);
+        assertThat(chain.isConditionState()).isTrue();
+    }
+
+    @Test
+    void should_returnNullLatestCause_when_contextExistsWithoutErrors() {
+        ValidationContext ctx = new ValidationContext(false);
+        TestChainCore chain = new TestChainCore(false, ctx);
+
+        assertThat(chain.latestCause()).isNull();
+    }
+
+    @Test
+    void should_returnLastContextCause_when_contextContainsErrors() {
+        ValidationContext ctx = new ValidationContext(false);
+        ctx.reportError(ResponseCode.VALIDATION_ERROR_400, "first");
+        ctx.reportError(ResponseCode.VALIDATION_ERROR_400, "second");
+        TestChainCore chain = new TestChainCore(false, ctx);
+
+        assertThat(chain.latestCause()).isNotNull();
+        assertThat(chain.latestCause().getDetail()).isEqualTo("second");
+    }
+
+    @Test
+    void should_markChainAsTruncatedAndStopContext_when_errorLimitIsReachedBeforeAddingAnotherError() throws Exception {
+        FailureProperties properties = new FailureProperties();
+        properties.getChain().setMaxErrors(1);
+        com.chao.failfast.internal.core.FailureContext exContext =
+                new com.chao.failfast.internal.core.FailureContext(properties, new com.chao.failfast.config.mapping.CodeMappingConfig(properties), null);
+        Ex.setContext(exContext);
+        try {
+            ValidationContext validationContext = new ValidationContext(false);
+            TestChainCore chain = new TestChainCore(false, validationContext);
+
+            chain.check(false, ResponseCode.VALIDATION_ERROR_400, "first");
+            chain.check(false, ResponseCode.VALIDATION_ERROR_400, "second");
+
+            Field truncated = ChainCore.class.getDeclaredField("errorsTruncated");
+            truncated.setAccessible(true);
+
+            assertThat((boolean) truncated.get(chain)).isTrue();
+            assertThat(validationContext.isStopped()).isTrue();
+            assertThat(readAlive(chain)).isFalse();
+            assertThat(chain.isConditionState()).isFalse();
+        } finally {
+            Ex.setContext(null);
+        }
+    }
+
+    @Test
+    void should_notReachErrorLimit_when_strictLimitIsNonPositive() throws Exception {
+        FailureProperties properties = new FailureProperties();
+        properties.getChain().setMaxErrors(0);
+        com.chao.failfast.internal.core.FailureContext exContext =
+                new com.chao.failfast.internal.core.FailureContext(properties, new com.chao.failfast.config.mapping.CodeMappingConfig(properties), null);
+        Ex.setContext(exContext);
+        try {
+            TestChainCore chain = new TestChainCore(false, null);
+            Method method = ChainCore.class.getDeclaredMethod("hasReachedErrorLimit");
+            method.setAccessible(true);
+
+            boolean reached = (boolean) method.invoke(chain);
+
+            assertThat(reached).isFalse();
+        } finally {
+            Ex.setContext(null);
+        }
     }
 
 

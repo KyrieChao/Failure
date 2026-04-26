@@ -9,15 +9,17 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
 
 /**
  * Result utility class - Provide batch operations and convenient methods.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
+@SuppressWarnings("unchecked")
 public final class Results {
 
     private Results() {
@@ -308,8 +310,6 @@ public final class Results {
         return Result.ok(combiner.apply(r1.get(), r2.get(), r3.get()));
     }
 
-    @SafeVarargs
-    @SuppressWarnings("unchecked")
     private static <T> Result<T> firstFailure(Result<?>... results) {
         for (Result<?> r : results) {
             if (r.isFail()) {
@@ -372,8 +372,20 @@ public final class Results {
      * Async execution of side effect (non-blocking).
      */
     public static <T> Result<T> tapAsync(Result<T> result, Consumer<Result<T>> action) {
-        CompletableFuture.runAsync(() -> action.accept(result));
+        tapAsyncStage(result, action, ForkJoinPool.commonPool());
         return result;
+    }
+
+    public static <T> Result<T> tapAsync(Result<T> result, Consumer<Result<T>> action, Executor executor) {
+        tapAsyncStage(result, action, executor);
+        return result;
+    }
+
+    public static <T> CompletionStage<Void> tapAsyncStage(Result<T> result, Consumer<Result<T>> action, Executor executor) {
+        if (executor == null) {
+            throw new NullPointerException("executor is null");
+        }
+        return CompletableFuture.runAsync(() -> action.accept(result), executor);
     }
 
     // ==================== Validation ====================
@@ -440,6 +452,96 @@ public final class Results {
             }
         }
         return lastResult;
+    }
+
+    public static <T> CompletionStage<Result<T>> retryAsync(int times, Supplier<Result<T>> supplier, Executor executor, ScheduledExecutorService scheduler) {
+        return retryAsync(times, Duration.ZERO, supplier, executor, scheduler);
+    }
+
+    /**
+     * Async retry method, executes Supplier operation with specified times and delay
+     *
+     * @param <T> Return result type
+     * @param times Maximum retry times
+     * @param delay Delay time between each retry
+     * @param supplier Functional interface providing result
+     * @param executor Thread pool for executing async tasks
+     * @param scheduler Scheduler for scheduling delayed tasks
+     * @return Returns a CompletionStage representing the result of async operation
+     */
+    public static <T> CompletionStage<Result<T>> retryAsync(int times, Duration delay, Supplier<Result<T>> supplier, Executor executor, ScheduledExecutorService scheduler) {
+        // Check if supplier parameter is null
+        if (supplier == null) {
+            throw new NullPointerException("supplier is null");
+        }
+        // Check if executor parameter is null
+        if (executor == null) {
+            throw new NullPointerException("executor is null");
+        }
+        // Check if scheduler parameter is null
+        if (scheduler == null) {
+            throw new NullPointerException("scheduler is null");
+        }
+
+        // Create a CompletableFuture as result promise
+        CompletableFuture<Result<T>> promise = new CompletableFuture<>();
+        // If retry times is less than or equal to 0, directly complete with null result
+        if (times <= 0) {
+            promise.complete(null);
+            return promise;
+        }
+        // Ensure delay time is not null and non-negative
+        Duration safeDelay = delay == null || delay.isNegative() ? Duration.ZERO : delay;
+        // Create atomic counter for recording attempt times
+        AtomicInteger attempt = new AtomicInteger(0);
+        // Define Runnable task for each attempt
+        Runnable runAttempt = new Runnable() {
+            @Override
+            public void run() {
+                // Get current attempt times and increment
+                int index = attempt.getAndIncrement();
+                // If maximum attempt times is reached, return directly
+                if (index >= times) {
+                    return;
+                }
+                // If result is already completed, return directly
+                if (promise.isDone()) {
+                    return;
+                }
+                // Execute supplier asynchronously
+                CompletableFuture
+                        .supplyAsync(supplier, executor)
+                        .whenComplete((r, ex) -> {
+                            // If exception occurs, complete exceptionally
+                            if (ex != null) {
+                                promise.completeExceptionally(ex);
+                                return;
+                            }
+                            // If result is successful, complete with normal result
+                            if (r != null && r.isSuccess()) {
+                                promise.complete(r);
+                                return;
+                            }
+                            // If it's the last attempt, complete the result (regardless of success or failure)
+                            if (index >= times - 1) {
+                                promise.complete(r);
+                                return;
+                            }
+                            // If no delay, schedule next attempt immediately
+                            if (safeDelay.isZero()) {
+                                scheduler.execute(this);
+                            } else {
+                                // Otherwise, schedule next attempt after specified delay
+                                scheduler.schedule(this, safeDelay.toMillis(), TimeUnit.MILLISECONDS);
+                            }
+                        });
+            }
+        };
+
+        // Execute first attempt
+        scheduler.execute(runAttempt);
+        // Return result promise
+        return promise;
     }
 
     /**

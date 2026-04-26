@@ -1,6 +1,6 @@
 package com.chao.failfast.config.registry;
 
-import com.chao.failfast.spi.SkipPrefixRegistry;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,7 +10,7 @@ class DefaultSkipPrefixRegistryTest {
     @Test
     void testAddWithNullPrefixes() {
         DefaultSkipPrefixRegistry registry = new DefaultSkipPrefixRegistry();
-        SkipPrefixRegistry result = registry.add(null);
+        SkipPrefixRegistry result = registry.add((String[]) null);
         assertSame(registry, result);
     }
 

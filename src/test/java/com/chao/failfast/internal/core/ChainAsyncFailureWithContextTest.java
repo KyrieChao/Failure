@@ -1,10 +1,9 @@
 package com.chao.failfast.internal.core;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.exception.Business;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

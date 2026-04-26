@@ -1,6 +1,6 @@
 package com.chao.failfast.config.registry;
 
-import com.chao.failfast.spi.SkipTypeRegistry;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
 
 import java.util.Collections;
 import java.util.Set;
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Default implementation of SkipTypeRegistry.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public class DefaultSkipTypeRegistry implements SkipTypeRegistry {
 
@@ -20,7 +20,11 @@ public class DefaultSkipTypeRegistry implements SkipTypeRegistry {
     @Override
     public SkipTypeRegistry add(Class<?>... types) {
         if (types != null) {
-            Collections.addAll(skipTypes, types);
+            for (Class<?> type : types) {
+                if (type != null) {
+                    skipTypes.add(type);
+                }
+            }
         }
         cache.clear();
         return this;

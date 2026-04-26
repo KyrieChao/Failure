@@ -2,16 +2,20 @@ package com.chao.failfast.integration.mvc;
 
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.constant.FailureConst;
+import com.chao.failfast.constant.Severity;
 import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
+import com.chao.failfast.internal.core.observability.OpenTelemetryBridge;
+import com.chao.failfast.internal.core.observability.TraceInfoExtractor;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -25,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mockStatic;
 
 class FailFastExceptionHandlerTest {
 
@@ -118,6 +123,23 @@ class FailFastExceptionHandlerTest {
         Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
         var response = handler.buildResponse(business);
         assertNotNull(response);
+    }
+
+    @Test
+    void testBuildResponseWithTraceAndSpan() {
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("Error")
+                .traceId("trace-mvc")
+                .spanId("span-mvc")
+                .materialize();
+        FailureProperties local = new FailureProperties();
+        local.getTraceId().setEnabled(true);
+        handler.setFailFastProperties(local);
+        var response = handler.buildResponse(business);
+        assertNotNull(response);
+        assertTrue(((Map<?, ?>) response.getBody()).containsKey(FailureConst.FIELD_TRACE_ID));
+        assertTrue(((Map<?, ?>) response.getBody()).containsKey(FailureConst.FIELD_SPAN_ID));
     }
 
     @Test
@@ -251,6 +273,38 @@ class FailFastExceptionHandlerTest {
         );
         MultiBusiness multiBusiness = new MultiBusiness(errors);
         handler.logException(multiBusiness);
+    }
+
+    @Test
+    void testRenderLogMessageUseBannerWhenShadowTraceEnabled() throws Exception {
+        FailureProperties local = new FailureProperties();
+        local.getLogging().setBanner(true);
+        handler.setFailFastProperties(local);
+        Mockito.when(context.isShadowTrace()).thenReturn(true);
+        Mockito.when(context.getTraceId()).thenReturn("trace-banner");
+
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
+        java.lang.reflect.Method m = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
+        m.setAccessible(true);
+        String out = (String) m.invoke(handler, business);
+
+        assertTrue(out.startsWith("BANNER{"));
+        assertTrue(out.contains("trace-banner"));
+    }
+
+    @Test
+    void testRenderLogMessageFallbackToDefaultWhenShadowTraceDisabled() throws Exception {
+        FailureProperties local = new FailureProperties();
+        local.getLogging().setBanner(true);
+        handler.setFailFastProperties(local);
+        Mockito.when(context.isShadowTrace()).thenReturn(false);
+
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
+        java.lang.reflect.Method m = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
+        m.setAccessible(true);
+        String out = (String) m.invoke(handler, business);
+
+        assertFalse(out.startsWith("BANNER{"));
     }
 
     @Test
@@ -552,6 +606,354 @@ class FailFastExceptionHandlerTest {
         ConstraintViolationException exception = new ConstraintViolationException((Set) Set.of(violation));
         var response = handler.handleConstraintViolationException(exception);
         assertNotNull(response);
+    }
+
+    @Test
+    void should_renderNullLiteral_when_renderLogMessageReceivesNullBusiness() throws Exception {
+        Method m = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
+        m.setAccessible(true);
+
+        String out = (String) m.invoke(handler, new Object[]{null});
+
+        assertEquals("null", out);
+    }
+
+    @Test
+    void should_enableBannerMode_when_loggingConfigIsMissingButShadowTraceIsTrue() throws Exception {
+        FailureContext localContext = Mockito.mock(FailureContext.class);
+        Mockito.when(localContext.isShadowTrace()).thenReturn(true);
+        Ex.setContext(localContext);
+        handler.setFailFastProperties(new FailureProperties());
+        handler.setFailFastProperties(null);
+
+        Method method = FailFastExceptionHandler.class.getDeclaredMethod("isBannerMode");
+        method.setAccessible(true);
+
+        boolean result = (boolean) method.invoke(handler);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void should_pickHighestSeverity_when_multiBusinessContainsNulls() throws Exception {
+        List<Business> errors = List.of(
+                Business.compose().responseCode(ResponseCode.VALIDATION_ERROR_400).detail("a").severity(null).materialize(),
+                Business.compose().responseCode(ResponseCode.VALIDATION_ERROR_400).detail("b").severity(Severity.CRITICAL).materialize()
+        );
+        MultiBusiness multiBusiness = new MultiBusiness(errors);
+        Method method = FailFastExceptionHandler.class.getDeclaredMethod("resolveMultiSeverity", MultiBusiness.class);
+        method.setAccessible(true);
+
+        Severity result = (Severity) method.invoke(handler, multiBusiness);
+
+        assertEquals(Severity.CRITICAL, result);
+    }
+
+    @Test
+    void should_coverAllSeverityBranches_when_logBySeverityInvokedReflectively() throws Exception {
+        Method method = FailFastExceptionHandler.class.getDeclaredMethod("logBySeverity", Severity.class, String.class, Object[].class);
+        method.setAccessible(true);
+
+        method.invoke(handler, null, "{}", new Object[]{"a"});
+        method.invoke(handler, Severity.WARNING, "{}", new Object[]{"a"});
+        method.invoke(handler, Severity.ERROR, "{}", new Object[]{"a"});
+        method.invoke(handler, Severity.INFO, "{}", new Object[]{"a"});
+        method.invoke(handler, Severity.CRITICAL, "{}", new Object[]{"a"});
+    }
+
+    @Test
+    void should_useOpenTelemetryFallbacks_when_traceAndSpanAreMissing() {
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
+        Mockito.when(context.getTraceId()).thenReturn(null);
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn("otel-trace");
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
+
+            Map<String, Object> body = handler.buildMap(business);
+
+            assertEquals("otel-trace", body.get(FailureConst.FIELD_TRACE_ID));
+            assertEquals("otel-span", body.get(FailureConst.FIELD_SPAN_ID));
+        }
+    }
+
+    @Test
+    void should_fallbackResolveTraceAndSpan_when_businessValuesAreBlank() throws Exception {
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId(" ")
+                .spanId(" ")
+                .materialize();
+        Mockito.when(context.getTraceId()).thenReturn("ctx-trace");
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
+
+            Method resolveTraceId = FailFastExceptionHandler.class.getDeclaredMethod("resolveTraceId", Business.class);
+            resolveTraceId.setAccessible(true);
+            Method resolveSpanId = FailFastExceptionHandler.class.getDeclaredMethod("resolveSpanId", Business.class);
+            resolveSpanId.setAccessible(true);
+
+            assertEquals("ctx-trace", resolveTraceId.invoke(handler, business));
+            assertEquals("otel-span", resolveSpanId.invoke(handler, business));
+        }
+    }
+
+    @Test
+    void should_useBusinessTraceAndSpan_when_buildMultiErrorResponseReceivesExplicitValues() {
+        FailureProperties local = new FailureProperties();
+        local.getTraceId().setEnabled(true);
+        handler.setFailFastProperties(local);
+
+        MultiBusiness multi = Mockito.mock(MultiBusiness.class);
+        Mockito.when(multi.getResponseCode()).thenReturn(ResponseCode.VALIDATION_ERROR_400);
+        Mockito.when(multi.getDetail()).thenReturn("x");
+        Mockito.when(multi.getHttpStatus()).thenReturn(org.springframework.http.HttpStatus.BAD_REQUEST);
+        Mockito.when(multi.getTraceId()).thenReturn("trace-explicit");
+        Mockito.when(multi.getErrors()).thenReturn(List.of());
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
+
+            var response = handler.buildMultiErrorResponse(multi);
+            Map<?, ?> body = (Map<?, ?>) response.getBody();
+
+            assertEquals("trace-explicit", body.get(FailureConst.FIELD_TRACE_ID));
+            assertEquals("otel-span", body.get(FailureConst.FIELD_SPAN_ID));
+        }
+    }
+
+    @Test
+    void should_renderUnknownBannerFields_when_businessMetadataIsMissing() throws Exception {
+        FailureProperties local = new FailureProperties();
+        local.getLogging().setBanner(true);
+        handler.setFailFastProperties(local);
+        FailureContext localContext = Mockito.mock(FailureContext.class);
+        Ex.setContext(localContext);
+        Business business = Mockito.mock(Business.class);
+        Mockito.when(business.getResponseCode()).thenReturn(null);
+        Mockito.when(business.getPath()).thenReturn(null);
+        Mockito.when(business.getTraceId()).thenReturn(null);
+
+        try (var trace = mockStatic(com.chao.failfast.internal.core.observability.TraceInfoExtractor.class)) {
+            trace.when(() -> com.chao.failfast.internal.core.observability.TraceInfoExtractor.shadowTrace(localContext, null)).thenReturn(true);
+            Method method = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
+            method.setAccessible(true);
+            String result = (String) method.invoke(handler, business);
+
+            assertTrue(result.contains("code=UNKNOWN"));
+            assertTrue(result.contains("path=-"));
+            assertTrue(result.contains("traceId="));
+        }
+    }
+
+    @Test
+    void should_useOpenTelemetryTraceId_when_contextTraceIdIsMissing() {
+        Ex.setContext(null);
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn("otel-trace");
+
+            assertEquals("otel-trace", handler.getTraceId());
+        }
+    }
+
+    @Test
+    void should_returnBusinessSpanId_when_resolveSpanIdReceivesNonBlankValue() throws Exception {
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .spanId("span-direct")
+                .materialize();
+
+        Method resolveSpanId = FailFastExceptionHandler.class.getDeclaredMethod("resolveSpanId", Business.class);
+        resolveSpanId.setAccessible(true);
+
+        assertEquals("span-direct", resolveSpanId.invoke(handler, business));
+    }
+
+    @Test
+    void should_returnBusinessTraceId_when_resolveTraceIdReceivesNonBlankValue() throws Exception {
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId("trace-direct")
+                .materialize();
+
+        Method resolveTraceId = FailFastExceptionHandler.class.getDeclaredMethod("resolveTraceId", Business.class);
+        resolveTraceId.setAccessible(true);
+
+        assertEquals("trace-direct", resolveTraceId.invoke(handler, business));
+    }
+
+    @Test
+    void should_includeExplicitTraceAndSpan_when_buildMapReceivesBusinessMetadata() {
+        FailureProperties local = new FailureProperties();
+        local.getTraceId().setEnabled(true);
+        handler.setFailFastProperties(local);
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId("trace-direct")
+                .spanId("span-direct")
+                .materialize();
+
+        Map<String, Object> body = handler.buildMap(business);
+
+        assertEquals("trace-direct", body.get(FailureConst.FIELD_TRACE_ID));
+        assertEquals("span-direct", body.get(FailureConst.FIELD_SPAN_ID));
+    }
+
+    @Test
+    void should_treatDebugSeverityAsNoLogRequired_when_logBySeverityReceivesDebug() throws Exception {
+        Method method = FailFastExceptionHandler.class.getDeclaredMethod("logBySeverity", Severity.class, String.class, Object[].class);
+        method.setAccessible(true);
+
+        method.invoke(handler, Severity.DEBUG, "{}", new Object[]{"a"});
+    }
+
+    @Test
+    void should_skipBlankTraceAndSpan_when_buildMapResolvesOnlyBlankMetadata() {
+        FailureProperties local = new FailureProperties();
+        local.getTraceId().setEnabled(true);
+        handler.setFailFastProperties(local);
+
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId(" ")
+                .spanId(" ")
+                .materialize();
+        Mockito.when(context.getTraceId()).thenReturn(" ");
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn(" ");
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(" ");
+
+            Map<String, Object> body = handler.buildMap(business);
+
+            assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
+            assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
+        }
+    }
+
+    @Test
+    void should_skipBlankTraceAndSpan_when_buildMultiErrorResponseResolvesOnlyBlankMetadata() {
+        FailureProperties local = new FailureProperties();
+        local.getTraceId().setEnabled(true);
+        local.setVerbose(false);
+        handler.setFailFastProperties(local);
+
+        MultiBusiness multi = Mockito.mock(MultiBusiness.class);
+        Mockito.when(multi.getResponseCode()).thenReturn(ResponseCode.VALIDATION_ERROR_400);
+        Mockito.when(multi.getDetail()).thenReturn("x");
+        Mockito.when(multi.getHttpStatus()).thenReturn(org.springframework.http.HttpStatus.BAD_REQUEST);
+        Mockito.when(multi.getTraceId()).thenReturn(" ");
+        Mockito.when(multi.getErrors()).thenReturn(List.of());
+        Mockito.when(context.getTraceId()).thenReturn(" ");
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn(" ");
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(" ");
+
+            var response = handler.buildMultiErrorResponse(multi);
+            Map<?, ?> body = (Map<?, ?>) response.getBody();
+
+            assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
+            assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
+        }
+    }
+
+    @Test
+    void should_enableBannerMode_when_shadowTraceTrueAndLoggingConfigIsNull() throws Exception {
+        FailureProperties mockProperties = Mockito.mock(FailureProperties.class);
+        FailureContext localContext = Mockito.mock(FailureContext.class);
+        Ex.setContext(localContext);
+        handler.setFailFastProperties(mockProperties);
+        Mockito.when(mockProperties.getLogging()).thenReturn(null);
+
+        Method method = FailFastExceptionHandler.class.getDeclaredMethod("isBannerMode");
+        method.setAccessible(true);
+
+        try (MockedStatic<TraceInfoExtractor> trace = mockStatic(TraceInfoExtractor.class)) {
+            trace.when(() -> TraceInfoExtractor.shadowTrace(localContext, null)).thenReturn(true);
+
+            assertTrue((boolean) method.invoke(handler));
+        }
+    }
+
+    @Test
+    void should_treatNullErrorsAsInfo_when_resolveMultiSeveritySeesNullEntry() throws Exception {
+        Method method = FailFastExceptionHandler.class.getDeclaredMethod("resolveMultiSeverity", MultiBusiness.class);
+        method.setAccessible(true);
+
+        MultiBusiness multi = Mockito.mock(MultiBusiness.class);
+        List<Business> errors = new ArrayList<>();
+        errors.add(null);
+        Mockito.when(multi.getErrors()).thenReturn(errors);
+
+        assertEquals(Severity.INFO, method.invoke(handler, multi));
+    }
+
+    @Test
+    void should_generateUuidTraceId_when_contextAndOpenTelemetryAreBlank() {
+        Mockito.when(context.getTraceId()).thenReturn(null);
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn(" ");
+
+            String traceId = handler.getTraceId();
+
+            assertNotNull(traceId);
+            assertFalse(traceId.isBlank());
+            assertDoesNotThrow(() -> java.util.UUID.fromString(traceId));
+        }
+    }
+
+    @Test
+    void should_renderConcretePathInBanner_when_businessProvidesPath() throws Exception {
+        FailureProperties local = new FailureProperties();
+        local.getLogging().setBanner(true);
+        handler.setFailFastProperties(local);
+        Mockito.when(context.getTraceId()).thenReturn("trace-banner");
+
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .path("request.path")
+                .materialize();
+
+        Method method = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
+        method.setAccessible(true);
+
+        try (MockedStatic<TraceInfoExtractor> trace = mockStatic(TraceInfoExtractor.class)) {
+            trace.when(() -> TraceInfoExtractor.shadowTrace(context, null)).thenReturn(true);
+            String result = (String) method.invoke(handler, business);
+
+            assertTrue(result.contains("path=request.path"));
+        }
+    }
+
+    @Test
+    void should_fallbackWhen_resolveTraceIdReceivesNullBusiness() throws Exception {
+        Mockito.when(context.getTraceId()).thenReturn("ctx-trace");
+        Method resolveTraceId = FailFastExceptionHandler.class.getDeclaredMethod("resolveTraceId", Business.class);
+        resolveTraceId.setAccessible(true);
+
+        assertEquals("ctx-trace", resolveTraceId.invoke(handler, new Object[]{null}));
+    }
+
+    @Test
+    void should_fallbackWhen_resolveSpanIdReceivesNullBusiness() throws Exception {
+        Method resolveSpanId = FailFastExceptionHandler.class.getDeclaredMethod("resolveSpanId", Business.class);
+        resolveSpanId.setAccessible(true);
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
+
+            assertEquals("otel-span", resolveSpanId.invoke(handler, new Object[]{null}));
+        }
     }
 
     // 测试方法，用于模拟MethodArgumentNotValidException

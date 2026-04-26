@@ -1,6 +1,6 @@
 package com.chao.failfast.aspect;
 
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import com.chao.failfast.annotation.SkipValidation;
 import com.chao.failfast.annotation.ToImprove;
 import com.chao.failfast.annotation.Validate;
@@ -14,8 +14,9 @@ import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.internal.policy.DefaultErrorPolicy;
 import com.chao.failfast.internal.policy.ErrorPolicy;
-import com.chao.failfast.spi.SkipTypeRegistry;
-import com.chao.failfast.spi.ValidatorRegistry;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
+import com.chao.failfast.spi.validation.ValidatorRegistry;
+import com.chao.failfast.spi.validation.ValidatorWhitelistRegistry;
 import com.chao.failfast.util.ReflectionCache;
 import com.chao.failfast.validator.TypedValidator;
 import jakarta.servlet.ServletRequest;
@@ -45,6 +46,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,13 +54,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * Validation aspect - Handle custom validators declared by @Validate annotation.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Slf4j
 @Aspect
 @Component
 @Order(100)
-@ToImprove(value = "太长了 后续再做优化", version = "1.2.0", tag = "1.8.0")
+@ToImprove(value = "Too long, need optimization later", version = "1.2.0", tag = "1.8.0")
 public class ValidationAspect {
 
     /**
@@ -91,15 +93,18 @@ public class ValidationAspect {
     @Autowired(required = false)
     private ValidatorRegistry validatorRegistry;
 
+    @Autowired(required = false)
+    private ValidatorWhitelistRegistry validatorWhitelistRegistry;
+
     @Around("@annotation(validate)")
     public Object around(ProceedingJoinPoint point, Validate validate) throws Throwable {
-        // 1. 读取注解参数
+        // 1. Read annotation parameters
         Scenario[] scenes = validate.scene();
         Class<?>[] groups = validate.groups();
         boolean fast = validate.fast();
         Class<? extends FastValidator>[] validatorClasses = validate.value();
 
-        // 确保 scenes 数组不为空
+        // Ensure scenes array is not empty
         if (scenes == null || scenes.length == 0) {
             scenes = new Scenario[]{Scenario.DEFAULT};
         }
@@ -127,10 +132,10 @@ public class ValidationAspect {
                 return point.proceed();
             }
 
-            // 2. 收集可校验参数
+            // 2. Collect validatable parameters
             List<Object> validatableArgs = collectValidatableArgs(point);
 
-            // 3. 第一步（bridge）：执行 jakarta Validator 验证
+            // 3. Step 1 (bridge): Execute jakarta Validator validation
             boolean shouldRunBridge;
             if (groups.length > 0) {
                 shouldRunBridge = true;
@@ -141,17 +146,16 @@ public class ValidationAspect {
             }
             List<Business> errors = shouldRunBridge ? executeBridgeValidation(validatableArgs, groups, fast, scenes) : new ArrayList<>();
 
-            // 4. 第二步（自定义）：执行 FastValidator 验证
+            // 4. Step 2 (custom): Execute FastValidator validation
             if (errors.isEmpty() || !fast) {
                 List<Business> customErrors = executeValidators(validatorClasses, validatableArgs, fast, scenes, groups);
                 errors.addAll(customErrors);
             }
 
-            // 5. 处理错误
+            // 5. Handle errors
             if (!errors.isEmpty()) throw errors.size() == 1 ? errors.get(0) : new MultiBusiness(errors);
 
             Object result = point.proceed();
-            success = true;
             if (sceneApplied && result instanceof Mono<?> mono) {
                 return mono.contextWrite(reactorCtx -> reactorCtx.put(ReactiveTrace.SCENE_KEY, sceneName));
             }
@@ -195,7 +199,7 @@ public class ValidationAspect {
                     validator.validate(arg, groups) : validator.validate(arg);
 
             for (ConstraintViolation<Object> violation : violations) {
-                // 场景过滤
+                // Scene filtering
                 if (!shouldKeepViolation(violation, scenes)) {
                     continue;
                 }
@@ -204,7 +208,7 @@ public class ValidationAspect {
                 String message = violation.getMessage();
                 Object invalidValue = violation.getInvalidValue();
 
-                // 按 FailureContext/ErrorPolicy 决定是否写入 invalidValue
+                // Determine whether to write invalidValue based on FailureContext/ErrorPolicy
                 String location = formatValidationLocation(violation.getRootBeanClass(), path);
                 Business.Fabricator fabricator = Business.compose()
                         .responseCode(ResponseCode.VALIDATION_ERROR_400)
@@ -212,7 +216,7 @@ public class ValidationAspect {
                         .location(location)
                         .path(path);
 
-                // 检查是否需要捕获 invalidValue
+                // Check if invalidValue needs to be captured
                 FailureContext ctx = Ex.getContext();
                 ErrorPolicy policy = ctx != null ? java.util.Objects.requireNonNullElse(ctx.getErrorPolicy(), DefaultErrorPolicy.INSTANCE) : DefaultErrorPolicy.INSTANCE;
                 if (invalidValue != null && policy.captureInvalidValue(ctx)) {
@@ -239,40 +243,40 @@ public class ValidationAspect {
      * @return True if violation should be kept, false otherwise
      */
     private boolean shouldKeepViolation(ConstraintViolation<?> violation, Scenario[] scenes) {
-        // 如果 scenes 数组为空，保留（不要吞错）
+        // If scenes array is empty, keep (don't swallow errors)
         if (scenes == null || scenes.length == 0) {
             return true;
         }
 
-        // 如果包含默认场景，不过滤
+        // If default scene is included, don't filter
         for (Scenario scene : scenes) {
             if (scene == Scenario.DEFAULT) {
                 return true;
             }
         }
 
-        // 拿到根 Bean 类
+        // Get root Bean class
         Class<?> rootClass = violation.getRootBeanClass();
-        // 拿到属性路径
+        // Get property path
         String propertyPath = violation.getPropertyPath().toString();
-        // 解析字段名
+        // Parse field name
         String fieldName = parseFieldName(propertyPath);
 
-        // 查找字段
+        // Find field
         Field field = findField(rootClass, fieldName);
         if (field == null) {
-            // 找不到字段，保留（不要吞错）
+            // Field not found, keep (don't swallow errors)
             return true;
         }
 
-        // 检查字段上的 @Scene 注解
+        // Check @Scene annotation on field
         Set<Scenario> sceneSet = getSceneValues(field);
         if (sceneSet.isEmpty()) {
-            // 没标 @Scene，保留
+            // No @Scene annotation, keep
             return true;
         }
 
-        // 标了 @Scene，检查是否包含任一当前场景
+        // Has @Scene, check if any current scene is included
         for (Scenario scene : scenes) {
             if (sceneSet.contains(scene)) {
                 return true;
@@ -289,10 +293,10 @@ public class ValidationAspect {
      * @return Field name
      */
     private String parseFieldName(String propertyPath) {
-        // 分割 . 取第一段
+        // Split by . and take first part
         int dotIndex = propertyPath.indexOf('.');
         String firstPart = dotIndex > 0 ? propertyPath.substring(0, dotIndex) : propertyPath;
-        // 去掉下标，比如把 items[0] 变成 items
+        // Remove index, e.g., change items[0] to items
         int bracketIndex = firstPart.indexOf('[');
         return bracketIndex > 0 ? firstPart.substring(0, bracketIndex) : firstPart;
     }
@@ -345,11 +349,18 @@ public class ValidationAspect {
         Set<FastValidator<Object>> executedGlobalValidators = new HashSet<>();
 
         for (Class<? extends FastValidator> validatorClass : validatorClasses) {
-            FastValidator<Object> validator = getOrCreateValidator(validatorClass);
-            executedGlobalValidators.add(validator);
-            List<Business> validatorErrors = executeSingleValidator(validator, args, failFast, scenes, groups);
-            errors.addAll(validatorErrors);
-            if (failFast && !errors.isEmpty()) break;
+            try {
+                FastValidator<Object> validator = getOrCreateValidator(validatorClass);
+                executedGlobalValidators.add(validator);
+                List<Business> validatorErrors = executeSingleValidator(validator, args, failFast, scenes, groups);
+                errors.addAll(validatorErrors);
+                if (failFast && !errors.isEmpty()) break;
+            } catch (Exception e) {
+                // Capture validator instantiation failure exception and convert it to error
+                Business error = Business.of(ResponseCode.VALIDATION_ERROR_400, "Failed to instantiate validator: " + e.getMessage());
+                errors.add(error);
+                if (failFast && !errors.isEmpty()) break;
+            }
         }
 
         if (validatorRegistry != null && (errors.isEmpty() || !failFast)) {
@@ -361,9 +372,16 @@ public class ValidationAspect {
                 }
             }
             for (Map.Entry<FastValidator<Object>, List<Object>> entry : globalValidatorArgs.entrySet()) {
-                List<Business> validatorErrors = executeSingleValidator(entry.getKey(), entry.getValue(), failFast, scenes, groups);
-                errors.addAll(validatorErrors);
-                if (failFast && !errors.isEmpty()) break;
+                try {
+                    List<Business> validatorErrors = executeSingleValidator(entry.getKey(), entry.getValue(), failFast, scenes, groups);
+                    errors.addAll(validatorErrors);
+                    if (failFast && !errors.isEmpty()) break;
+                } catch (Exception e) {
+                    // Capture validator execution failure exception and convert it to error
+                    Business error = Business.of(ResponseCode.VALIDATION_ERROR_400, "Failed to execute validator: " + e.getMessage());
+                    errors.add(error);
+                    if (failFast && !errors.isEmpty()) break;
+                }
             }
         }
 
@@ -382,7 +400,7 @@ public class ValidationAspect {
      */
     private List<Business> executeSingleValidator(FastValidator<Object> validator, List<Object> args, boolean failFast, Scenario[] scenes, Class<?>[] groups) {
 
-        // 确保 scenes 数组不为空
+        // Ensure scenes array is not empty
         if (scenes == null || scenes.length == 0) {
             scenes = new Scenario[]{Scenario.DEFAULT};
         }
@@ -468,7 +486,15 @@ public class ValidationAspect {
 
     private FastValidator<Object> newValidatorInstance(Class<? extends FastValidator<Object>> key) {
         try {
-            return key.getDeclaredConstructor().newInstance();
+            if (validatorWhitelistRegistry != null && !validatorWhitelistRegistry.isWhitelisted((Class<? extends FastValidator<?>>) key)) {
+                throw new SecurityException("Validator is not whitelisted: " + key.getName());
+            }
+            if (key.isInterface() || Modifier.isAbstract(key.getModifiers())) {
+                throw new IllegalArgumentException("Validator type is not instantiable: " + key.getName());
+            }
+            java.lang.reflect.Constructor<? extends FastValidator<Object>> constructor = key.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
         } catch (Exception e) {
             throw new RuntimeException("Failed to instantiate validator: " + key.getName(), e);
         }
@@ -489,7 +515,7 @@ public class ValidationAspect {
         if (declared != null && declared != Object.class) {
             return declared;
         }
-        // 如果无法从声明中获取类型，则通过反射推断泛型类型
+        // If type cannot be obtained from declaration, infer generic type through reflection
         Class<?> type = GenericTypeResolver.resolveTypeArgument(validator.getClass(), FastValidator.class);
         if (type != null && type != Object.class) {
             return type;

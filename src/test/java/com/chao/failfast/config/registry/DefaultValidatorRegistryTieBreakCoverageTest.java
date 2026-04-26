@@ -1,6 +1,6 @@
 package com.chao.failfast.config.registry;
 
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;

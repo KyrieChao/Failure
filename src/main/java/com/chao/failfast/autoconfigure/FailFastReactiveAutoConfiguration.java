@@ -1,5 +1,9 @@
 package com.chao.failfast.autoconfigure;
 
+import com.chao.failfast.config.masking.DefaultValueMasker;
+import com.chao.failfast.config.masking.StructuredValueMasker;
+import com.chao.failfast.config.registry.DefaultValidatorWhitelistRegistry;
+import com.chao.failfast.config.i18n.LocaleResponseResolver;
 import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.internal.core.FailureContext;
@@ -7,6 +11,12 @@ import com.chao.failfast.integration.webflux.FailFastWebExceptionHandler;
 import com.chao.failfast.integration.webflux.ReactiveTrace;
 import com.chao.failfast.internal.core.Chain;
 import com.chao.failfast.internal.core.Ex;
+import com.chao.failfast.internal.core.i18n.LocaleRouter;
+import com.chao.failfast.internal.core.security.ValueMaskerRegistry;
+import com.chao.failfast.spi.config.FailFastConfigurer;
+import com.chao.failfast.spi.i18n.LocalizedResponseResolver;
+import com.chao.failfast.spi.security.ValueMasker;
+import com.chao.failfast.spi.validation.ValidatorWhitelistRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.NonNull;
 import org.springframework.beans.factory.ObjectProvider;
@@ -38,11 +48,39 @@ public class FailFastReactiveAutoConfiguration {
 
     @ConditionalOnMissingBean
     @Bean
-    public FailureContext failureContext(FailureProperties properties, CodeMappingConfig codeMappingConfig) {
+    public FailureContext failureContext(FailureProperties properties, CodeMappingConfig codeMappingConfig, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver) {
         FailureContext context = new FailureContext(properties, codeMappingConfig, null);
         Ex.setContext(context);
+        ValueMaskerRegistry.setDefault(valueMasker);
+        LocaleRouter.setDefault(localizedResponseResolver);
         Chain.setFailureProperties(properties);
         return context;
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public ValueMasker valueMasker(FailureProperties properties) {
+        DefaultValueMasker base = new DefaultValueMasker();
+        if (properties.getMasking() != null && properties.getMasking().isStructuredEnabled()) {
+            return new StructuredValueMasker(base, properties.getMasking());
+        }
+        return base;
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public LocalizedResponseResolver localizedResponseResolver(ObjectProvider<FailFastConfigurer> configurers) {
+        LocaleResponseResolver resolver = new LocaleResponseResolver();
+        configurers.orderedStream().forEach(configurer -> configurer.customizeLocalizedResponseResolver(resolver));
+        return resolver;
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public ValidatorWhitelistRegistry validatorWhitelistRegistry(ObjectProvider<FailFastConfigurer> configurers) {
+        DefaultValidatorWhitelistRegistry registry = new DefaultValidatorWhitelistRegistry();
+        configurers.orderedStream().forEach(configurer -> configurer.addValidatorWhitelist(registry));
+        return registry;
     }
 
     @AutoConfiguration

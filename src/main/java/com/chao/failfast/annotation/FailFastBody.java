@@ -7,12 +7,12 @@ import java.lang.annotation.*;
  * Semantically equivalent to @RequestBody.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@ToImprove(value = "新加的注解 待观摩",version = "1.2.0",tag = "1.8.0")
+@ToImprove(value = "Newly added annotation, to be observed", version = "1.2.0", tag = "1.8.0")
 public @interface FailFastBody {
 
     /**

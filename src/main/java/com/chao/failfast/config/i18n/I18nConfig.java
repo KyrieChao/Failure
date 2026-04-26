@@ -17,7 +17,7 @@ import java.util.Locale;
  * Internationalization configuration class.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Configuration
 public class I18nConfig {
@@ -47,16 +47,16 @@ public class I18nConfig {
         String defaultLocaleStr = properties.getI18n().getDefaultLocale();
         Locale defaultLocale = null;
 
-        // 1. 只有当配置有值时，才尝试解析
+        // 1. Only try to parse when configuration has value
         if (StringUtils.hasText(defaultLocaleStr)) {
             defaultLocale = StringUtils.parseLocaleString(defaultLocaleStr);
         }
-        // 2. 统一设置默认值逻辑
-        // 策略：如果解析成功，用解析的；如果解析失败(为null)，则使用硬编码默认值(如 Locale.CHINA)
-        // 注意：如果你希望配置为空时不设置默认值(跟随请求头)，则去掉 ": Locale.CHINA" 部分
+        // 2. Unified default value setting logic
+        // Strategy: If parsing succeeds, use the parsed one; if parsing fails (null), use hardcoded default value (e.g., Locale.CHINA)
+        // Note: If you want to not set default value when configuration is empty (follow request header), remove the ": Locale.CHINA" part
         localeResolver.setDefaultLocale(defaultLocale != null ? defaultLocale : Locale.CHINA);
 
-        // 3. 设置支持的语言列表
+        // 3. Set supported language list
         localeResolver.setSupportedLocales(Arrays.asList(
                 Locale.CHINA,
                 Locale.US,

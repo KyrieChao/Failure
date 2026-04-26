@@ -4,7 +4,7 @@ import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.Failure;
 import com.chao.failfast.annotation.FailFastBody;
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import com.chao.failfast.annotation.Scene;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.constant.Scenario;
@@ -21,6 +21,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ActiveProfiles;
+import com.chao.failfast.spi.config.FailFastConfigurer;
+import com.chao.failfast.spi.validation.ValidatorWhitelistRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * FailFast enhanced functionality test.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -49,6 +51,16 @@ public class FailFastEnhancedTest {
         @Bean
         TestService testService() {
             return new TestServiceImpl();
+        }
+
+        @Bean
+        FailFastConfigurer failFastConfigurer() {
+            return new FailFastConfigurer() {
+                @Override
+                public void addValidatorWhitelist(ValidatorWhitelistRegistry registry) {
+                    registry.add(AgeValidator.class, NoopValidator.class);
+                }
+            };
         }
     }
 

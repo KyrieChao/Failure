@@ -1,11 +1,13 @@
 package com.chao.failfast.internal.validation;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.ResponseCode;
+import com.chao.failfast.util.ReflectionCache;
 import com.chao.failfast.validator.TypedValidator;
 
+import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -13,108 +15,115 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * A utility class to recursively walk through an object graph and validate its fields.
- * Extracted from ChainCore to reduce its responsibilities.
- *
- * @author Kyrie Chao
- * @version 1.2.0
+ * Object graph walker for recursive traversal and validation of all objects in the object graph
  */
 public class ObjectGraphWalker {
 
     /**
-     * Recursive validation entry point.
+     * Recursively traverse object graph
+     * @param object Current object to traverse
+     * @param path Current object path for identifying position in object graph
+     * @param typedValidator Type validator for validating specific types of objects
+     * @param context Validation context containing validation state and information
+     * @param options Recursive options controlling traversal behavior and limits
+     * @param depth Current recursion depth
+     * @param visited Visited object mapping to prevent infinite recursion from circular references
      */
     public static void walk(Object object, String path, TypedValidator typedValidator,
-                            ValidationContext context, RecursiveOptions options,
+                            ValidationContext context, RecursiveOption options,
                             int depth, IdentityHashMap<Object, Boolean> visited) {
-        // Check if validation should stop
+        // Check if traversal should stop: context stopped, exceeded max depth, or error count exceeded limit
         if (context.isStopped() || depth > options.getMaxDepth() ||
                 (context.errorSize() >= options.getMaxErrors())) {
             return;
         }
-
-        // Check for circular reference
+        // Check if object has been visited to prevent circular references
         if (object != null && visited.containsKey(object)) {
             return;
         }
-
-        // Mark as visited
+        // Record visited object
         if (object != null) {
             visited.put(object, Boolean.TRUE);
         }
 
         try {
-            // Check if object is null
+            // Handle null object
             if (object == null) {
                 return;
             }
-
-            // Check if path is excluded
+            // Check if path is in exclude list
             if (isExcluded(path, options.getExclude())) {
                 return;
             }
-
-            // Check if path is included (if include list is specified)
+            // Check if path is in include list
             if (!isIncluded(path, options.getInclude())) {
                 return;
             }
-
-            // Validate current object if there's a validator for it
+            // If object has registered type validator, validate it
             boolean validated = typedValidator.validateIfRegistered(object, context);
-
-            // If object was validated, don't recurse further
             if (validated) {
                 return;
             }
 
+            // Check if this type should be skipped
             if (Ex.getSkipTypeRegistry() != null && Ex.getSkipTypeRegistry().shouldSkip(object.getClass())) {
                 return;
             }
-
-            // Recurse into collections
+            // Handle collection types
             if (object instanceof Collection<?> collection) {
                 int index = 0;
                 for (Object item : collection) {
+                    // Check if collection size exceeds limit
                     if (index >= options.getMaxItems()) {
                         context.reportError(ResponseCode.VALIDATION_ERROR_400, "Collection size exceeds limit");
                         break;
                     }
+                    // Build collection item path
                     String itemPath = path.isEmpty() ? "[" + index + "]" : path + "[" + index + "]";
+                    // Recursively traverse collection item
                     walk(item, itemPath, typedValidator, context, options, depth + 1, visited);
                     index++;
                 }
             }
-            // Recurse into maps
+            // Handle Map types
             else if (object instanceof Map<?, ?> map) {
                 for (Map.Entry<?, ?> entry : map.entrySet()) {
                     Object key = entry.getKey();
                     Object value = entry.getValue();
+                    // Build Map entry path
                     String entryPath = path.isEmpty() ? "[" + key + "]" : path + "[" + key + "]";
+                    // Recursively traverse Map value
                     walk(value, entryPath, typedValidator, context, options, depth + 1, visited);
                 }
             }
-            // Recurse into arrays
+            // Handle array types
             else if (object.getClass().isArray()) {
                 if (object instanceof Object[] array) {
-                    // Object array
                     for (int i = 0; i < array.length; i++) {
+                        // Check if array size exceeds limit
                         if (i >= options.getMaxItems()) {
                             context.reportError(ResponseCode.VALIDATION_ERROR_400, "Array size exceeds limit");
                             break;
                         }
+                        // Build array element path
                         String itemPath = path.isEmpty() ? "[" + i + "]" : path + "[" + i + "]";
+                        // Recursively traverse array element
                         walk(array[i], itemPath, typedValidator, context, options, depth + 1, visited);
                     }
                 }
             }
-            // Recurse into POJOs using reflection
+            // Handle custom object types
             else if (!isPrimitiveOrWrapper(object.getClass()) && !isStringOrEnum(object.getClass())) {
-                List<java.lang.reflect.Field> fields = com.chao.failfast.util.ReflectionCache.getFields(object.getClass());
+                // Get all fields of the object
+                List<Field> fields = com.chao.failfast.util.ReflectionCache.getFields(object.getClass());
+                // Get current scenes
                 Scenario[] currentScenes = context.getScenes();
 
-                for (java.lang.reflect.Field field : fields) {
-                    // Scene pruning
-                    Set<Scenario> fieldScenes = com.chao.failfast.util.ReflectionCache.getSceneValues(field);
+                // Traverse all fields
+                for (Field field : fields) {
+                    // Get field scene requirements
+                    Set<Scenario> fieldScenes = ReflectionCache.getSceneValues(field);
+                    // If field has scene requirements, check if they match current scenes
                     if (!fieldScenes.isEmpty()) {
                         boolean match = false;
                         if (currentScenes != null) {
@@ -125,11 +134,13 @@ public class ObjectGraphWalker {
                                 }
                             }
                         }
+                        // If no match with current scenes, skip this field
                         if (!match) {
                             continue;
                         }
                     }
 
+                    // Get field value
                     Object fieldValue;
                     try {
                         fieldValue = field.get(object);
@@ -137,18 +148,26 @@ public class ObjectGraphWalker {
                         continue;
                     }
 
+                    // Build field path
                     String fieldName = field.getName();
                     String fieldPath = path.isEmpty() ? fieldName : path + "." + fieldName;
+                    // Recursively traverse field value
                     walk(fieldValue, fieldPath, typedValidator, context, options, depth + 1, visited);
                 }
             }
         } finally {
+            // If global deduplication is not disabled, remove current object from visited set
             if (!options.isDedupeGlobal() && object != null) {
                 visited.remove(object);
             }
         }
     }
 
+    /**
+     * Check if class is primitive or its wrapper
+     * @param clazz Class to check
+     * @return true if class is primitive or wrapper, false otherwise
+     */
     private static boolean isPrimitiveOrWrapper(Class<?> clazz) {
         return clazz.isPrimitive() ||
                 clazz == Boolean.class ||
@@ -162,10 +181,21 @@ public class ObjectGraphWalker {
                 clazz == Void.class;
     }
 
+    /**
+     * Check if class is String or enum type
+     * @param clazz Class to check
+     * @return true if class is String or enum, false otherwise
+     */
     private static boolean isStringOrEnum(Class<?> clazz) {
         return clazz == String.class || clazz.isEnum();
     }
 
+    /**
+     * Check if path is in exclude list
+     * @param path Path to check
+     * @param exclude Exclude path list
+     * @return true if path is in exclude list, false otherwise
+     */
     private static boolean isExcluded(String path, List<String> exclude) {
         if (exclude == null || exclude.isEmpty()) {
             return false;
@@ -178,6 +208,12 @@ public class ObjectGraphWalker {
         return false;
     }
 
+    /**
+     * Check if path is in include list
+     * @param path Path to check
+     * @param include Include path list
+     * @return true if path is in include list, false otherwise
+     */
     private static boolean isIncluded(String path, List<String> include) {
         if (path == null || path.isEmpty()) {
             return true;

@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
  * Exception builder utility test class.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @DisplayName("Exception Builder Utility Test")
 @Tag("exception")
@@ -436,16 +436,6 @@ class ExTest {
             return (String) method.invoke(null, frame);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    // Helper method to assertThatThrownBy
-    private void assertThatThrownBy(Runnable runnable) {
-        try {
-            runnable.run();
-            org.junit.jupiter.api.Assertions.fail("Expected exception but none was thrown");
-        } catch (Exception e) {
-            // Expected
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.chao.failfast.internal.chain.pipeline;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

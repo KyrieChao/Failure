@@ -2,10 +2,11 @@ package com.chao.failfast.exception;
 
 import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.constant.Severity;
 import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.spi.SkipPrefixRegistry;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +15,7 @@ import java.lang.reflect.Method;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 class BusinessTrimStackTraceTest {
@@ -76,6 +78,50 @@ class BusinessTrimStackTraceTest {
         when(allSkip.shouldSkip(anyString())).thenReturn(true);
         Ex.setSkipPrefixRegistry(allSkip);
         assertThat(m.invoke(null, new Object[]{stack})).isSameAs(stack);
+    }
+
+    @Test
+    void should_returnTrue_when_shouldFillStackTraceInvokedWithNullCodeAndSeverity() throws Exception {
+        Method method = Business.class.getDeclaredMethod("shouldFillStackTrace", ResponseCode.class, Severity.class);
+        method.setAccessible(true);
+
+        boolean result = (boolean) method.invoke(null, null, null);
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void should_returnNull_when_firstNonBlankReceivesOnlyBlankValues() throws Exception {
+        Method method = Business.class.getDeclaredMethod("firstNonBlank", String[].class);
+        method.setAccessible(true);
+
+        Object result = method.invoke(null, (Object) new String[]{" ", "\t", ""});
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void should_returnFalse_when_shouldFillStackTraceHasCodeButNoContext() throws Exception {
+        Method method = Business.class.getDeclaredMethod("shouldFillStackTrace", ResponseCode.class, Severity.class);
+        method.setAccessible(true);
+
+        try (var ex = mockStatic(Ex.class)) {
+            ex.when(Ex::getContext).thenReturn(null);
+
+            boolean result = (boolean) method.invoke(null, ResponseCode.VALIDATION_ERROR_400, null);
+
+            assertThat(result).isFalse();
+        }
+    }
+
+    @Test
+    void should_returnNull_when_firstNonBlankReceivesNullArray() throws Exception {
+        Method method = Business.class.getDeclaredMethod("firstNonBlank", String[].class);
+        method.setAccessible(true);
+
+        Object result = method.invoke(null, new Object[]{null});
+
+        assertThat(result).isNull();
     }
 }
 

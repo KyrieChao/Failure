@@ -1,7 +1,7 @@
 package com.chao.failfast.internal.core;
 
-import com.chao.failfast.spi.SkipPrefixRegistry;
-import com.chao.failfast.spi.SkipTypeRegistry;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

@@ -1,30 +1,35 @@
 package com.chao.failfast.exception;
 
 import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.constant.Severity;
 import com.chao.failfast.constant.FailureConst;
-import com.chao.failfast.internal.core.Ex;
-import com.chao.failfast.internal.core.FailureContext;
-import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.internal.core.ContextResolver;
+import com.chao.failfast.internal.core.*;
+import com.chao.failfast.internal.core.i18n.LocalizedTexts;
+import com.chao.failfast.internal.core.observability.OpenTelemetryBridge;
+import com.chao.failfast.internal.core.observability.TraceInfoExtractor;
+import com.chao.failfast.internal.core.security.ValueMaskerRegistry;
 import com.chao.failfast.internal.policy.DefaultErrorPolicy;
 import com.chao.failfast.internal.policy.ErrorPolicy;
-import com.chao.failfast.util.I18n;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Business exception class - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Getter
 public class Business extends RuntimeException implements Serializable {
+
+    private static final int MAX_DETAIL_LENGTH = 1024;
+    private static final Pattern DANGEROUS_DETAIL_PATTERN = Pattern.compile("<script|javascript:|onerror=|onclick=", Pattern.CASE_INSENSITIVE);
 
     /**
      * Response code enum.
@@ -54,7 +59,12 @@ public class Business extends RuntimeException implements Serializable {
     /**
      * Invalid value causing exception.
      */
-    private final Object invalidValue;
+    private final transient Object invalidValue;
+
+    /**
+     * Masked value safe for serialization/logging.
+     */
+    private final Object maskedValue;
 
     /**
      * Field path causing exception.
@@ -62,6 +72,9 @@ public class Business extends RuntimeException implements Serializable {
      */
     @Getter
     private final String path;
+    private final Severity severity;
+    private final String traceId;
+    private final String spanId;
 
 
     /**
@@ -97,22 +110,56 @@ public class Business extends RuntimeException implements Serializable {
      * @param path         Field path causing exception
      */
     public Business(ResponseCode responseCode, String detail, String method, String location, HttpStatus httpStatus, Object invalidValue, String path) {
-        super(I18n.get(responseCode != null ? responseCode.getMessage() : FailureConst.UNKNOWN_ERROR), null, true, shouldFillStackTrace(responseCode));
+        this(resolveSeverity(responseCode), responseCode, detail, method, location, httpStatus, invalidValue, path, null, null);
+    }
+
+    /**
+     * Constructor with traceId and spanId.
+     *
+     * @param responseCode Response code enum
+     * @param detail       Detailed error description
+     * @param method       Method name where exception occurred
+     * @param location     Location info where exception occurred
+     * @param httpStatus   HTTP status code
+     * @param invalidValue Parameter value causing exception
+     * @param path         Field path causing exception
+     * @param traceId      Trace ID for distributed tracing
+     * @param spanId       Span ID for distributed tracing
+     */
+    public Business(ResponseCode responseCode, String detail, String method, String location, HttpStatus httpStatus, Object invalidValue, String path, String traceId, String spanId) {
+        this(resolveSeverity(responseCode), responseCode, detail, method, location, httpStatus, invalidValue, path, traceId, spanId);
+    }
+
+    private Business(Severity severity, ResponseCode responseCode, String detail, String method, String location,
+                     HttpStatus httpStatus, Object invalidValue, String path, String traceId, String spanId) {
+        super(LocalizedTexts.message(responseCode), null, true, shouldFillStackTrace(responseCode, severity));
         this.responseCode = responseCode;
-        this.detail = detail;
+        this.detail = sanitizeDetail(detail);
         this.method = method;
         this.location = location;
         this.httpStatus = httpStatus != null ? httpStatus : HttpStatus.INTERNAL_SERVER_ERROR;
-        this.invalidValue = invalidValue;
         this.path = path;
+        this.invalidValue = invalidValue;
+        this.maskedValue = maskValue(invalidValue, path);
+        this.severity = severity != null ? severity : Severity.INFO;
+        String otelTraceId = OpenTelemetryBridge.currentTraceId();
+        String otelSpanId = OpenTelemetryBridge.currentSpanId();
+        this.traceId = firstNonBlank(traceId, resolveContextTraceId(), otelTraceId);
+        this.spanId = firstNonBlank(spanId, otelSpanId);
     }
 
-    private static boolean shouldFillStackTrace(ResponseCode code) {
-        if (code == null) return true;
+    private static boolean shouldFillStackTrace(ResponseCode code, Severity severity) {
         FailureContext ctx = Ex.getContext();
+        boolean printMethod = ctx != null && TraceInfoExtractor.shadowTrace(ctx, null);
+        if (printMethod) {
+            return true;
+        }
+        if (severity != null) {
+            return severity.isFillStackTrace();
+        }
+        if (code == null) return true;
         CodeMappingConfig cfg = ctx != null ? ctx.getCodeMappingConfig() : null;
-        boolean printMethod = ctx != null && ContextResolver.shadowTrace(ctx, null);
-        return printMethod || (cfg != null && cfg.resolveHttpStatus(code.getCode()).is5xxServerError());
+        return cfg != null && cfg.resolveHttpStatus(code.getCode()).is5xxServerError();
     }
 
     public static Business of(int code, String message) {
@@ -219,6 +266,9 @@ public class Business extends RuntimeException implements Serializable {
          * Field path.
          */
         private String path;
+        private Severity severity;
+        private String traceId;
+        private String spanId;
 
 
         /**
@@ -293,6 +343,21 @@ public class Business extends RuntimeException implements Serializable {
             return this;
         }
 
+        public Fabricator severity(Severity severity) {
+            this.severity = severity;
+            return this;
+        }
+
+        public Fabricator traceId(String traceId) {
+            this.traceId = traceId;
+            return this;
+        }
+
+        public Fabricator spanId(String spanId) {
+            this.spanId = spanId;
+            return this;
+        }
+
 
         /**
          * Build final Business object.
@@ -317,7 +382,8 @@ public class Business extends RuntimeException implements Serializable {
             }
             CodeMappingConfig cfg = Ex.getContext() != null ? Ex.getContext().getCodeMappingConfig() : null;
             HttpStatus status = (cfg != null) ? cfg.resolveHttpStatus(responseCode.getCode()) : HttpStatus.INTERNAL_SERVER_ERROR;
-            Business business = new Business(responseCode, detail, method, location, status, invalidValue, path);
+            Severity finalSeverity = severity != null ? severity : resolveSeverity(responseCode);
+            Business business = new Business(finalSeverity, responseCode, detail, method, location, status, invalidValue, path, traceId, spanId);
             if (ctx != null && ctx.isTrimStackTrace()) {
                 business.setStackTrace(trimStackTrace(business.getStackTrace()));
             }
@@ -341,15 +407,14 @@ public class Business extends RuntimeException implements Serializable {
 
         String valStr = "";
         FailureContext ctx = Ex.getContext();
-        if (invalidValue != null && ctx != null && ctx.isDebugSnapshot()) {
-            String masked = maskValue(invalidValue);
-            valStr = ", val=" + masked;
+        if (maskedValue != null && ctx != null && ctx.isDebugSnapshot()) {
+            valStr = ", val=" + maskedValue;
         }
 
         String base = "{code=%s, mes=%s, des=%s%s%s}".formatted(
                 codeStr,
-                I18n.get(responseCode.getMessage()),
-                I18n.get(detail),
+                LocalizedTexts.message(responseCode),
+                LocalizedTexts.detail(responseCode, detail),
                 pathStr,
                 valStr
         );
@@ -381,33 +446,50 @@ public class Business extends RuntimeException implements Serializable {
         return content.substring(0, dollar) + content.substring(dot);
     }
 
-    private String maskValue(Object value) {
-        String str = value.toString();
-        if (str.isEmpty()) return str;
-
-        if (FailureConst.Mobile.matcher(str).matches()) {
-            return str.substring(0, 3) + "****" + str.substring(7);
+    private Object maskValue(Object value, String fieldPath) {
+        if (value == null) {
+            return null;
         }
+        return ValueMaskerRegistry.getDefault().mask(value, fieldPath);
+    }
 
-        Matcher emailMatcher = FailureConst.Email.matcher(str);
-        if (emailMatcher.matches()) {
-            return emailMatcher.group(1) + "****" + emailMatcher.group(3);
+    private String sanitizeDetail(String detail) {
+        if (detail == null) return null;
+        String s = detail.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ');
+        if (s.length() > MAX_DETAIL_LENGTH) {
+            s = s.substring(0, MAX_DETAIL_LENGTH) + "...";
         }
+        if (DANGEROUS_DETAIL_PATTERN.matcher(s).find()) {
+            return "Invalid detail content";
+        }
+        return s;
+    }
 
-        if (FailureConst.Card.matcher(str).matches()) {
-            return str.substring(0, 4) + "****" + str.substring(str.length() - 4);
+    private static Severity resolveSeverity(ResponseCode code) {
+        FailureContext ctx = Ex.getContext();
+        if (ctx == null) {
+            return Severity.INFO;
         }
+        return ctx.resolveSeverity(code);
+    }
 
-        if (str.length() > 50) {
-            return str.substring(0, 5) + "...(" + str.length() + "char)..."
-                    + str.substring(str.length() - 5);
+    private static String resolveContextTraceId() {
+        FailureContext ctx = Ex.getContext();
+        if (ctx == null) return null;
+        return ctx.getTraceId();
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value;
         }
-        return str;
+        return null;
     }
 
     private static StackTraceElement[] trimStackTrace(StackTraceElement[] stack) {
         if (stack == null || stack.length == 0) return stack;
-        com.chao.failfast.spi.SkipPrefixRegistry registry = Ex.getSkipPrefixRegistry();
+        SkipPrefixRegistry registry = Ex.getSkipPrefixRegistry();
         if (registry == null) return stack;
 
         int i = 0;
@@ -416,8 +498,7 @@ public class Business extends RuntimeException implements Serializable {
             if (!registry.shouldSkip(cls)) break;
             i++;
         }
-        if (i <= 0 || i >= stack.length) return stack;
-        StackTraceElement[] trimmed = Arrays.copyOfRange(stack, i, stack.length);
-        return trimmed;
+        if (i == 0 || i >= stack.length) return stack;
+        return Arrays.copyOfRange(stack, i, stack.length);
     }
 }

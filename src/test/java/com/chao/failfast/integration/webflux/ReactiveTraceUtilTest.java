@@ -10,14 +10,14 @@ class ReactiveTraceUtilTest {
 
     @Test
     void testGetTraceIdWithNullContext() {
-        String traceId = ReactiveTraceUtil.getTraceId(null);
+        String traceId = ReactiveTrace.getTraceId(null);
         assertNull(traceId);
     }
 
     @Test
     void testGetTraceIdWithEmptyContext() {
         ContextView contextView = Context.empty();
-        String traceId = ReactiveTraceUtil.getTraceId(contextView);
+        String traceId = ReactiveTrace.getTraceId(contextView);
         assertNull(traceId);
     }
 
@@ -25,14 +25,14 @@ class ReactiveTraceUtilTest {
     void testGetTraceIdWithTraceIdInContext() {
         String expectedTraceId = "test-trace-id";
         ContextView contextView = Context.of(ReactiveTrace.TRACE_ID_KEY, expectedTraceId);
-        String traceId = ReactiveTraceUtil.getTraceId(contextView);
+        String traceId = ReactiveTrace.getTraceId(contextView);
         assertEquals(expectedTraceId, traceId);
     }
 
     @Test
     void testGetTraceIdWithNonStringTraceId() {
         ContextView contextView = Context.of(ReactiveTrace.TRACE_ID_KEY, 123);
-        String traceId = ReactiveTraceUtil.getTraceId(contextView);
+        String traceId = ReactiveTrace.getTraceId(contextView);
         assertNull(traceId);
     }
 }

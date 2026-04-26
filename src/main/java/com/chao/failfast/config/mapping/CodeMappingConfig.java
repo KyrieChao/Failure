@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * Error code mapping configuration - Support configurable HTTP status mapping.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Component
 @Slf4j
@@ -44,25 +44,25 @@ public class CodeMappingConfig {
      * @param map Map collection used to store error code and HTTP status code mappings
      */
     private void initializeDefaultMappings(Map<Integer, HttpStatus> map) {
-        // 4xx 客户端错误状态码
-        map.put(40000, HttpStatus.BAD_REQUEST);        // 40000: 请求错误
-        map.put(40100, HttpStatus.UNAUTHORIZED);       // 40100: 未授权
-        map.put(40300, HttpStatus.FORBIDDEN);          // 40300: 禁止访问
-        map.put(40400, HttpStatus.NOT_FOUND);          // 40400: 资源不存在
-        map.put(40500, HttpStatus.METHOD_NOT_ALLOWED); // 40500: 方法不允许
-        map.put(40800, HttpStatus.REQUEST_TIMEOUT);    // 40800: 请求超时
-        map.put(40900, HttpStatus.CONFLICT);           // 40900: 冲突
-        map.put(41000, HttpStatus.GONE);               // 41000: 资源已消失
-        map.put(41300, HttpStatus.PAYLOAD_TOO_LARGE);  // 41300: 负载过大
-        map.put(41500, HttpStatus.UNSUPPORTED_MEDIA_TYPE); // 41500: 不支持的媒体类型
-        map.put(42200, HttpStatus.UNPROCESSABLE_ENTITY);   // 42200: 无法处理的实体
-        map.put(42900, HttpStatus.TOO_MANY_REQUESTS);      // 42900: 请求过多
-        // 5xx 服务器错误状态码
-        map.put(50000, HttpStatus.INTERNAL_SERVER_ERROR); // 50000: 内部服务器错误
-        map.put(50100, HttpStatus.NOT_IMPLEMENTED);       // 50100: 未实现
-        map.put(50200, HttpStatus.BAD_GATEWAY);           // 50200: 网关错误
-        map.put(50300, HttpStatus.SERVICE_UNAVAILABLE);   // 50300: 服务不可用
-        map.put(50400, HttpStatus.GATEWAY_TIMEOUT);       // 50400: 网关超时
+        // 4xx client error status codes
+        map.put(40000, HttpStatus.BAD_REQUEST);        // 40000: Bad request
+        map.put(40100, HttpStatus.UNAUTHORIZED);       // 40100: Unauthorized
+        map.put(40300, HttpStatus.FORBIDDEN);          // 40300: Forbidden
+        map.put(40400, HttpStatus.NOT_FOUND);          // 40400: Not found
+        map.put(40500, HttpStatus.METHOD_NOT_ALLOWED); // 40500: Method not allowed
+        map.put(40800, HttpStatus.REQUEST_TIMEOUT);    // 40800: Request timeout
+        map.put(40900, HttpStatus.CONFLICT);           // 40900: Conflict
+        map.put(41000, HttpStatus.GONE);               // 41000: Gone
+        map.put(41300, HttpStatus.PAYLOAD_TOO_LARGE);  // 41300: Payload too large
+        map.put(41500, HttpStatus.UNSUPPORTED_MEDIA_TYPE); // 41500: Unsupported media type
+        map.put(42200, HttpStatus.UNPROCESSABLE_ENTITY);   // 42200: Unprocessable entity
+        map.put(42900, HttpStatus.TOO_MANY_REQUESTS);      // 42900: Too many requests
+        // 5xx server error status codes
+        map.put(50000, HttpStatus.INTERNAL_SERVER_ERROR); // 50000: Internal server error
+        map.put(50100, HttpStatus.NOT_IMPLEMENTED);       // 50100: Not implemented
+        map.put(50200, HttpStatus.BAD_GATEWAY);           // 50200: Bad gateway
+        map.put(50300, HttpStatus.SERVICE_UNAVAILABLE);   // 50300: Service unavailable
+        map.put(50400, HttpStatus.GATEWAY_TIMEOUT);       // 50400: Gateway timeout
     }
 
     /**
@@ -87,19 +87,19 @@ public class CodeMappingConfig {
      * Parse code group ranges.
      */
     private void parseGroupRanges() {
-        // 从属性中获取代码映射的组信息
+        // Get group information for code mapping from properties
         var groups = properties.getCodeMapping().getGroups();
-        // 如果组信息为空，则直接返回
+        // If group information is empty, return directly
         if (groups == null) return;
-        // 遍历每个组条目
+        // Iterate through each group entry
         for (var entry : groups.entrySet()) {
-            String groupName = entry.getKey(); // 获取组名称
-            List<Object> rawList = entry.getValue(); // 获取原始范围列表
-            // 创建代码范围列表
+            String groupName = entry.getKey(); // Get group name
+            List<Object> rawList = entry.getValue(); // Get raw range list
+            // Create code range list
             List<CodeRange> ranges = new ArrayList<>();
-            // 遍历原始范围列表中的每个元素
+            // Iterate through each element in the raw range list
             for (Object raw : rawList) {
-                // 如果元素是数字类型，则创建单值代码范围
+                // If element is a number type, create a single-value code range
                 if (raw instanceof Number num) {
                     int code = num.intValue();
                     ranges.add(new CodeRange(code, code));
@@ -127,22 +127,22 @@ public class CodeMappingConfig {
      * @return Parsed CodeRange object, return null if format is incorrect
      */
     private CodeRange parseRange(String input) {
-        // 使用正则表达式模式匹配输入字符串
+        // Use regular expression pattern to match input string
         Matcher matcher = FailureConst.Range.matcher(input.trim());
         if (matcher.matches()) {
-            // 解析起始行号，如果第一个捕获组不为null则使用它，否则使用第三个捕获组
+            // Parse start line number, use first capture group if not null, otherwise use third capture group
             int start = matcher.group(1) != null
                     ? Integer.parseInt(matcher.group(1))
                     : Integer.parseInt(matcher.group(3));
-            // 解析结束行号，如果第二个捕获组不为null则使用它，否则使用第四个捕获组
+            // Parse end line number, use second capture group if not null, otherwise use fourth capture group
             int end = matcher.group(2) != null
                     ? Integer.parseInt(matcher.group(2))
                     : Integer.parseInt(matcher.group(4));
 
-            // 创建CodeRange对象，确保较小的值作为起始行号，较大的值作为结束行号
+            // Create CodeRange object, ensure smaller value as start line number, larger value as end line number
             return new CodeRange(Math.min(start, end), Math.max(start, end));
         }
-        // 如果输入格式不匹配，返回null
+        // If input format doesn't match, return null
         return null;
     }
 

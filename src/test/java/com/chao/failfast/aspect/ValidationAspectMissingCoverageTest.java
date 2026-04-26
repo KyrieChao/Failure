@@ -1,6 +1,6 @@
 package com.chao.failfast.aspect;
 
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.config.properties.FailureProperties;
@@ -11,7 +11,7 @@ import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.config.registry.DefaultValidatorRegistry;
 import com.chao.failfast.integration.webflux.ReactiveTrace;
-import com.chao.failfast.spi.ValidatorRegistry;
+import com.chao.failfast.spi.validation.ValidatorRegistry;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.AfterEach;
@@ -22,7 +22,6 @@ import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -466,6 +465,107 @@ class ValidationAspectMissingCoverageTest {
         assertThat(out).isEmpty();
     }
 
+    @Test
+    void newValidatorInstanceShouldRejectNonWhitelistedValidator() throws Exception {
+        ValidationAspect aspect = new ValidationAspect();
+        com.chao.failfast.spi.validation.ValidatorWhitelistRegistry whitelist = mock(com.chao.failfast.spi.validation.ValidatorWhitelistRegistry.class);
+        when(whitelist.isWhitelisted(PlainValidator.class)).thenReturn(false);
+        setField(aspect, "validatorWhitelistRegistry", whitelist);
+
+        Method method = ValidationAspect.class.getDeclaredMethod("newValidatorInstance", Class.class);
+        method.setAccessible(true);
+
+        java.lang.reflect.InvocationTargetException thrown = assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> method.invoke(aspect, PlainValidator.class)
+        );
+        assertThat(thrown.getCause()).isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to instantiate validator")
+                .hasRootCauseInstanceOf(SecurityException.class);
+    }
+
+    @Test
+    void executeValidatorsShouldConvertGlobalValidatorExecutionFailureIntoBusinessError() throws Exception {
+        ValidationAspect aspect = new ValidationAspect();
+        DefaultValidatorRegistry registry = new DefaultValidatorRegistry();
+        registry.register(String.class, (target, context) -> {
+            throw new IllegalStateException("boom");
+        });
+        setField(aspect, "validatorRegistry", registry);
+
+        Method method = ValidationAspect.class.getDeclaredMethod(
+                "executeValidators", Class[].class, List.class, boolean.class, Scenario[].class, Class[].class);
+        method.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        List<Business> result = (List<Business>) method.invoke(
+                aspect, new Class[0], List.of("x"), false, new Scenario[]{Scenario.DEFAULT}, new Class<?>[0]);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getDetail()).contains("Failed to execute validator");
+    }
+
+    @Test
+    void should_stopAfterInstantiationFailure_when_executeValidatorsRunsInFailFastMode() throws Exception {
+        ValidationAspect aspect = new ValidationAspect();
+        setField(aspect, "applicationContext", mock(ApplicationContext.class));
+        com.chao.failfast.spi.validation.ValidatorWhitelistRegistry whitelist = mock(com.chao.failfast.spi.validation.ValidatorWhitelistRegistry.class);
+        when(whitelist.isWhitelisted(DeniedValidator.class)).thenReturn(false);
+        setField(aspect, "validatorWhitelistRegistry", whitelist);
+
+        Method method = ValidationAspect.class.getDeclaredMethod(
+                "executeValidators", Class[].class, List.class, boolean.class, Scenario[].class, Class[].class);
+        method.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        List<Business> result = (List<Business>) method.invoke(
+                aspect, new Class[]{DeniedValidator.class}, List.of("x"), true, new Scenario[]{Scenario.DEFAULT}, new Class<?>[0]);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getDetail()).contains("Failed to instantiate validator");
+    }
+
+    @Test
+    void should_stopAfterGlobalValidatorFailure_when_executeValidatorsRunsInFailFastMode() throws Exception {
+        ValidationAspect aspect = new ValidationAspect();
+        DefaultValidatorRegistry registry = new DefaultValidatorRegistry();
+        registry.register(String.class, (target, context) -> {
+            throw new IllegalStateException("boom");
+        });
+        setField(aspect, "validatorRegistry", registry);
+
+        Method method = ValidationAspect.class.getDeclaredMethod(
+                "executeValidators", Class[].class, List.class, boolean.class, Scenario[].class, Class[].class);
+        method.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        List<Business> result = (List<Business>) method.invoke(
+                aspect, new Class[0], List.of("x"), true, new Scenario[]{Scenario.DEFAULT}, new Class<?>[0]);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getDetail()).contains("Failed to execute validator");
+    }
+
+    @Test
+    void should_collectInstantiationFailureWithoutBreaking_when_executeValidatorsIsNotFailFast() throws Exception {
+        ValidationAspect aspect = new ValidationAspect();
+        setField(aspect, "applicationContext", mock(ApplicationContext.class));
+        com.chao.failfast.spi.validation.ValidatorWhitelistRegistry whitelist = mock(com.chao.failfast.spi.validation.ValidatorWhitelistRegistry.class);
+        when(whitelist.isWhitelisted(DeniedValidator.class)).thenReturn(false);
+        setField(aspect, "validatorWhitelistRegistry", whitelist);
+
+        Method method = ValidationAspect.class.getDeclaredMethod(
+                "executeValidators", Class[].class, List.class, boolean.class, Scenario[].class, Class[].class);
+        method.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        List<Business> result = (List<Business>) method.invoke(
+                aspect, new Class[]{DeniedValidator.class}, List.of("x"), false, new Scenario[]{Scenario.DEFAULT}, new Class<?>[0]);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getDetail()).contains("Failed to instantiate validator");
+    }
+
     private static void setField(Object target, String name, Object value) throws Exception {
         Field f = ValidationAspect.class.getDeclaredField(name);
         f.setAccessible(true);
@@ -491,5 +591,10 @@ class ValidationAspectMissingCoverageTest {
         public void validate(String target, ValidationContext context) {
         }
     }
-}
 
+    static class DeniedValidator implements FastValidator<String> {
+        @Override
+        public void validate(String target, ValidationContext context) {
+        }
+    }
+}

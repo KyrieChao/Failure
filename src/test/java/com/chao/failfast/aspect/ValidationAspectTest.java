@@ -1,6 +1,6 @@
 package com.chao.failfast.aspect;
 
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import com.chao.failfast.annotation.Scene;
 import com.chao.failfast.annotation.SkipValidation;
 import com.chao.failfast.annotation.Validate;
@@ -11,6 +11,7 @@ import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.policy.ErrorPolicy;
+import com.chao.failfast.spi.validation.ValidatorRegistry;
 import com.chao.failfast.validator.TypedValidator;
 import jakarta.servlet.ServletRequest;
 import jakarta.validation.ConstraintViolation;
@@ -32,6 +33,7 @@ import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
@@ -207,6 +209,27 @@ class ValidationAspectTest {
                 throw new RuntimeException(e);
             }
         }
+
+        public List<Business> executeValidators(Class<? extends FastValidator>[] validatorClasses, List<Object> args,
+                                               boolean failFast, Scenario[] scenes, Class<?>[] groups) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("executeValidators", Class[].class, List.class, boolean.class, Scenario[].class, Class[].class);
+                method.setAccessible(true);
+                return (List<Business>) method.invoke(this, validatorClasses, args, failFast, scenes, groups);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public FastValidator<Object> newValidatorInstance(Class<? extends FastValidator<Object>> key) {
+            try {
+                Method method = ValidationAspect.class.getDeclaredMethod("newValidatorInstance", Class.class);
+                method.setAccessible(true);
+                return (FastValidator<Object>) method.invoke(this, key);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Test
@@ -298,7 +321,7 @@ class ValidationAspectTest {
         Mockito.when(validate.fast()).thenReturn(true);
         Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class});
 
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
 
@@ -436,7 +459,7 @@ class ValidationAspectTest {
     @Test
     void testExecuteTypedValidator() {
         TypedValidator typedValidator = Mockito.mock(TypedValidator.class);
-        com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(true);
+        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(true);
         aspect.executeTypedValidator(typedValidator, List.of("test"), ctx);
         verify(typedValidator).validateIfRegistered("test", ctx);
     }
@@ -444,7 +467,7 @@ class ValidationAspectTest {
     @Test
     void testExecutePlainValidator() {
         TestValidator validator = new TestValidator();
-        com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(true);
+        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(true);
         aspect.executePlainValidator(validator, List.of("test"), ctx);
     }
 
@@ -477,7 +500,7 @@ class ValidationAspectTest {
     @Test
     void testExecutePlainValidatorWithUnsupportedType() {
         TestValidator validator = new TestValidator();
-        com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(true);
+        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(true);
         aspect.executePlainValidator(validator, List.of(123), ctx);
         assertTrue(ctx.isValid());
     }
@@ -487,7 +510,7 @@ class ValidationAspectTest {
     void testExecutePlainValidatorWithObjectType() {
         // 1. 准备：这是一个没有注册任何规则的验证�?
         ObjectValidator validator = new ObjectValidator();
-        com.chao.failfast.annotation.FastValidator.ValidationContext ctx = new com.chao.failfast.annotation.FastValidator.ValidationContext(false);
+        FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false);
 
         // 2. 执行：传入任意对�?(�?"test" �?new Object())
         Object testData = new Object();
@@ -665,7 +688,7 @@ class ValidationAspectTest {
         Mockito.when(validate.fast()).thenReturn(false); // 不使用failFast，收集所有错�?
         Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class, TestValidator.class});
 
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
 
@@ -693,7 +716,7 @@ class ValidationAspectTest {
     void testBuildValidatorFactoryWithApplicationContext() throws Exception {
         // 测试通过 ApplicationContext 获取验证�?
         TestValidator testValidator = new TestValidator();
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(testValidator);
 
@@ -708,7 +731,7 @@ class ValidationAspectTest {
     void testBuildValidatorFactoryWithBeanNames() throws Exception {
         // 测试通过 BeanNames 获取验证�?
         TestValidator testValidator = new TestValidator();
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(null);
         Mockito.when(applicationContext.getBeanNamesForType(TestValidator.class)).thenReturn(new String[]{"testValidator"});
@@ -923,7 +946,7 @@ class ValidationAspectTest {
         Mockito.when(validate.fast()).thenReturn(true);
         Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class});
 
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
 
@@ -938,7 +961,7 @@ class ValidationAspectTest {
     @Test
     void testBuildValidatorFactoryBeanNamePathInvokesGet() throws Exception {
         TestValidator testValidator = new TestValidator();
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(null);
         Mockito.when(applicationContext.getBeanNamesForType(TestValidator.class)).thenReturn(new String[]{"testValidator"});
@@ -955,9 +978,9 @@ class ValidationAspectTest {
 
     @Test
     void testGetValidatorSupportedTypeWithNullDeclaredType() {
-        class NullDeclaredValidator implements com.chao.failfast.annotation.FastValidator<String> {
+        class NullDeclaredValidator implements FastValidator<String> {
             @Override
-            public void validate(String value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+            public void validate(String value, FastValidator.ValidationContext ctx) {
             }
 
             @Override
@@ -973,9 +996,9 @@ class ValidationAspectTest {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Test
     void testGetValidatorSupportedTypeWithRawValidator() {
-        class RawValidator implements com.chao.failfast.annotation.FastValidator {
+        class RawValidator implements FastValidator {
             @Override
-            public void validate(Object value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+            public void validate(Object value, FastValidator.ValidationContext ctx) {
             }
 
             @Override
@@ -1028,9 +1051,9 @@ class ValidationAspectTest {
 
     @Test
     void testAroundSkipsCustomValidatorsWhenBridgeErrorsAndFailFast() throws Throwable {
-        class ThrowingValidator implements com.chao.failfast.annotation.FastValidator<Object> {
+        class ThrowingValidator implements FastValidator<Object> {
             @Override
-            public void validate(Object value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+            public void validate(Object value, FastValidator.ValidationContext ctx) {
                 throw new RuntimeException("should not run");
             }
 
@@ -1053,7 +1076,7 @@ class ValidationAspectTest {
         Mockito.when(validate.fast()).thenReturn(true);
         Mockito.when(validate.value()).thenReturn(new Class[]{ThrowingValidator.class});
 
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(ThrowingValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(new ThrowingValidator());
 
@@ -1073,7 +1096,7 @@ class ValidationAspectTest {
 
     @Test
     void testExecuteSingleValidatorNormalizesNullScenes() throws Exception {
-        Method method = ValidationAspect.class.getDeclaredMethod("executeSingleValidator", com.chao.failfast.annotation.FastValidator.class, List.class, boolean.class, Scenario[].class, Class[].class);
+        Method method = ValidationAspect.class.getDeclaredMethod("executeSingleValidator", FastValidator.class, List.class, boolean.class, Scenario[].class, Class[].class);
         method.setAccessible(true);
         Object result = method.invoke(aspect, new TestValidator(), List.of("test"), true, null, new Class<?>[]{});
         assertTrue(((List<?>) result).isEmpty());
@@ -1081,7 +1104,7 @@ class ValidationAspectTest {
 
     @Test
     void testExecuteSingleValidatorNormalizesEmptyScenes() throws Exception {
-        Method method = ValidationAspect.class.getDeclaredMethod("executeSingleValidator", com.chao.failfast.annotation.FastValidator.class, List.class, boolean.class, Scenario[].class, Class[].class);
+        Method method = ValidationAspect.class.getDeclaredMethod("executeSingleValidator", FastValidator.class, List.class, boolean.class, Scenario[].class, Class[].class);
         method.setAccessible(true);
         Object result = method.invoke(aspect, new TestValidator(), List.of("test"), true, new Scenario[]{}, new Class<?>[]{});
         assertTrue(((List<?>) result).isEmpty());
@@ -1102,7 +1125,7 @@ class ValidationAspectTest {
         Mockito.when(validate.fast()).thenReturn(true);
         Mockito.when(validate.value()).thenReturn(new Class[]{TestValidator.class});
 
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
 
@@ -1132,7 +1155,7 @@ class ValidationAspectTest {
 
         Mockito.when(validator.validate(Mockito.any())).thenReturn(Collections.emptySet());
 
-        ObjectProvider<com.chao.failfast.annotation.FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
         Mockito.when(applicationContext.getBeanProvider(TestValidator.class)).thenReturn((ObjectProvider) provider);
         Mockito.when(provider.getIfAvailable()).thenReturn(new TestValidator());
 
@@ -1299,9 +1322,9 @@ class ValidationAspectTest {
     }
 
     // 测试验证器（用于泛型推断测试�?
-    static class GenericValidator implements com.chao.failfast.annotation.FastValidator<String> {
+    static class GenericValidator implements FastValidator<String> {
         @Override
-        public void validate(String value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+        public void validate(String value, FastValidator.ValidationContext ctx) {
         }
 
         @Override
@@ -1310,9 +1333,9 @@ class ValidationAspectTest {
         }
     }
 
-    static class NonGenericValidator implements com.chao.failfast.annotation.FastValidator<Object> {
+    static class NonGenericValidator implements FastValidator<Object> {
         @Override
-        public void validate(Object value, com.chao.failfast.annotation.FastValidator.ValidationContext ctx) {
+        public void validate(Object value, FastValidator.ValidationContext ctx) {
         }
 
         @Override
@@ -1320,4 +1343,186 @@ class ValidationAspectTest {
             return Object.class;
         }
     }
-} 
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testExecuteValidatorsWithInstantiationException() throws Exception {
+        Class<? extends FastValidator>[] validatorClasses = new Class[]{AbstractTestValidator.class};
+        List<Object> args = List.of("test");
+
+        List<Business> errors = aspect.executeValidators(validatorClasses, args, true, new Scenario[]{Scenario.DEFAULT}, new Class<?>[]{});
+        assertFalse(errors.isEmpty());
+        assertEquals(ResponseCode.VALIDATION_ERROR_400, errors.get(0).getResponseCode());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testExecuteValidatorsWithFailFast() throws Exception {
+        Class<? extends FastValidator>[] validatorClasses = new Class[]{TestValidator.class};
+        List<Object> args = List.of("");
+
+        List<Business> errors = aspect.executeValidators(validatorClasses, args, true, new Scenario[]{Scenario.DEFAULT}, new Class<?>[]{});
+        assertFalse(errors.isEmpty());
+    }
+
+    @Test
+    void testNewValidatorInstanceWithInterface() {
+        assertThrows(Exception.class, () -> aspect.newValidatorInstance((Class) FastValidator.class));
+    }
+
+    @Test
+    void testNewValidatorInstanceWithAbstractClass() {
+        assertThrows(Exception.class, () -> aspect.newValidatorInstance((Class) AbstractTestValidator.class));
+    }
+
+    @Test
+    void testExecuteValidatorsWithNullFailFast() throws Exception {
+        Class<? extends FastValidator>[] validatorClasses = new Class[]{TestValidator.class};
+        List<Object> args = List.of("test");
+
+        List<Business> errors = aspect.executeValidators(validatorClasses, args, false, new Scenario[]{Scenario.DEFAULT}, new Class<?>[]{});
+        assertTrue(errors.isEmpty());
+    }
+
+    @Test
+    void testExecuteValidatorsWithMultipleValidatorsAndFailFast() throws Exception {
+        Class<? extends FastValidator>[] validatorClasses = new Class[]{TestValidator.class, TestValidator.class};
+        List<Object> args = List.of("");
+
+        List<Business> errors = aspect.executeValidators(validatorClasses, args, true, new Scenario[]{Scenario.DEFAULT}, new Class<?>[]{});
+        assertFalse(errors.isEmpty());
+    }
+
+    @Test
+    void should_executeGlobalValidatorOnlyOnce_when_explicitAndRegistryShareInstance() {
+        class CountingValidator extends TypedValidator {
+            private final AtomicInteger calls = new AtomicInteger();
+
+            @Override
+            protected void registerValidators() {
+                register(String.class, (value, ctx) -> calls.incrementAndGet());
+            }
+        }
+
+        CountingValidator sharedValidator = new CountingValidator();
+        @SuppressWarnings("unchecked")
+        ObjectProvider<FastValidator<Object>> provider = Mockito.mock(ObjectProvider.class);
+        ValidatorRegistry registry = Mockito.mock(ValidatorRegistry.class);
+        Mockito.when(applicationContext.getBeanProvider(CountingValidator.class)).thenReturn((ObjectProvider) provider);
+        Mockito.when(provider.getIfAvailable()).thenReturn((FastValidator<Object>) sharedValidator);
+        Mockito.when(provider.getObject()).thenReturn((FastValidator<Object>) sharedValidator);
+        Mockito.when(registry.getValidator(String.class)).thenReturn((FastValidator<Object>) sharedValidator);
+        setPrivateField(aspect, "validatorRegistry", registry);
+
+        List<Business> errors = aspect.executeValidators(
+                new Class[]{CountingValidator.class},
+                List.of("value"),
+                false,
+                new Scenario[]{Scenario.DEFAULT},
+                new Class<?>[]{}
+        );
+
+        assertTrue(errors.isEmpty());
+        assertEquals(1, sharedValidator.calls.get());
+    }
+
+    @Test
+    void should_wrapRegistryExecutionFailure_when_globalValidatorThrows() {
+        ValidatorRegistry registry = Mockito.mock(ValidatorRegistry.class);
+        FastValidator<Object> throwingValidator = new FastValidator<>() {
+            @Override
+            public void validate(Object value, ValidationContext ctx) {
+                throw new IllegalStateException("boom");
+            }
+
+            @Override
+            public Class<?> getSupportedType() {
+                return String.class;
+            }
+        };
+        Mockito.when(registry.getValidator(String.class)).thenReturn(throwingValidator);
+        setPrivateField(aspect, "validatorRegistry", registry);
+
+        List<Business> errors = aspect.executeValidators(
+                new Class[]{},
+                List.of("value"),
+                true,
+                new Scenario[]{Scenario.DEFAULT},
+                new Class<?>[]{}
+        );
+
+        assertEquals(1, errors.size());
+        assertEquals(ResponseCode.VALIDATION_ERROR_400, errors.get(0).getResponseCode());
+        assertTrue(errors.get(0).getDetail().contains("Failed to execute validator"));
+    }
+
+    @Test
+    void should_continueAfterInstantiationFailure_when_failFastDisabled() {
+        Class<? extends FastValidator>[] validatorClasses = new Class[]{AbstractTestValidator.class, TestValidator.class};
+
+        List<Business> errors = aspect.executeValidators(
+                validatorClasses,
+                List.of(""),
+                false,
+                new Scenario[]{Scenario.DEFAULT},
+                new Class<?>[]{}
+        );
+
+        assertEquals(2, errors.size());
+    }
+
+    @Test
+    void should_continueAfterRegistryExecutionFailure_when_failFastDisabled() {
+        ValidatorRegistry registry = Mockito.mock(ValidatorRegistry.class);
+        FastValidator<Object> throwingValidator = new FastValidator<>() {
+            @Override
+            public void validate(Object value, ValidationContext ctx) {
+                throw new IllegalStateException("boom");
+            }
+
+            @Override
+            public Class<?> getSupportedType() {
+                return String.class;
+            }
+        };
+        FastValidator<Object> noopValidator = new FastValidator<>() {
+            @Override
+            public void validate(Object value, ValidationContext ctx) {
+            }
+
+            @Override
+            public Class<?> getSupportedType() {
+                return Integer.class;
+            }
+        };
+        Mockito.when(registry.getValidator(String.class)).thenReturn(throwingValidator);
+        Mockito.when(registry.getValidator(Integer.class)).thenReturn(noopValidator);
+        setPrivateField(aspect, "validatorRegistry", registry);
+
+        List<Business> errors = aspect.executeValidators(
+                new Class[]{},
+                List.of("value", 1),
+                false,
+                new Scenario[]{Scenario.DEFAULT},
+                new Class<?>[]{}
+        );
+
+        assertEquals(1, errors.size());
+        assertTrue(errors.get(0).getDetail().contains("Failed to execute validator"));
+    }
+
+    static abstract class AbstractTestValidator implements FastValidator<Object> {
+        public AbstractTestValidator() {
+        }
+    }
+
+    private static void setPrivateField(Object target, String fieldName, Object value) {
+        try {
+            Field field = ValidationAspect.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}

@@ -13,7 +13,7 @@ import java.util.function.Supplier;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public interface ChainTerminator<S extends ChainCore<S>> {
 
@@ -50,8 +50,8 @@ public interface ChainTerminator<S extends ChainCore<S>> {
             if (core().getCauses().isEmpty()) {
                 throw Business.of(ResponseCode.VALIDATION_ERROR_500);
             }
-            if (core().getCauses().size() == 1) throw core().getCauses().get(0);
-            throw new MultiBusiness(core().getCauses());
+            if (core().getCauses().size() == 1 && !core().isErrorsTruncated()) throw core().getCauses().get(0);
+            throw new MultiBusiness(core().getCauses(), core().isErrorsTruncated());
         }
     }
 

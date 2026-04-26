@@ -19,7 +19,7 @@ import java.util.Map;
  * FailFast body argument resolver - handles @FailFastBody annotation.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public class OptionalBodyResolver implements HandlerMethodArgumentResolver {
 
@@ -46,7 +46,7 @@ public class OptionalBodyResolver implements HandlerMethodArgumentResolver {
         FailFastBody ann = parameter.getParameterAnnotation(FailFastBody.class);
         boolean required = ann == null || ann.required();
 
-        // 创建 MethodParameter 包装器
+        // Create MethodParameter wrapper
         MethodParameter wrappedParameter = new FailFastBodyMethodParameter(parameter, ann);
 
         try {

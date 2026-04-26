@@ -1,6 +1,6 @@
 package com.chao.failfast.validator;
 
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.Failure;
 import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -55,6 +56,54 @@ class FastValidatorTest {
         }
     }
 
+    static abstract class BaseUserDTO {
+        abstract String getId();
+    }
+
+    static final class AdminUserDTO extends BaseUserDTO {
+        private final String id;
+        private final Integer adminLevel;
+
+        AdminUserDTO(String id, Integer adminLevel) {
+            this.id = id;
+            this.adminLevel = adminLevel;
+        }
+
+        @Override
+        String getId() {
+            return id;
+        }
+
+        Integer getAdminLevel() {
+            return adminLevel;
+        }
+    }
+
+    static class BaseUserValidator<T extends BaseUserDTO> extends TemplateValidator<T> {
+        @Override
+        protected void validateCommon(T target, ValidationContext context) {
+            Failure.with(context).notNull(target.getId()).verify();
+        }
+
+        @Override
+        protected void validateSpecific(T target, ValidationContext context) {
+        }
+    }
+
+    static final class AdminUserValidator extends BaseUserValidator<AdminUserDTO> {
+        private final AtomicInteger called = new AtomicInteger();
+
+        @Override
+        protected void validateSpecific(AdminUserDTO user, ValidationContext context) {
+            called.incrementAndGet();
+            Failure.with(context).notNull(user.getAdminLevel()).verify();
+        }
+
+        int called() {
+            return called.get();
+        }
+    }
+
     @Nested
     @DisplayName("FastValidator 接口方法测试")
     class InterfaceTest {
@@ -81,6 +130,13 @@ class FastValidatorTest {
         void shouldReturnCustomType() {
             IntegerValidator validator = new IntegerValidator();
             assertThat(validator.getSupportedType()).isEqualTo(Integer.class);
+        }
+
+        @Test
+        @DisplayName("TemplateValidator 应能从泛型推断 supportedType")
+        void templateValidatorShouldResolveSupportedType() {
+            AdminUserValidator validator = new AdminUserValidator();
+            assertThat(validator.getSupportedType()).isEqualTo(AdminUserDTO.class);
         }
     }
 

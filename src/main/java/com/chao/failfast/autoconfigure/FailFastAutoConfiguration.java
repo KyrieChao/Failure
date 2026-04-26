@@ -1,25 +1,30 @@
 package com.chao.failfast.autoconfigure;
 
 import com.chao.failfast.aspect.ValidationAspect;
+import com.chao.failfast.config.i18n.LocaleResponseResolver;
 import com.chao.failfast.config.i18n.I18nConfig;
 import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.masking.DefaultValueMasker;
+import com.chao.failfast.config.masking.StructuredValueMasker;
 import com.chao.failfast.config.properties.FailureProperties;
-import com.chao.failfast.config.registry.DefaultSkipPrefixRegistry;
-import com.chao.failfast.config.registry.DefaultSkipTypeRegistry;
-import com.chao.failfast.config.registry.DefaultValidatorRegistry;
-import com.chao.failfast.config.registry.FrameworkDefaultConfigurer;
-import com.chao.failfast.internal.core.Chain;
-import com.chao.failfast.internal.core.Ex;
-import com.chao.failfast.internal.core.FailureContext;
+import com.chao.failfast.config.registry.*;
 import com.chao.failfast.integration.mvc.DefaultExceptionHandler;
 import com.chao.failfast.integration.mvc.FailFastExceptionHandler;
 import com.chao.failfast.integration.mvc.OptionalBodyResolver;
+import com.chao.failfast.internal.core.Chain;
+import com.chao.failfast.internal.core.Ex;
+import com.chao.failfast.internal.core.FailureContext;
+import com.chao.failfast.internal.core.i18n.LocaleRouter;
+import com.chao.failfast.internal.core.security.ValueMaskerRegistry;
 import com.chao.failfast.internal.policy.DefaultErrorPolicy;
 import com.chao.failfast.internal.policy.ErrorPolicy;
-import com.chao.failfast.spi.FailFastConfigurer;
-import com.chao.failfast.spi.SkipPrefixRegistry;
-import com.chao.failfast.spi.SkipTypeRegistry;
-import com.chao.failfast.spi.ValidatorRegistry;
+import com.chao.failfast.spi.config.FailFastConfigurer;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
+import com.chao.failfast.spi.i18n.LocalizedResponseResolver;
+import com.chao.failfast.spi.security.ValueMasker;
+import com.chao.failfast.spi.validation.ValidatorRegistry;
+import com.chao.failfast.spi.validation.ValidatorWhitelistRegistry;
 import com.chao.failfast.util.I18n;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.*;
@@ -42,6 +47,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor;
 
@@ -55,7 +61,7 @@ import java.util.UUID;
  * Failure auto-configuration class - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Slf4j
 @AutoConfiguration
@@ -165,6 +171,32 @@ public class FailFastAutoConfiguration {
         return registry;
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public ValidatorWhitelistRegistry validatorWhitelistRegistry(ObjectProvider<FailFastConfigurer> configurers) {
+        DefaultValidatorWhitelistRegistry registry = new DefaultValidatorWhitelistRegistry();
+        configurers.orderedStream().forEach(configurer -> configurer.addValidatorWhitelist(registry));
+        return registry;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ValueMasker valueMasker() {
+        DefaultValueMasker base = new DefaultValueMasker();
+        if (properties.getMasking() != null && properties.getMasking().isStructuredEnabled()) {
+            return new StructuredValueMasker(base, properties.getMasking());
+        }
+        return base;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public LocalizedResponseResolver localizedResponseResolver(ObjectProvider<FailFastConfigurer> configurers) {
+        LocaleResponseResolver resolver = new LocaleResponseResolver();
+        configurers.orderedStream().forEach(configurer -> configurer.customizeLocalizedResponseResolver(resolver));
+        return resolver;
+    }
+
     /**
      * Create default exception handler Bean.
      *
@@ -205,7 +237,7 @@ public class FailFastAutoConfiguration {
         return processor;
     }
 
-    // ============ 内部组件 ============
+    // ============ Internal Components ============
 
     /**
      * Create exception utility initializer Bean.
@@ -215,8 +247,8 @@ public class FailFastAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(name = "exInitializer")
-    public ExInitializer exInitializer(FailureContext context, ObjectProvider<Validator> validatorProvider, SkipPrefixRegistry skipPrefixRegistry, SkipTypeRegistry skipTypeRegistry) {
-        return new ExInitializer(context, validatorProvider.getIfAvailable(), skipPrefixRegistry, skipTypeRegistry);
+    public ExInitializer exInitializer(FailureContext context, ObjectProvider<Validator> validatorProvider, SkipPrefixRegistry skipPrefixRegistry, SkipTypeRegistry skipTypeRegistry, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver) {
+        return new ExInitializer(context, validatorProvider.getIfAvailable(), skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver);
     }
 
     /**
@@ -230,10 +262,12 @@ public class FailFastAutoConfiguration {
          * @param validator Validator instance (optional)
          * @param skipPrefixRegistry Registry for skip prefixes
          */
-        public ExInitializer(FailureContext context, Validator validator, SkipPrefixRegistry skipPrefixRegistry, SkipTypeRegistry skipTypeRegistry) {
+        public ExInitializer(FailureContext context, Validator validator, SkipPrefixRegistry skipPrefixRegistry, SkipTypeRegistry skipTypeRegistry, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver) {
             Ex.setContext(context);
             Ex.setSkipPrefixRegistry(skipPrefixRegistry);
             Ex.setSkipTypeRegistry(skipTypeRegistry);
+            ValueMaskerRegistry.setDefault(valueMasker);
+            LocaleRouter.setDefault(localizedResponseResolver);
             if (validator != null) {
                 Chain.setValidator(validator);
             }
@@ -335,19 +369,19 @@ public class FailFastAutoConfiguration {
                     return bean;
                 }
 
-                List<org.springframework.web.method.support.HandlerMethodArgumentResolver> resolvers = adapter.getArgumentResolvers();
+                List<HandlerMethodArgumentResolver> resolvers = adapter.getArgumentResolvers();
                 if (resolvers == null) {
                     return bean;
                 }
-                for (org.springframework.web.method.support.HandlerMethodArgumentResolver resolver : resolvers) {
+                for (HandlerMethodArgumentResolver resolver : resolvers) {
                     if (resolver instanceof OptionalBodyResolver) {
                         return bean;
                     }
                 }
 
-                for (org.springframework.web.method.support.HandlerMethodArgumentResolver resolver : resolvers) {
+                for (HandlerMethodArgumentResolver resolver : resolvers) {
                     if (resolver instanceof RequestResponseBodyMethodProcessor processor) {
-                        List<org.springframework.web.method.support.HandlerMethodArgumentResolver> newResolvers = new ArrayList<>(resolvers);
+                        List<HandlerMethodArgumentResolver> newResolvers = new ArrayList<>(resolvers);
                         newResolvers.add(0, new OptionalBodyResolver(processor));
                         adapter.setArgumentResolvers(newResolvers);
                         break;

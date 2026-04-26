@@ -4,6 +4,7 @@ import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.util.I18n;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
@@ -12,13 +13,18 @@ import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
+@Slf4j
 @DisplayName("Results测试")
 class ResultsTest {
 
@@ -479,6 +485,332 @@ class ResultsTest {
     }
 
     @Test
+    @DisplayName("tapAsync方法 - 带显式Executor")
+    void testTapAsyncWithExecutor() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Result<String> result = Result.ok("test");
+            Result<String> tapped = Results.tapAsync(result, r -> {
+            }, executor);
+            assertThat(tapped).isSameAs(result);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("tapAsyncStage方法 - 显式Executor")
+    void testTapAsyncStageWithExecutor() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            CountDownLatch latch = new CountDownLatch(1);
+            Result<String> result = Result.ok("test");
+            Results.tapAsyncStage(result, r -> latch.countDown(), executor);
+            assertThat(latch.await(1, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("tapAsyncStage方法 - null Executor")
+    void testTapAsyncStageWithNullExecutor() {
+        Result<String> result = Result.ok("test");
+
+        assertThatThrownBy(() -> Results.tapAsyncStage(result, r -> {
+        }, null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @DisplayName("tapAsyncStage方法 - 正常执行")
+    void testTapAsyncStageNormal() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            CountDownLatch latch = new CountDownLatch(1);
+            Result<String> result = Result.ok("test");
+            CompletionStage<Void> stage = Results.tapAsyncStage(result, r -> latch.countDown(), executor);
+            assertThat(latch.await(1, TimeUnit.SECONDS)).isTrue();
+            log.info("stage completed {}", stage);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - 立即成功")
+    void testRetryAsyncImmediateSuccess() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(3, () -> {
+                counter.incrementAndGet();
+                return Result.ok("test");
+            }, executor, scheduler);
+            Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(counter.get()).isEqualTo(1);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - 全部失败")
+    void testRetryAsyncAllFail() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(3, () -> {
+                counter.incrementAndGet();
+                return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+            }, executor, scheduler);
+            Result<?> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isFail()).isTrue();
+            assertThat(counter.get()).isEqualTo(3);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - times <= 0")
+    void testRetryAsyncTimesLessThanZero() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            var stage = Results.retryAsync(0, () -> Result.ok("test"), executor, scheduler);
+            Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result).isNull();
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - null supplier")
+    void testRetryAsyncNullSupplier() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            assertThatThrownBy(() -> Results.retryAsync(3, (Supplier<Result<String>>) null, executor, scheduler))
+                    .isInstanceOf(NullPointerException.class);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - null executor")
+    void testRetryAsyncNullExecutor() {
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            assertThatThrownBy(() -> Results.retryAsync(3, () -> Result.ok("test"), null, scheduler))
+                    .isInstanceOf(NullPointerException.class);
+        } finally {
+            scheduler.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - null scheduler")
+    void testRetryAsyncNullScheduler() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            assertThatThrownBy(() -> Results.retryAsync(3, () -> Result.ok("test"), executor, null))
+                    .isInstanceOf(NullPointerException.class);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - 带延迟")
+    void testRetryAsyncWithDelay() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(3, Duration.ofMillis(10), () -> {
+                int count = counter.incrementAndGet();
+                if (count < 3) {
+                    return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+                }
+                return Result.ok("test");
+            }, executor, scheduler);
+            Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(counter.get()).isEqualTo(3);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - 负延迟")
+    void testRetryAsyncWithNegativeDelay() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(3, Duration.ofMillis(-10), () -> {
+                int count = counter.incrementAndGet();
+                if (count < 3) {
+                    return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+                }
+                return Result.ok("test");
+            }, executor, scheduler);
+            Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(counter.get()).isEqualTo(3);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - null延迟")
+    void testRetryAsyncWithNullDelay() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(3, null, () -> {
+                int count = counter.incrementAndGet();
+                if (count < 3) {
+                    return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+                }
+                return Result.ok("test");
+            }, executor, scheduler);
+            Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(counter.get()).isEqualTo(3);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - 供应商返回null")
+    void testRetryAsyncSupplierReturnsNull() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(2, () -> {
+                counter.incrementAndGet();
+                return null; // 供应商返回null
+            }, executor, scheduler);
+            Result<?> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result).isNull();
+            assertThat(counter.get()).isEqualTo(2);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - 供应商抛出异常")
+    void testRetryAsyncSupplierThrowsException() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(2, () -> {
+                counter.incrementAndGet();
+                throw new RuntimeException("Supplier exception"); // 供应商抛出异常
+            }, executor, scheduler);
+            assertThatThrownBy(() -> stage.toCompletableFuture().get(2, TimeUnit.SECONDS))
+                    .isInstanceOf(Exception.class)
+                    .hasMessageContaining("Supplier exception");
+            assertThat(counter.get()).isEqualTo(1); // 应该只执行一次，因为异常会被捕获
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - 非零延迟")
+    void testRetryAsyncWithNonZeroDelay() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(2, Duration.ofMillis(50), () -> {
+                int count = counter.incrementAndGet();
+                if (count < 2) {
+                    return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+                }
+                return Result.ok("test");
+            }, executor, scheduler);
+            Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(counter.get()).isEqualTo(2);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - index >= times 分支")
+    void testRetryAsyncIndexGreaterThanOrEqualToTimes() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            // 设置 times=1，这样第一次尝试后 index 就会达到 times
+            var stage = Results.retryAsync(1, () -> {
+                counter.incrementAndGet();
+                return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+            }, executor, scheduler);
+            Result<?> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isFail()).isTrue();
+            assertThat(counter.get()).isEqualTo(1);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - promise.isDone() 分支")
+    void testRetryAsyncPromiseIsDone() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            // 创建一个立即成功的供应商，这样 promise 会很快完成
+            var stage = Results.retryAsync(3, () -> {
+                int count = counter.incrementAndGet();
+                return Result.ok("test");
+            }, executor, scheduler);
+            // 等待 promise 完成
+            Result<String> result = stage.toCompletableFuture().get(1, TimeUnit.SECONDS);
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(counter.get()).isEqualTo(1);
+            // 等待一段时间，确保调度器有足够时间尝试执行额外的任务
+            Thread.sleep(100);
+            // 计数器应该仍然是 1，因为 promise 已经完成，后续的尝试会被跳过
+            assertThat(counter.get()).isEqualTo(1);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     @DisplayName("ensure方法 - 成功且条件满足")
     void testEnsureSuccess() {
         Result<String> result = Result.ok("test");
@@ -584,6 +916,82 @@ class ResultsTest {
         });
         assertThat(result.isFail()).isTrue();
         assertThat(counter.get()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("retryAsync方法 - 失败后成功（非阻塞）")
+    void testRetryAsyncFailThenSuccess() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            var stage = Results.retryAsync(3, Duration.ofMillis(10), () -> {
+                int count = counter.incrementAndGet();
+                if (count < 3) {
+                    return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+                }
+                return Result.ok("test");
+            }, executor, scheduler);
+            Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(counter.get()).isEqualTo(3);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("retryAsync - index >= times 防御（调度残留）")
+    void testRetryAsyncIndexExceedsTimes() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            // times=1，失败后 schedule 残留，第二次进入时 index=1 >= 1
+            var stage = Results.retryAsync(1, Duration.ofMillis(1), () -> {
+                counter.incrementAndGet();
+                return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+            }, executor, scheduler);
+
+            Result<?> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isFail()).isTrue();
+            assertThat(counter.get()).isEqualTo(1); // 只执行了1次
+
+            // 关键：等待一段时间，让残留的调度任务有机会执行
+            Thread.sleep(100);
+            // 计数器仍然是1，证明残留任务被 index >= times 拦截了
+            assertThat(counter.get()).isEqualTo(1);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
+    }
+    @Test
+    @DisplayName("retryAsync - promise.isDone() 防御（成功后残留）")
+    void testRetryAsyncPromiseAlreadyDone() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            AtomicInteger counter = new AtomicInteger(0);
+            // 第一次就成功，但带一点延迟让 schedule 有机会把残留任务塞进去
+            var stage = Results.retryAsync(3, Duration.ofMillis(5), () -> {
+                counter.incrementAndGet();
+                return Result.ok("success");
+            }, executor, scheduler);
+
+            Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(counter.get()).isEqualTo(1); // 只执行1次
+
+            // 等待残留调度任务执行
+            Thread.sleep(100);
+            // 仍然是1，证明残留任务被 promise.isDone() 拦截
+            assertThat(counter.get()).isEqualTo(1);
+        } finally {
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+        }
     }
 
     @Test
@@ -930,6 +1338,56 @@ class ResultsTest {
         });
         assertThat(result.isSuccess()).isTrue();
         assertThat(counter.get()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("retryAsync - 手动再次执行 Runnable 时应触发 index>=times 分支")
+    void testRetryAsyncRunMethodIndexGuard() throws Exception {
+        ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
+        AtomicReference<Runnable> captured = new AtomicReference<>();
+        doAnswer(invocation -> {
+            captured.set(invocation.getArgument(0));
+            return null;
+        }).when(scheduler).execute(any(Runnable.class));
+
+        AtomicInteger supplierCalls = new AtomicInteger();
+        CompletionStage<Result<String>> stage = Results.retryAsync(
+                1, Duration.ZERO, () -> {
+                    supplierCalls.incrementAndGet();
+                    return Result.fail(ResponseCode.VALIDATION_ERROR_400);
+                }, Runnable::run, scheduler);
+
+        captured.get().run();
+        Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+        captured.get().run();
+
+        assertThat(result.isFail()).isTrue();
+        assertThat(supplierCalls.get()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("retryAsync - Promise 完成后再次执行 Runnable 时应触发 isDone 分支")
+    void testRetryAsyncRunMethodPromiseDoneGuard() throws Exception {
+        ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
+        AtomicReference<Runnable> captured = new AtomicReference<>();
+        doAnswer(invocation -> {
+            captured.set(invocation.getArgument(0));
+            return null;
+        }).when(scheduler).execute(any(Runnable.class));
+
+        AtomicInteger supplierCalls = new AtomicInteger();
+        CompletionStage<Result<String>> stage = Results.retryAsync(
+                2, Duration.ZERO, () -> {
+                    supplierCalls.incrementAndGet();
+                    return Result.ok("ok");
+                }, Runnable::run, scheduler);
+
+        captured.get().run();
+        Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
+        captured.get().run();
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(supplierCalls.get()).isEqualTo(1);
     }
 
     @Test

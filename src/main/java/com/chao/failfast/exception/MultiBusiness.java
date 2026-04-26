@@ -12,7 +12,7 @@ import java.util.List;
  * Batch business exception - Collects all errors in non-FailFast mode.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Getter
 public class MultiBusiness extends Business {
@@ -25,6 +25,8 @@ public class MultiBusiness extends Business {
      * Collected list of business exceptions.
      */
     private final List<Business> errors;
+    private final boolean truncated;
+    private final int totalErrors;
 
     /**
      * Constructor.
@@ -32,20 +34,26 @@ public class MultiBusiness extends Business {
      * @param errors List of business exceptions
      */
     public MultiBusiness(List<Business> errors) {
+        this(errors, false);
+    }
+
+    public MultiBusiness(List<Business> errors, boolean truncatedByChain) {
         super(ResponseCode.of(
-                        FailureConst.SYSTEM_CODE, FailureConst.MULTIPLE_VALIDATION_ERRORS, buildDetail(errors.size())
-                ), buildDetail(errors.size()),
-                null, null, HttpStatus.INTERNAL_SERVER_ERROR, null, null
+                        FailureConst.SYSTEM_CODE, FailureConst.MULTIPLE_VALIDATION_ERRORS, buildDetail(errors.size(), truncatedByChain)
+                ), buildDetail(errors.size(), truncatedByChain),
+                null, null, errors.isEmpty() ? HttpStatus.INTERNAL_SERVER_ERROR : errors.get(0).getHttpStatus(), null, null
         );
-        if (errors.size() > MAX_ERRORS) {
-            this.errors = List.copyOf(errors.subList(0, MAX_ERRORS));
+        this.totalErrors = errors.size();
+        this.truncated = truncatedByChain || errors.size() > MAX_ERRORS;
+        if (this.truncated) {
+            this.errors = List.copyOf(errors.subList(0, Math.min(errors.size(), MAX_ERRORS)));
         } else {
             this.errors = List.copyOf(errors);
         }
     }
 
-    private static String buildDetail(int size) {
-        if (size > MAX_ERRORS) {
+    private static String buildDetail(int size, boolean truncatedByChain) {
+        if (truncatedByChain || size > MAX_ERRORS) {
             return FailureConst.TOO_MANY_ERRORS;
         }
         return I18n.get(FailureConst.MULTIPLE_VALIDATION_ERRORS_COUNT, size);

@@ -2,6 +2,7 @@ package com.chao.failfast.internal.core;
 
 import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.constant.Severity;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.integration.webflux.ReactiveTrace;
 import com.chao.failfast.internal.policy.DefaultErrorPolicy;
@@ -12,16 +13,18 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
  * FailFast Context - Thread-safe configuration management.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Component
 public class FailureContext {
+    private static final int DEFAULT_STRICT_MAX_ERRORS = 50;
 
     /**
      * Global configuration properties.
@@ -217,6 +220,7 @@ public class FailureContext {
             else printMethodOverride.set(original);
         }
     }
+
     @SuppressWarnings("unchecked")
     public <T> T withMethodEnabled(boolean enabled, Supplier<T> action) {
         Boolean original = methodEnabledOverride.get();
@@ -275,5 +279,99 @@ public class FailureContext {
             if (original == null) printMethodOverride.remove();
             else printMethodOverride.set(original);
         }
+    }
+
+    public int getStrictMaxErrors() {
+        FailureProperties.Chain chain = properties.getChain();
+        if (chain == null || chain.getMaxErrors() <= 0) {
+            return DEFAULT_STRICT_MAX_ERRORS;
+        }
+        return chain.getMaxErrors();
+    }
+
+    public Severity resolveSeverity(ResponseCode code) {
+        FailureProperties.Logging logging = properties.getLogging();
+        Severity fallback = Severity.INFO;
+        if (logging == null) {
+            return fallback;
+        }
+
+        fallback = Severity.from(logging.getDefaultSeverity(), fallback);
+        if (code == null) {
+            return fallback;
+        }
+
+        Map<String, String> mapping = logging.getSeverityMapping();
+        if (mapping == null || mapping.isEmpty()) {
+            return fallback;
+        }
+        String configured = mapping.get(String.valueOf(code.getCode()));
+        return Severity.from(configured, fallback);
+    }
+
+    public ContextScope openScope() {
+        return new ContextScope(this, snapshot());
+    }
+
+    public ContextScope openScope(String traceId, String scene, Boolean methodEnabled, Boolean shadowTrace) {
+        ContextScope scope = new ContextScope(this, snapshot());
+        if (traceId == null) {
+            this.traceId.remove();
+        } else {
+            setTraceId(traceId);
+        }
+        if (scene != null) {
+            setScene(scene);
+        }
+        setMethodEnabled(methodEnabled);
+        setShadowTrace(shadowTrace);
+        return scope;
+    }
+
+    public <T> T withThreadScope(String traceId, String scene, Supplier<T> action) {
+        try (ContextScope ignored = openScope(traceId, scene, null, null)) {
+            return action.get();
+        }
+    }
+
+    public void withThreadScope(String traceId, String scene, Runnable action) {
+        try (ContextScope ignored = openScope(traceId, scene, null, null)) {
+            action.run();
+        }
+    }
+
+    private Snapshot snapshot() {
+        return new Snapshot(traceId.get(), scene.get(), methodEnabledOverride.get(), printMethodOverride.get());
+    }
+
+    public static final class ContextScope implements AutoCloseable {
+        private final FailureContext context;
+        private final Snapshot snapshot;
+        private boolean closed;
+
+        private ContextScope(FailureContext context, Snapshot snapshot) {
+            this.context = context;
+            this.snapshot = snapshot;
+        }
+
+        @Override
+        public void close() {
+            if (closed) return;
+            closed = true;
+            if (snapshot.traceId() == null) context.traceId.remove();
+            else context.traceId.set(snapshot.traceId());
+
+            if (snapshot.scene() == null) context.scene.remove();
+            else context.scene.set(snapshot.scene());
+
+            if (snapshot.methodEnabled() == null) context.methodEnabledOverride.remove();
+            else context.methodEnabledOverride.set(snapshot.methodEnabled());
+
+            if (snapshot.shadowTrace() == null) context.printMethodOverride.remove();
+            else context.printMethodOverride.set(snapshot.shadowTrace());
+        }
+    }
+
+    private record Snapshot(String traceId, String scene, Boolean methodEnabled, Boolean shadowTrace) {
     }
 }

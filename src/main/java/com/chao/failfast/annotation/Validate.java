@@ -1,13 +1,15 @@
 package com.chao.failfast.annotation;
 
 import com.chao.failfast.constant.Scenario;
+import com.chao.failfast.validator.FastValidator;
+
 import java.lang.annotation.*;
 
 /**
  * Validation annotation with scene and groups support.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

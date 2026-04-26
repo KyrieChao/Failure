@@ -1,6 +1,7 @@
 package com.chao.failfast.internal.chain.pipeline;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
+import com.chao.failfast.condition.Predicate;
 import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.Ex;
@@ -9,10 +10,11 @@ import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.internal.policy.DefaultErrorPolicy;
 import com.chao.failfast.internal.policy.ErrorPolicy;
 import com.chao.failfast.internal.validation.ObjectGraphWalker;
-import com.chao.failfast.internal.validation.RecursiveOptions;
-import com.chao.failfast.internal.validation.ValidationObservers;
+import com.chao.failfast.internal.validation.RecursiveOption;
+import com.chao.failfast.internal.validation.ValidationEventManager;
 import com.chao.failfast.validator.TypedValidator;
 import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +32,10 @@ import java.util.function.Supplier;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public abstract class ChainCore<S extends ChainCore<S>> {
+    private static final int DEFAULT_STRICT_MAX_ERRORS = 50;
 
 
     /**
@@ -42,7 +45,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      * @param scene validation scene
      */
     protected void notifyValidationStart(String source, String scene) {
-        ValidationObservers.notifyStart(source, scene);
+        ValidationEventManager.notifyStart(source, scene);
     }
 
     /**
@@ -53,7 +56,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      * @param success whether validation was successful
      */
     protected void notifyValidationEnd(String source, long durationNanos, boolean success) {
-        ValidationObservers.notifyEnd(source, durationNanos, success);
+        ValidationEventManager.notifyEnd(source, durationNanos, success);
     }
 
     /**
@@ -63,7 +66,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      * @param errorCode error code
      */
     protected void notifyValidationFailure(String source, String errorCode) {
-        ValidationObservers.notifyFailure(source, errorCode);
+        ValidationEventManager.notifyFailure(source, errorCode);
     }
 
     /**
@@ -73,7 +76,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      * @param constraint constraint name
      */
     protected void notifyViolation(String source, String constraint) {
-        ValidationObservers.notifyViolation(source, constraint);
+        ValidationEventManager.notifyViolation(source, constraint);
     }
 
     @Getter
@@ -86,9 +89,13 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     // OR state
     private boolean orMode = false;
     private boolean orHasSuccess = false;
+    @Getter
+    private boolean errorsTruncated = false;
     protected final ValidationContext context;
     protected final List<Business> errors = new ArrayList<>();
     private final List<AsyncCheck> asyncChecks = new ArrayList<>();
+    @Setter
+    private Consumer<Business> errorConsumer;
 
     private record AsyncCheck(CompletionStage<Boolean> stage, ResponseCode code, String detail) {
     }
@@ -159,6 +166,10 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         return self();
     }
 
+    public S when(Predicate condition) {
+        return when(condition == null || condition.evaluate());
+    }
+
     /**
      * Conditionally execute a validation block.
      *
@@ -212,10 +223,12 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         if (shouldSkip()) return self();
         return check(conditionSupplier.get(), spec);
     }
+
     public S check(Supplier<Boolean> conditionSupplier, ResponseCode code) {
         if (shouldSkip()) return self();
         return check(conditionSupplier.get(), code, null, null);
     }
+
     /**
      * Lazy calculation validation - Support Supplier.
      *
@@ -254,14 +267,14 @@ public abstract class ChainCore<S extends ChainCore<S>> {
             boolean finalSuccess = orHasSuccess || condition;
 
             if (!finalSuccess) {
-                addError(code, detail, resolveInvalidValue(invalidValueSupplier), null);
+                addError(code, detail, resolveInvalidValue(invalidValueSupplier));
                 if (failFast) alive = false;
             } else {
                 alive = true;
             }
         } else {
             if (!condition) {
-                addError(code, detail, resolveInvalidValue(invalidValueSupplier), null);
+                addError(code, detail, resolveInvalidValue(invalidValueSupplier));
                 if (failFast) alive = false;
             }
         }
@@ -280,35 +293,28 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     public S check(boolean condition, ResponseCode code, String detail, Object value) {
         if (shouldSkip()) return self();
 
-        boolean success = true;
-        try {
-            if (orMode) {
-                // OR mode: calculate combined result
-                orMode = false;  // Consume or state
-                boolean finalSuccess = orHasSuccess || condition;
+        if (orMode) {
+            // OR mode: calculate combined result
+            orMode = false;  // Consume or state
+            boolean finalSuccess = orHasSuccess || condition;
 
-                if (!finalSuccess) {
-                    // Both failed, report error
-                    addError(code, detail, value, null);
-                    if (failFast) alive = false;
-                    success = false;
-                } else {
-                    // One success, whole or passed, clear errors
-                    alive = true;
-                    // errors already cleared in or()
-                }
+            if (!finalSuccess) {
+                // Both failed, report error
+                addError(code, detail, value);
+                if (failFast) alive = false;
             } else {
-                // Normal mode
-                if (!condition) {
-                    addError(code, detail, value, null);
-                    if (failFast) alive = false;
-                    success = false;
-                }
+                // One success, whole or passed, clear errors
+                alive = true;
+                // errors already cleared in or()
             }
-            return self();
-        } finally {
-            // Metrics moved to validation action boundaries
+        } else {
+            // Normal mode
+            if (!condition) {
+                addError(code, detail, value);
+                if (failFast) alive = false;
+            }
         }
+        return self();
     }
 
     /**
@@ -400,8 +406,8 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         return check(condition, null, null);
     }
 
-    protected void addError(ResponseCode code, String detail, Object value, String path) {
-        addError(code, detail, value, path, null, "chain");
+    protected void addError(ResponseCode code, String detail, Object value) {
+        addError(code, detail, value, null, null, "chain");
     }
 
     protected void addError(ResponseCode code, String detail, Object value, String path, String constraint) {
@@ -409,44 +415,35 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     protected void addError(ResponseCode code, String detail, Object value, String path, String constraint, String source) {
+        if (hasReachedErrorLimit()) {
+            markErrorLimitReached();
+            return;
+        }
         Business business = buildBusiness(code, detail, value, path, constraint);
+        Consumer<Business> consumer = this.errorConsumer;
+        if (consumer != null) {
+            consumer.accept(business);
+        }
 
         if (context != null) {
             context.reportError(business);
             if (failFast) context.stop();
+            if (hasReachedErrorLimit()) {
+                markErrorLimitReached();
+            }
         } else {
             errors.add(business);
+            if (hasReachedErrorLimit()) {
+                markErrorLimitReached();
+            }
         }
 
         // Notify observer of violation
         if (constraint != null) {
-            ValidationObservers.notifyViolation(source, constraint);
+            ValidationEventManager.notifyViolation(source, constraint);
         }
     }
 
-    /**
-     * Get scene name for observability.
-     *
-     * @return scene name
-     */
-    private String getSceneName() {
-        if (context != null) {
-            Scenario[] scenes = context.getScenes();
-            if (scenes != null && scenes.length > 0) {
-                if (scenes.length == 1) {
-                    return scenes[0].name();
-                } else {
-                    // Multiple scenes, return "MULTI"
-                    return "MULTI";
-                }
-            }
-        }
-        return Scenario.DEFAULT.name();
-    }
-
-    private Business buildBusiness(ResponseCode code, String detail, Object value, String path) {
-        return buildBusiness(code, detail, value, path, null);
-    }
 
     private Business buildBusiness(ResponseCode code, String detail, Object value, String path, String constraint) {
         FailureContext ctx = Ex.getContext();
@@ -465,6 +462,24 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         return fabricator.responseCode(Objects.requireNonNullElse(code, policy.defaultCode())).materialize();
     }
 
+    private Business buildBusiness(ResponseCode code, String detail, Object value, String path) {
+        return buildBusiness(code, detail, value, path, null);
+    }
+
+    private String getSceneName() {
+        if (context == null) {
+            return Scenario.DEFAULT.name();
+        }
+        Scenario[] scenes = context.getScenes();
+        if (scenes == null || scenes.length == 0) {
+            return Scenario.DEFAULT.name();
+        }
+        if (scenes.length == 1) {
+            return scenes[0].name();
+        }
+        return "MULTI";
+    }
+
     /**
      * Get core instance (for interface default methods).
      *
@@ -480,7 +495,40 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      * @return List of Business objects containing all error info
      */
     public List<Business> getCauses() {
+        if (context != null) {
+            return new ArrayList<>();
+        }
         return new ArrayList<>(errors);
+    }
+
+    public Business latestCause() {
+        List<Business> list = context != null ? context.hasCauses() : errors;
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.get(list.size() - 1);
+    }
+
+    private boolean hasReachedErrorLimit() {
+        if (failFast) return false;
+        int limit = resolveStrictMaxErrors();
+        if (limit <= 0) return false;
+        return errorSize() >= limit;
+    }
+
+    private int resolveStrictMaxErrors() {
+        FailureContext ctx = Ex.getContext();
+        if (ctx == null) return DEFAULT_STRICT_MAX_ERRORS;
+        return ctx.getStrictMaxErrors();
+    }
+
+    private void markErrorLimitReached() {
+        this.errorsTruncated = true;
+        this.alive = false;
+        this.conditionState = false;
+        if (context != null) {
+            context.stop();
+        }
     }
 
     /**
@@ -709,7 +757,7 @@ public abstract class ChainCore<S extends ChainCore<S>> {
      * @param options         Recursive options
      * @return Current chain instance
      */
-    public S recursive(Object object, TypedValidator typedValidator, RecursiveOptions options) {
+    public S recursive(Object object, TypedValidator typedValidator, RecursiveOption options) {
         if (shouldSkip()) return self();
 
         // Create validation context if not provided

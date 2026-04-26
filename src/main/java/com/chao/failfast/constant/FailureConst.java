@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  * <p>Contains shared constants for validation, configuration, response, etc.</p>
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  * @since 1.3.1
  */
 public final class FailureConst {
@@ -73,6 +73,10 @@ public final class FailureConst {
      * Error traceId field.
      */
     public static final String FIELD_TRACE_ID = "traceId";
+    /**
+     * Error spanId field.
+     */
+    public static final String FIELD_SPAN_ID = "spanId";
     /**
      * Timestamp field.
      */

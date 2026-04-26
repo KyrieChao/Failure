@@ -1,5 +1,6 @@
 package com.chao.failfast.annotation;
 
+import com.chao.failfast.validator.FastValidator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

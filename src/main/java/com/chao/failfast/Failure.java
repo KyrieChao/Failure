@@ -1,13 +1,13 @@
 package com.chao.failfast;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
 import com.chao.failfast.internal.core.Chain;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 
 /**
  * Failure static entry class - Chain validation API.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public final class Failure {
 

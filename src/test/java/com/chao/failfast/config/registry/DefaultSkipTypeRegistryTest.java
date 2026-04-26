@@ -1,6 +1,6 @@
 package com.chao.failfast.config.registry;
 
-import com.chao.failfast.spi.SkipTypeRegistry;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -8,9 +8,18 @@ import static org.junit.jupiter.api.Assertions.*;
 class DefaultSkipTypeRegistryTest {
 
     @Test
+    void should_returnSameRegistry_when_typeArrayIsNull() {
+        DefaultSkipTypeRegistry registry = new DefaultSkipTypeRegistry();
+
+        SkipTypeRegistry result = registry.add((Class<?>[]) null);
+
+        assertSame(registry, result);
+    }
+
+    @Test
     void testAddWithNullTypes() {
         DefaultSkipTypeRegistry registry = new DefaultSkipTypeRegistry();
-        SkipTypeRegistry result = registry.add(null);
+        SkipTypeRegistry result = registry.add((Class<?>) null);
         assertSame(registry, result);
     }
 

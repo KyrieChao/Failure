@@ -7,6 +7,8 @@ import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.autoconfigure.FailFastAutoConfiguration;
 import com.chao.failfast.integration.mvc.OptionalBodyResolver;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +29,11 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor;
+import com.chao.failfast.spi.i18n.LocalizedResponseResolver;
+import com.chao.failfast.spi.security.ValueMasker;
+import com.chao.failfast.spi.config.FailFastConfigurer;
+import com.chao.failfast.config.i18n.LocaleResponseResolver;
+import com.chao.failfast.internal.core.ResponseCode;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,6 +60,10 @@ class FailFastAutoConfigurationTest {
 
     @Mock
     private FailureContext context;
+    @Mock
+    private ValueMasker valueMasker;
+    @Mock
+    private LocalizedResponseResolver localizedResponseResolver;
 
     @Mock
     private HttpServletRequest httpRequest;
@@ -162,6 +173,32 @@ class FailFastAutoConfigurationTest {
                     // 可选：验证 context 里的 properties 是否绑定成功
                     // FailureProperties props = context.getBean(FailureProperties.class);
                     // assertTrue(props.isShadowTrace());
+                });
+    }
+
+    @Test
+    @DisplayName("测试 customizeLocalizedResponseResolver 回调生效")
+    void testCustomizeLocalizedResponseResolverApplied() {
+        new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(FailFastAutoConfiguration.class))
+                .withPropertyValues(
+                        "fail-fast.i18n.default-locale=zh_CN"
+                )
+                .withBean(FailFastConfigurer.class, () -> new FailFastConfigurer() {
+                    @Override
+                    public void customizeLocalizedResponseResolver(LocalizedResponseResolver resolver) {
+                        if (resolver instanceof LocaleResponseResolver r) {
+                            r.putMessage(Locale.SIMPLIFIED_CHINESE, 1001, "自定义消息");
+                            r.putDetail(Locale.SIMPLIFIED_CHINESE, 1001, "自定义详情");
+                        }
+                    }
+                })
+                .run(context -> {
+                    LocalizedResponseResolver resolver = context.getBean(LocalizedResponseResolver.class);
+                    assertThat(resolver).isNotNull();
+                    ResponseCode code = ResponseCode.of(1001, "fallback", "fallback");
+                    assertThat(resolver.resolveMessage(code, Locale.SIMPLIFIED_CHINESE)).isEqualTo("自定义消息");
+                    assertThat(resolver.resolveDetail(code, "any", Locale.SIMPLIFIED_CHINESE)).isEqualTo("自定义详情");
                 });
     }
 
@@ -486,9 +523,9 @@ class FailFastAutoConfigurationTest {
     @Test
     void testExInitializer() {
         // 测试ExInitializer内部类
-        com.chao.failfast.spi.SkipPrefixRegistry skipPrefixRegistry = mock(com.chao.failfast.spi.SkipPrefixRegistry.class);
-        com.chao.failfast.spi.SkipTypeRegistry skipTypeRegistry = mock(com.chao.failfast.spi.SkipTypeRegistry.class);
-        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, validator, skipPrefixRegistry, skipTypeRegistry);
+        SkipPrefixRegistry skipPrefixRegistry = mock(SkipPrefixRegistry.class);
+        SkipTypeRegistry skipTypeRegistry = mock(SkipTypeRegistry.class);
+        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, validator, skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver);
         assertNotNull(initializer);
         // 验证Ex.setContext被调用
         // 验证Chain.setValidator被调用
@@ -498,9 +535,9 @@ class FailFastAutoConfigurationTest {
     @Test
     void testExInitializerWithoutValidator() {
         // 测试ExInitializer内部类（无validator）
-        com.chao.failfast.spi.SkipPrefixRegistry skipPrefixRegistry = mock(com.chao.failfast.spi.SkipPrefixRegistry.class);
-        com.chao.failfast.spi.SkipTypeRegistry skipTypeRegistry = mock(com.chao.failfast.spi.SkipTypeRegistry.class);
-        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, null, skipPrefixRegistry, skipTypeRegistry);
+        SkipPrefixRegistry skipPrefixRegistry = mock(SkipPrefixRegistry.class);
+        SkipTypeRegistry skipTypeRegistry = mock(SkipTypeRegistry.class);
+        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, null, skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver);
         assertNotNull(initializer);
         // 验证Ex.setContext被调用
         // 验证Chain.setFailureProperties被调用

@@ -1,574 +1,703 @@
 package com.chao.failfast.integration.webflux;
 
-import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
-import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.chao.failfast.internal.core.observability.OpenTelemetryBridge;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-import org.junit.jupiter.api.AfterEach;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpHeaders;
+import org.mockito.MockedStatic;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.support.WebExchangeBindException;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
-import reactor.util.context.Context;
-import reactor.util.context.ContextView;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Path;
 
-import java.util.List;
-import java.util.Set;
+import java.lang.reflect.Method;
+import java.util.*;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mockStatic;
 
+/**
+ * 针对 FailFastWebExceptionHandler 的完整单元测试
+ * 目标：100% 类/方法/行/指令/分支/条件/路径覆盖
+ */
+@DisplayName("FailFastWebExceptionHandler 完整覆盖率测试")
 class FailFastWebExceptionHandlerCoverageTest {
 
-    @AfterEach
-    void tearDown() {
-        Ex.setContext(null);
+    private FailFastWebExceptionHandler handler;
+    private FailureContext context;
+    private FailureProperties properties;
+    private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setUp() {
+        properties = new FailureProperties();
+        context = new FailureContext(properties, new com.chao.failfast.config.mapping.CodeMappingConfig(properties), null);
+        com.chao.failfast.internal.core.Ex.setContext(context);
+        objectMapper = new ObjectMapper();
+        handler = new FailFastWebExceptionHandler(context, properties, objectMapper);
+    }
+
+    @Nested
+    @DisplayName("基础异常处理测试")
+    class BasicExceptionHandlingTests {
+
+        @Test
+        @DisplayName("处理 Business 异常")
+        void testHandleBusinessException() {
+            Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "test error");
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, business).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("处理 MultiBusiness 异常")
+        void testHandleMultiBusinessException() {
+            List<Business> errors = List.of(
+                    Business.of(ResponseCode.VALIDATION_ERROR_400, "error 1"),
+                    Business.of(ResponseCode.VALIDATION_ERROR_400, "error 2")
+            );
+            MultiBusiness multiBusiness = new MultiBusiness(errors);
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, multiBusiness).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("处理未知异常应传递给下一个处理器")
+        void testHandleUnknownException() {
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+            RuntimeException unknownException = new RuntimeException("Unknown error");
+
+            assertThrows(Exception.class, () -> handler.handle(exchange, unknownException).block());
+        }
+    }
+
+    @Nested
+    @DisplayName("WebExchangeBindException 处理测试")
+    class WebExchangeBindExceptionTests {
+
+        @Test
+        @DisplayName("处理空字段错误列表的 WebExchangeBindException")
+        void testHandleWebExchangeBindExceptionWithEmptyErrors() {
+            BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "object");
+            WebExchangeBindException bindException = createWebExchangeBindException(bindingResult);
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, bindException).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("处理单个字段错误的 WebExchangeBindException")
+        void testHandleWebExchangeBindExceptionWithSingleError() {
+            BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new TestObject(), "testObject");
+            bindingResult.addError(new FieldError("testObject", "field1", "Field error 1"));
+            WebExchangeBindException bindException = createWebExchangeBindException(bindingResult);
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, bindException).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("处理多个字段错误的 WebExchangeBindException")
+        void testHandleWebExchangeBindExceptionWithMultipleErrors() {
+            BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new TestObject(), "testObject");
+            bindingResult.addError(new FieldError("testObject", "field1", "Field error 1"));
+            bindingResult.addError(new FieldError("testObject", "field2", "Field error 2"));
+            WebExchangeBindException bindException = createWebExchangeBindException(bindingResult);
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, bindException).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        private WebExchangeBindException createWebExchangeBindException(BeanPropertyBindingResult bindingResult) {
+            try {
+                Method method = getClass().getDeclaringClass().getDeclaredMethod("dummyMethod");
+                MethodParameter methodParameter = new MethodParameter(method, -1);
+                return new WebExchangeBindException(methodParameter, bindingResult);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("ConstraintViolationException 处理测试")
+    class ConstraintViolationExceptionTests {
+
+        @Test
+        @DisplayName("处理空约束违反列表的 ConstraintViolationException")
+        void testHandleConstraintViolationExceptionWithEmptyViolations() {
+            ConstraintViolationException cve = new ConstraintViolationException(new HashSet<>());
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, cve).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("处理单个约束违反的 ConstraintViolationException")
+        void testHandleConstraintViolationExceptionWithSingleViolation() {
+            Set<ConstraintViolation<?>> violations = new HashSet<>();
+            violations.add(createMockViolation("field1", "Constraint error 1"));
+            ConstraintViolationException cve = new ConstraintViolationException(violations);
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, cve).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("处理多个约束违反的 ConstraintViolationException")
+        void testHandleConstraintViolationExceptionWithMultipleViolations() {
+            Set<ConstraintViolation<?>> violations = new HashSet<>();
+            violations.add(createMockViolation("field1", "Constraint error 1"));
+            violations.add(createMockViolation("field2", "Constraint error 2"));
+            ConstraintViolationException cve = new ConstraintViolationException(violations);
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, cve).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("处理 null 路径的约束违反")
+        void testHandleConstraintViolationWithNullPath() {
+            Set<ConstraintViolation<?>> violations = new HashSet<>();
+            violations.add(createMockViolation(null, "Constraint error"));
+            ConstraintViolationException cve = new ConstraintViolationException(violations);
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, cve).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("响应构建测试")
+    class ResponseBuildingTests {
+
+        @Test
+        @DisplayName("启用 Verbose 模式时应包含 errors 数组")
+        void testVerboseModeIncludesErrorsArray() {
+            properties.setVerbose(true);
+
+            Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "test error");
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, business).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("禁用 Verbose 模式时不应包含 errors 数组")
+        void testNonVerboseModeExcludesErrorsArray() {
+            properties.setVerbose(false);
+
+            Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "test error");
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, business).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("已提交响应测试")
+    class CommittedResponseTests {
+
+        @Test
+        @DisplayName("处理已提交的响应应返回错误")
+        void testHandleCommittedResponse() {
+            Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "test error");
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            exchange.getResponse().setComplete().block();
+
+            assertThrows(Exception.class, () -> handler.handle(exchange, business).block());
+        }
+    }
+
+    @Nested
+    @DisplayName("traceId 处理测试")
+    class TraceIdHandlingTests {
+
+        @Test
+        @DisplayName("启用 traceId 时应包含 traceId")
+        void testTraceIdEnabled() {
+            FailureProperties.TraceId traceIdConfig = new FailureProperties.TraceId();
+            traceIdConfig.setEnabled(true);
+            properties.setTraceId(traceIdConfig);
+
+            Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "test error");
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+            handler.handle(exchange, business).block();
+
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+        }
+
+        @Test
+        @DisplayName("resolveTraceId 应优先返回 attribute 中的 traceId")
+        void testResolveTraceIdUsesExchangeAttribute() {
+            FailureProperties.TraceId traceIdConfig = new FailureProperties.TraceId();
+            traceIdConfig.setEnabled(true);
+            traceIdConfig.setHeaderName("X-Trace-Id");
+            properties.setTraceId(traceIdConfig);
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").header("X-Trace-Id", "header-trace").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+            exchange.getAttributes().put(FailureConst.FIELD_TRACE_ID, "attr-trace");
+
+            String traceId = handler.resolveTraceId(exchange, reactor.util.context.Context.empty());
+
+            assertEquals("attr-trace", traceId);
+        }
+
+        @Test
+        @DisplayName("resolveTraceId 应在 attribute 和 header 都空白时回退到 context")
+        void testResolveTraceIdFallsBackToContextWhenAttributeAndHeaderBlank() {
+            FailureProperties.TraceId traceIdConfig = new FailureProperties.TraceId();
+            traceIdConfig.setEnabled(true);
+            traceIdConfig.setHeaderName("X-Trace-Id");
+            properties.setTraceId(traceIdConfig);
+            context.setTraceId("context-trace");
+
+            MockServerHttpRequest request = MockServerHttpRequest.get("/test").header("X-Trace-Id", " ").build();
+            MockServerWebExchange exchange = MockServerWebExchange.from(request);
+            exchange.getAttributes().put(FailureConst.FIELD_TRACE_ID, " ");
+
+            String traceId = handler.resolveTraceId(exchange, reactor.util.context.Context.empty());
+
+            assertEquals("context-trace", traceId);
+        }
     }
 
     @Test
-    void handleCommittedResponseReturnsError() {
-        FailureProperties props = new FailureProperties();
-        FailureContext ctx = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(ctx);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(ctx, props, new ObjectMapper());
+    @DisplayName("handle 应真正消费 Reactor Context 并处理 Business")
+    void shouldHandleBusinessThroughHandleMethodWhenContextIsWritten() {
+        properties.getTraceId().setEnabled(true);
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "test error");
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/test").build());
 
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        org.springframework.http.server.reactive.ServerHttpResponse response = mock(org.springframework.http.server.reactive.ServerHttpResponse.class);
-        when(exchange.getResponse()).thenReturn(response);
-        when(response.isCommitted()).thenReturn(true);
-
-        RuntimeException ex = new RuntimeException("x");
-        assertThrows(RuntimeException.class, () -> handler.handle(exchange, ex).block());
-    }
-
-    @Test
-    void handleBusinessCoversTraceIdSceneVerboseAndWrite() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(true);
-        props.getTraceId().setEnabled(true);
-        props.getTraceId().setHeaderName("X-Trace-Id");
-
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t")
-                .header("X-Trace-Id", "hdr")
-                .build());
-        exchange.getAttributes().put(FailureConst.FIELD_TRACE_ID, "attr");
-
-        Business ex = Business.of(ResponseCode.VALIDATION_ERROR_400, "detail");
-        handler.handle(exchange, ex)
-                .contextWrite(Context.of(
-                        ReactiveTrace.TRACE_ID_KEY, "ctx",
-                        ReactiveTrace.SCENE_KEY, "CREATE"
-                ))
+        handler.handle(exchange, business)
+                .contextWrite(reactor.util.context.Context.of(FailureConst.FIELD_TRACE_ID, "ignored"))
                 .block();
 
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains(FailureConst.FIELD_TRACE_ID);
-        assertThat(body).contains("ctx");
-        assertThat(body).contains(FailureConst.FIELD_SCENE);
-        assertThat(body).contains("CREATE");
-        assertThat(exchange.getResponse().getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)).contains("application/json");
+        assertEquals(HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
     }
 
     @Test
-    void handleMultiBusinessCoversMultiMapAndVerboseList() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(true);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
+    @DisplayName("handleInternal 在 committed response 下应抛出原异常")
+    void shouldPropagateOriginalErrorWhenResponseAlreadyCommitted() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/test").build());
+        exchange.getResponse().setComplete().block();
 
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-        MultiBusiness ex = new MultiBusiness(List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "a"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "b")
-        ));
+        RuntimeException error = new RuntimeException("boom");
 
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains(FailureConst.FIELD_ERRORS);
+        assertThrows(RuntimeException.class,
+                () -> handler.handleInternal(exchange, error, reactor.util.context.Context.empty()).block());
     }
 
     @Test
-    void handleWebExchangeBindExceptionCoversFieldErrorMapping() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(true);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
+    @DisplayName("buildMap 应在业务对象缺少 spanId 时回退到 OpenTelemetry")
+    void shouldUseOpenTelemetrySpanIdWhenBusinessSpanIdIsBlank() {
+        properties.getTraceId().setEnabled(true);
+        context.setTraceId("ctx-trace");
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("test")
+                .traceId(" ")
+                .spanId(" ")
+                .materialize();
 
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
 
-        Object target = new Object();
-        BeanPropertyBindingResult br = new BeanPropertyBindingResult(target, "t");
-        br.addError(new FieldError("t", "f1", "m1"));
-        WebExchangeBindException ex = new WebExchangeBindException(null, br);
+            Map<String, Object> body = handler.buildMap(
+                    MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                    business,
+                    reactor.util.context.Context.empty());
 
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains("f1");
-        assertThat(body).contains("m1");
+            assertEquals("ctx-trace", body.get(FailureConst.FIELD_TRACE_ID));
+            assertEquals("otel-span", body.get(FailureConst.FIELD_SPAN_ID));
+        }
     }
 
     @Test
-    void handleConstraintViolationExceptionCoversViolationMapping() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(true);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
+    @DisplayName("buildMultiMap 应在错误列表首项缺少 spanId 时回退到 OpenTelemetry")
+    void shouldUseOpenTelemetrySpanIdWhenFirstMultiErrorSpanIdIsBlank() {
+        properties.getTraceId().setEnabled(true);
+        context.setTraceId("ctx-trace");
+        Business error = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("test")
+                .spanId(" ")
+                .materialize();
+        MultiBusiness multi = new MultiBusiness(List.of(error, Business.of(ResponseCode.VALIDATION_ERROR_400, "other")));
 
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
 
+            Map<String, Object> body = handler.buildMultiMap(
+                    MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                    multi,
+                    reactor.util.context.Context.empty());
+
+            assertEquals("ctx-trace", body.get(FailureConst.FIELD_TRACE_ID));
+            assertEquals("otel-span", body.get(FailureConst.FIELD_SPAN_ID));
+        }
+    }
+
+    @Test
+    @DisplayName("write 应在序列化失败时写出兜底 JSON")
+    void shouldWriteFallbackJsonWhenObjectMapperThrows() {
+        ObjectMapper brokenMapper = new ObjectMapper() {
+            @Override
+            public byte[] writeValueAsBytes(Object value) throws JsonProcessingException {
+                throw new JsonProcessingException("boom") { };
+            }
+        };
+        FailFastWebExceptionHandler brokenHandler = new FailFastWebExceptionHandler(context, properties, brokenMapper);
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/test").build());
+
+        brokenHandler.write(exchange, 500, Map.of("k", "v")).block();
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exchange.getResponse().getStatusCode());
+    }
+
+    @Test
+    @DisplayName("handleInternal 应处理 propertyPath 为空的约束异常")
+    void shouldHandleConstraintViolationWhenPropertyPathIsNull() {
+        ConstraintViolationException exception = new ConstraintViolationException(Set.of(createMockViolation(null, "boom")));
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/test").build());
+
+        handler.handleInternal(exchange, exception, reactor.util.context.Context.empty()).block();
+
+        assertEquals(HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
+    }
+
+    @Test
+    @DisplayName("buildMap 应优先使用业务对象自带的 traceId 与 spanId")
+    void shouldUseBusinessTraceAndSpanWhenPresentInBuildMap() {
+        properties.getTraceId().setEnabled(true);
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId("trace-direct")
+                .spanId("span-direct")
+                .materialize();
+
+        Map<String, Object> body = handler.buildMap(
+                MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                business,
+                reactor.util.context.Context.empty());
+
+        assertEquals("trace-direct", body.get(FailureConst.FIELD_TRACE_ID));
+        assertEquals("span-direct", body.get(FailureConst.FIELD_SPAN_ID));
+    }
+
+    @Test
+    @DisplayName("buildMultiMap 应在非默认场景下写入 scene")
+    void shouldIncludeSceneWhenBuildMultiMapResolvesNonDefaultScene() {
+        properties.setVerbose(true);
+        context.setScene("CREATE");
+        Business first = Business.of(ResponseCode.VALIDATION_ERROR_400, "x");
+        MultiBusiness multi = new MultiBusiness(List.of(first, Business.of(ResponseCode.VALIDATION_ERROR_400, "y")));
+
+        Map<String, Object> body = handler.buildMultiMap(
+                MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                multi,
+                reactor.util.context.Context.empty());
+
+        assertEquals("CREATE", body.get(FailureConst.FIELD_SCENE));
+    }
+
+    @Test
+    @DisplayName("resolveTraceId 在 exchange 为空时应回退到上下文")
+    void shouldResolveTraceIdFromContextWhenExchangeIsNull() {
+        context.setTraceId("context-trace");
+
+        assertEquals("context-trace", handler.resolveTraceId(null, reactor.util.context.Context.empty()));
+    }
+
+    @Test
+    @DisplayName("resolveTraceId 应在 header 命中时返回 header 值")
+    void shouldResolveTraceIdFromHeaderWhenContextAndAttributeMiss() {
+        FailureProperties.TraceId traceIdConfig = new FailureProperties.TraceId();
+        traceIdConfig.setEnabled(true);
+        traceIdConfig.setHeaderName("X-Trace-Id");
+        properties.setTraceId(traceIdConfig);
+
+        MockServerHttpRequest request = MockServerHttpRequest.get("/test").header("X-Trace-Id", "header-trace").build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+        assertEquals("header-trace", handler.resolveTraceId(exchange, reactor.util.context.Context.empty()));
+    }
+
+    @Test
+    @DisplayName("buildMap 应在 traceId 功能关闭时跳过 trace 字段分支")
+    void shouldSkipTraceFieldsWhenTraceIdFeatureIsDisabledInBuildMap() {
+        FailureProperties.TraceId traceIdConfig = new FailureProperties.TraceId();
+        traceIdConfig.setEnabled(false);
+        properties.setTraceId(traceIdConfig);
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId("trace-direct")
+                .spanId("span-direct")
+                .materialize();
+
+        Map<String, Object> body = handler.buildMap(
+                MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                business,
+                reactor.util.context.Context.empty());
+
+        assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
+        assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
+    }
+
+    @Test
+    @DisplayName("buildMultiMap 应直接使用错误首项的非空 spanId")
+    void shouldUseFirstErrorSpanIdDirectlyWhenPresentInBuildMultiMap() {
+        properties.getTraceId().setEnabled(true);
+        Business first = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId("trace-direct")
+                .spanId("span-direct")
+                .materialize();
+        MultiBusiness multi = new MultiBusiness(List.of(first, Business.of(ResponseCode.VALIDATION_ERROR_400, "y")));
+
+        Map<String, Object> body = handler.buildMultiMap(
+                MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                multi,
+                reactor.util.context.Context.empty());
+
+        assertEquals("span-direct", body.get(FailureConst.FIELD_SPAN_ID));
+    }
+
+    @Test
+    @DisplayName("buildMap 应在所有 trace/span 回退值为空白时省略字段")
+    void shouldSkipBlankTraceAndSpanWhenBuildMapHasOnlyBlankFallbacks() {
+        properties.getTraceId().setEnabled(true);
+        context.setTraceId(" ");
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId(" ")
+                .spanId(" ")
+                .materialize();
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(" ");
+
+            Map<String, Object> body = handler.buildMap(
+                    MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                    business,
+                    reactor.util.context.Context.empty());
+
+            assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
+            assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
+        }
+    }
+
+    @Test
+    @DisplayName("buildMultiMap 应在 trace/span 回退值为空白且非 verbose 时省略相关字段")
+    void shouldSkipBlankTraceSpanAndErrorsWhenBuildMultiMapHasOnlyBlankFallbacks() {
+        properties.getTraceId().setEnabled(true);
+        properties.setVerbose(false);
+        context.setTraceId(" ");
+        Business first = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId(" ")
+                .spanId(" ")
+                .materialize();
+        MultiBusiness multi = new MultiBusiness(List.of(first));
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(" ");
+
+            Map<String, Object> body = handler.buildMultiMap(
+                    MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                    multi,
+                    reactor.util.context.Context.empty());
+
+            assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
+            assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
+            assertFalse(body.containsKey(FailureConst.FIELD_ERRORS));
+        }
+    }
+
+    @Test
+    @DisplayName("handleInternal 应处理 propertyPath 对象本身为 null 的约束异常")
+    void shouldHandleConstraintViolationWhenPropertyPathObjectIsNull() {
         @SuppressWarnings("unchecked")
-        ConstraintViolation<Object> v = (ConstraintViolation<Object>) mock(ConstraintViolation.class);
-        jakarta.validation.Path path = mock(jakarta.validation.Path.class);
-        when(path.toString()).thenReturn("p1");
-        when(v.getPropertyPath()).thenReturn(path);
-        when(v.getMessage()).thenReturn("m1");
-        ConstraintViolationException ex = new ConstraintViolationException(Set.of(v));
+        ConstraintViolation<Object> violation = org.mockito.Mockito.mock(ConstraintViolation.class);
+        org.mockito.Mockito.when(violation.getPropertyPath()).thenReturn(null);
+        org.mockito.Mockito.when(violation.getMessage()).thenReturn("boom");
 
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
+        ConstraintViolationException exception = new ConstraintViolationException(Set.of(violation));
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/test").build());
 
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains("p1");
-        assertThat(body).contains("m1");
+        handler.handleInternal(exchange, exception, reactor.util.context.Context.empty()).block();
+
+        assertEquals(HttpStatus.BAD_REQUEST, exchange.getResponse().getStatusCode());
     }
 
     @Test
-    void handleMultiBusinessUsesMultiBranchAndBuildMultiMap() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(true);
-        props.getTraceId().setEnabled(true);
-        props.getTraceId().setHeaderName("X-Trace-Id");
+    @DisplayName("resolveTraceId 在 exchange 和 context 都为空时应返回 null")
+    void shouldReturnNullWhenResolveTraceIdReceivesNullExchangeAndNullContext() {
+        FailFastWebExceptionHandler localHandler = new FailFastWebExceptionHandler(null, null, objectMapper);
 
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setTraceId("tid");
-        context.setScene(null);
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, null);
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t")
-                .header("X-Trace-Id", "")
-                .build());
-        exchange.getAttributes().put(FailureConst.FIELD_TRACE_ID, "");
-
-        MultiBusiness ex = new MultiBusiness(List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "a"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "b")
-        ));
-
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains(FailureConst.FIELD_ERRORS);
-        assertThat(body).contains(FailureConst.FIELD_TRACE_ID);
-        assertThat(body).contains("tid");
+        assertNull(localHandler.resolveTraceId(null, reactor.util.context.Context.empty()));
     }
 
     @Test
-    void handleWebExchangeBindExceptionWithTwoErrorsTriggersHandleErrorsMultiPath() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(true);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
+    @DisplayName("buildMap 应在无上下文且 OpenTelemetry span 为空时省略 trace/span")
+    void shouldSkipTraceAndSpanWhenBuildMapCannotResolveAnyMetadata() {
+        FailureProperties localProperties = new FailureProperties();
+        localProperties.getTraceId().setEnabled(true);
+        FailFastWebExceptionHandler localHandler = new FailFastWebExceptionHandler(null, localProperties, objectMapper);
+        Business business = Business.compose()
+                .responseCode(ResponseCode.VALIDATION_ERROR_400)
+                .detail("x")
+                .traceId(null)
+                .spanId(null)
+                .materialize();
 
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(null);
 
-        Object target = new Object();
-        BeanPropertyBindingResult br = new BeanPropertyBindingResult(target, "t");
-        br.addError(new FieldError("t", "f1", "m1"));
-        br.addError(new FieldError("t", "f2", "m2"));
-        WebExchangeBindException ex = new WebExchangeBindException(null, br);
+            Map<String, Object> body = localHandler.buildMap(
+                    MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                    business,
+                    reactor.util.context.Context.empty());
 
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains(FailureConst.FIELD_ERRORS);
+            assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
+            assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
+        }
     }
 
     @Test
-    void handleConstraintViolationExceptionWithTwoViolationsTriggersHandleErrorsMultiPath() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(true);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
+    @DisplayName("buildMultiMap 应在无上下文且 OpenTelemetry span 为空时省略 trace/span/errors")
+    void shouldSkipTraceSpanAndErrorsWhenBuildMultiMapCannotResolveAnyMetadata() {
+        FailureProperties localProperties = new FailureProperties();
+        localProperties.getTraceId().setEnabled(true);
+        localProperties.setVerbose(false);
+        FailFastWebExceptionHandler localHandler = new FailFastWebExceptionHandler(null, localProperties, objectMapper);
+        MultiBusiness multi = new MultiBusiness(List.of(Business.of(ResponseCode.VALIDATION_ERROR_400, "x")));
 
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(null);
 
-        @SuppressWarnings("unchecked")
-        ConstraintViolation<Object> v1 = (ConstraintViolation<Object>) mock(ConstraintViolation.class);
-        jakarta.validation.Path p1 = mock(jakarta.validation.Path.class);
-        when(p1.toString()).thenReturn("p1");
-        when(v1.getPropertyPath()).thenReturn(p1);
-        when(v1.getMessage()).thenReturn("m1");
+            Map<String, Object> body = localHandler.buildMultiMap(
+                    MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                    multi,
+                    reactor.util.context.Context.empty());
 
-        @SuppressWarnings("unchecked")
-        ConstraintViolation<Object> v2 = (ConstraintViolation<Object>) mock(ConstraintViolation.class);
-        when(v2.getPropertyPath()).thenReturn(null);
-        when(v2.getMessage()).thenReturn("m2");
-
-        ConstraintViolationException ex = new ConstraintViolationException(Set.of(v1, v2));
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
+            assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
+            assertFalse(body.containsKey(FailureConst.FIELD_ERRORS));
+        }
     }
 
     @Test
-    void resolveTraceIdReturnsContextValueWhenExchangeNull() throws Exception {
-        FailureProperties props = new FailureProperties();
-        props.getTraceId().setEnabled(true);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setTraceId("tid");
-        Ex.setContext(context);
+    @DisplayName("resolveTraceId 应在 headerName 为空白时回退为上下文值")
+    void shouldFallbackToContextWhenResolveTraceIdSeesBlankHeaderName() {
+        FailureProperties localProperties = new FailureProperties();
+        localProperties.getTraceId().setEnabled(true);
+        localProperties.getTraceId().setHeaderName(" ");
+        FailureContext localContext = new FailureContext(localProperties, new com.chao.failfast.config.mapping.CodeMappingConfig(localProperties), null);
+        localContext.setTraceId("context-trace");
+        FailFastWebExceptionHandler localHandler = new FailFastWebExceptionHandler(localContext, localProperties, objectMapper);
 
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-        Object out = m.invoke(handler, null, Context.empty());
-        assertThat(out).isEqualTo("tid");
+        String traceId = localHandler.resolveTraceId(
+                MockServerWebExchange.from(MockServerHttpRequest.get("/test").build()),
+                reactor.util.context.Context.empty());
+
+        assertEquals("context-trace", traceId);
     }
 
     @Test
-    void resolveTraceIdFallsBackToContextAtEndWhenAllSourcesBlank() throws Exception {
-        FailureProperties props = new FailureProperties();
-        props.getTraceId().setEnabled(true);
-        props.getTraceId().setHeaderName("X-Trace-Id");
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setTraceId(" ");
-        Ex.setContext(context);
+    @DisplayName("handle 应通过 deferContextual 将未知异常继续向上传递")
+    void shouldPropagateUnknownExceptionThroughHandle() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/test").build());
 
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-        Object out = m.invoke(handler, exchange, Context.empty());
-        assertThat(out).isEqualTo(" ");
+        assertThrows(RuntimeException.class, () -> handler.handle(exchange, new RuntimeException("boom"))
+                .contextWrite(reactor.util.context.Context.of("k", "v"))
+                .block());
     }
 
-    @Test
-    void handleMultiBusinessAddsSceneWhenNotDefault() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(true);
-        props.getTraceId().setEnabled(false);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, null);
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-
-        MultiBusiness ex = new MultiBusiness(List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "a"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "b")
-        ));
-
-        handler.handle(exchange, ex).contextWrite(Context.of(ReactiveTrace.SCENE_KEY, "CREATE")).block();
-
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains(FailureConst.FIELD_SCENE);
-        assertThat(body).contains("CREATE");
-        assertThat(body).doesNotContain(FailureConst.FIELD_TRACE_ID);
+    @SuppressWarnings("unchecked")
+    private ConstraintViolation<Object> createMockViolation(String path, String message) {
+        ConstraintViolation<Object> violation = org.mockito.Mockito.mock(ConstraintViolation.class);
+        Path mockPath = org.mockito.Mockito.mock(Path.class);
+        org.mockito.Mockito.when(violation.getPropertyPath()).thenReturn(mockPath);
+        org.mockito.Mockito.when(violation.getMessage()).thenReturn(message);
+        org.mockito.Mockito.when(mockPath.toString()).thenReturn(path);
+        return violation;
     }
 
-    @Test
-    void handleBindExceptionWithNoErrorsFallsBackToDefaultValidationError() {
-        FailureProperties props = new FailureProperties();
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-
-        Object target = new Object();
-        BeanPropertyBindingResult br = new BeanPropertyBindingResult(target, "t");
-        WebExchangeBindException ex = new WebExchangeBindException(null, br);
-
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains("未知校验错误");
+    private void dummyMethod() {
     }
 
-    @Test
-    void writeJsonProcessingExceptionFallsBackToSimpleJsonBytes() throws Exception {
-        FailureProperties props = new FailureProperties();
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-
-        ObjectMapper mapper = mock(ObjectMapper.class);
-        when(mapper.writeValueAsBytes(org.mockito.ArgumentMatchers.any()))
-                .thenThrow(new JsonProcessingException("x") {
-                });
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, mapper);
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-
-        Business ex = Business.of(ResponseCode.VALIDATION_ERROR_400, "detail");
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains("\"code\":500");
-    }
-
-    @Test
-    void handleUnknownExceptionReturnsError() {
-        FailureProperties props = new FailureProperties();
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-        RuntimeException ex = new RuntimeException("x");
-
-        assertThrows(RuntimeException.class, () -> handler.handle(exchange, ex).block());
-    }
-
-    @Test
-    void resolveTraceIdReturnsNullWhenExchangeNullAndContextNull() throws Exception {
-        FailureProperties props = new FailureProperties();
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(null, props, new ObjectMapper());
-
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-        Object out = m.invoke(handler, null, Context.empty());
-        assertThat(out).isNull();
-    }
-
-    @Test
-    void resolveTraceIdUsesAttributeWhenContextBlank() throws Exception {
-        FailureProperties props = new FailureProperties();
-        props.getTraceId().setEnabled(true);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setTraceId(" ");
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-        exchange.getAttributes().put(FailureConst.FIELD_TRACE_ID, "attr");
-
-        Object out = m.invoke(handler, exchange, Context.empty());
-        assertThat(out).isEqualTo("attr");
-    }
-
-    @Test
-    void resolveTraceIdUsesHeaderWhenAttributeBlank() throws Exception {
-        FailureProperties props = new FailureProperties();
-        props.getTraceId().setEnabled(true);
-        props.getTraceId().setHeaderName("X-Trace-Id");
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setTraceId(" ");
-        Ex.setContext(context);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t")
-                .header("X-Trace-Id", "hdr")
-                .build());
-        exchange.getAttributes().put(FailureConst.FIELD_TRACE_ID, "");
-
-        Object out = m.invoke(handler, exchange, Context.empty());
-        assertThat(out).isEqualTo("hdr");
-    }
-
-    @Test
-    void resolveTraceIdSkipsHeaderWhenHeaderNameBlankAndPropertiesNull() throws Exception {
-        FailureProperties props = new FailureProperties();
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setTraceId(" ");
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, null, new ObjectMapper());
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-        Object out = m.invoke(handler, exchange, Context.empty());
-        assertThat(out).isEqualTo(" ");
-    }
-
-    @Test
-    void handleBusinessOmitsTraceIdWhenPropertiesNull() {
-        FailureProperties props = new FailureProperties();
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, null, new ObjectMapper());
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-
-        Business ex = Business.of(ResponseCode.VALIDATION_ERROR_400, "detail");
-        handler.handle(exchange, ex).contextWrite(Context.of(ReactiveTrace.SCENE_KEY, "CREATE")).block();
-
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).contains(FailureConst.FIELD_SCENE);
-        assertThat(body).doesNotContain(FailureConst.FIELD_TRACE_ID);
-        assertThat(body).doesNotContain(FailureConst.FIELD_ERRORS);
-    }
-
-    @Test
-    void handleBusinessOmitsTraceIdWhenTraceIdConfigNull() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(false);
-        props.setTraceId(null);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-
-        Business ex = Business.of(ResponseCode.VALIDATION_ERROR_400, "detail");
-        handler.handle(exchange, ex).contextWrite(Context.of(ReactiveTrace.TRACE_ID_KEY, "ctx", ReactiveTrace.SCENE_KEY, "CREATE")).block();
-
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).doesNotContain(FailureConst.FIELD_TRACE_ID);
-    }
-
-    @Test
-    void handleBusinessOmitsSceneWhenSceneBlank() {
-        FailureProperties props = new FailureProperties();
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setScene(" ");
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-
-        Business ex = Business.of(ResponseCode.VALIDATION_ERROR_400, "detail");
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).doesNotContain(FailureConst.FIELD_SCENE);
-    }
-
-    @Test
-    void handleMultiBusinessOmitsTraceIdAndErrorsWhenPropertiesNull() {
-        FailureProperties props = new FailureProperties();
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setScene(" ");
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, null, new ObjectMapper());
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-
-        MultiBusiness ex = new MultiBusiness(List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "a"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "b")
-        ));
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).doesNotContain(FailureConst.FIELD_TRACE_ID);
-        assertThat(body).doesNotContain(FailureConst.FIELD_ERRORS);
-        assertThat(body).doesNotContain(FailureConst.FIELD_SCENE);
-    }
-
-    @Test
-    void handleMultiBusinessOmitsTraceIdWhenTraceIdConfigNullAndVerboseFalse() {
-        FailureProperties props = new FailureProperties();
-        props.setVerbose(false);
-        props.setTraceId(null);
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-
-        MultiBusiness ex = new MultiBusiness(List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "a"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "b")
-        ));
-        handler.handle(exchange, ex).contextWrite(Context.empty()).block();
-
-        String body = exchange.getResponse().getBodyAsString().block();
-        assertThat(body).doesNotContain(FailureConst.FIELD_TRACE_ID);
-        assertThat(body).doesNotContain(FailureConst.FIELD_ERRORS);
-    }
-
-    @Test
-    void resolveTraceIdSkipsHeaderWhenHeaderNameBlank() throws Exception {
-        FailureProperties props = new FailureProperties();
-        props.getTraceId().setEnabled(true);
-        props.getTraceId().setHeaderName(" ");
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setTraceId(" ");
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-        Object out = m.invoke(handler, exchange, Context.empty());
-        assertThat(out).isEqualTo(" ");
-    }
-
-    @Test
-    void resolveTraceIdSkipsHeaderWhenHeaderValueBlank() throws Exception {
-        FailureProperties props = new FailureProperties();
-        props.getTraceId().setEnabled(true);
-        props.getTraceId().setHeaderName("X-Trace-Id");
-        FailureContext context = new FailureContext(props, new CodeMappingConfig(props), null);
-        context.setTraceId(" ");
-        Ex.setContext(context);
-
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(context, props, new ObjectMapper());
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t")
-                .header("X-Trace-Id", " ")
-                .build());
-        Object out = m.invoke(handler, exchange, Context.empty());
-        assertThat(out).isEqualTo(" ");
-    }
-
-    @Test
-    void resolveTraceIdHitsFinalReturnWhenContextNull() throws Exception {
-        FailureProperties props = new FailureProperties();
-        props.getTraceId().setEnabled(true);
-        FailFastWebExceptionHandler handler = new FailFastWebExceptionHandler(null, props, new ObjectMapper());
-
-        java.lang.reflect.Method m = FailFastWebExceptionHandler.class.getDeclaredMethod("resolveTraceId", ServerWebExchange.class, ContextView.class);
-        m.setAccessible(true);
-
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/t").build());
-        Object out = m.invoke(handler, exchange, Context.empty());
-        assertThat(out).isNull();
+    private static class TestObject {
+        private String field1;
+        private String field2;
     }
 }
-

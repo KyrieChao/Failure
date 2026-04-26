@@ -2,7 +2,7 @@ package com.chao.failfast.web;
 
 import com.chao.failfast.Failure;
 import com.chao.failfast.annotation.FailFastBody;
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import com.chao.failfast.annotation.Validate;
 import com.chao.failfast.autoconfigure.FailFastAutoConfiguration;
 import com.chao.failfast.internal.core.ResponseCode;
@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -28,13 +29,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.chao.failfast.spi.config.FailFastConfigurer;
+import com.chao.failfast.spi.validation.ValidatorWhitelistRegistry;
 
 /**
  * Spring Web 集成示例
  * 展示如何�?Controller 层使�?Fail-Fast 进行请求参数验证
  */
 @WebMvcTest(WebIntegrationTest.ExampleController.class)
-@Import(FailFastAutoConfiguration.class) // 导入 Fail-Fast 自动配置
+@Import({FailFastAutoConfiguration.class, WebIntegrationTest.WhitelistConfig.class}) // 导入 Fail-Fast 自动配置
 @EnableAspectJAutoProxy
 @org.springframework.test.context.TestPropertySource(properties = "fail-fast.i18n.default-locale=zh_CN")
 class WebIntegrationTest {
@@ -122,8 +125,9 @@ class WebIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andDo(print())
-                .andExpect(status().isInternalServerError())
-                // 验证 description 包含了所有错误信�?
+                // MultiBusiness 继承第一个错误的 HTTP 状态码 (400)
+                .andExpect(status().isBadRequest())
+                // 验证 description 包含了所有错误信息
                 .andExpect(jsonPath("$.description").isNotEmpty());
     }
 
@@ -244,6 +248,19 @@ class WebIntegrationTest {
             if (target.getAge() != null && target.getAge() < 18) {
                 context.reportError(ResponseCode.of(1002, "must be >= 18"));
             }
+        }
+    }
+
+    @TestConfiguration
+    static class WhitelistConfig {
+        @org.springframework.context.annotation.Bean
+        FailFastConfigurer failFastConfigurer() {
+            return new FailFastConfigurer() {
+                @Override
+                public void addValidatorWhitelist(ValidatorWhitelistRegistry registry) {
+                    registry.add(UserValidator.class);
+                }
+            };
         }
     }
 }

@@ -1,13 +1,10 @@
 package com.chao.failfast.validator;
 
-import com.chao.failfast.annotation.FastValidator;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.internal.core.ResponseCode;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.ArrayDeque;
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
@@ -15,8 +12,9 @@ import java.util.function.BiConsumer;
  * TypedValidator - Abstract generic validator class.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
+@Slf4j
 public abstract class TypedValidator implements FastValidator<Object> {
 
     /**
@@ -39,6 +37,14 @@ public abstract class TypedValidator implements FastValidator<Object> {
      */
     protected void registerValidators() {
         // Default empty implementation
+    }
+
+    protected int getPriority(Class<?> registeredType) {
+        return 0;
+    }
+
+    protected boolean failOnAmbiguousHandler() {
+        return false;
     }
 
     /**
@@ -91,7 +97,7 @@ public abstract class TypedValidator implements FastValidator<Object> {
     }
 
     /**
-     * 或直接用 size()
+     * Or directly use size()
      */
     public int size() {
         return validators.size();
@@ -136,44 +142,91 @@ public abstract class TypedValidator implements FastValidator<Object> {
         BiConsumer<Object, ValidationContext> exact = validators.get(runtimeType);
         if (exact != null) return exact;
 
-        Class<?> bestType = null;
-        BiConsumer<Object, ValidationContext> bestHandler = null;
+        List<Candidate> bestCandidates = new ArrayList<>();
         int bestDistance = Integer.MAX_VALUE;
 
         for (Map.Entry<Class<?>, BiConsumer<Object, ValidationContext>> e : validators.entrySet()) {
             Class<?> registeredType = e.getKey();
             if (!registeredType.isAssignableFrom(runtimeType)) continue;
-            int distance = distance(runtimeType, registeredType);
-            if (bestHandler == null) {
-                bestDistance = distance;
-                bestType = registeredType;
-                bestHandler = e.getValue();
+            int currentDistance = distance(runtimeType, registeredType);
+            if (currentDistance < bestDistance) {
+                bestCandidates.clear();
+                bestDistance = currentDistance;
+                bestCandidates.add(new Candidate(registeredType, e.getValue(), currentDistance, getPriority(registeredType)));
                 continue;
             }
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                bestType = registeredType;
-                bestHandler = e.getValue();
-            } else if (distance == bestDistance) {
-                boolean bestIsInterface = bestType.isInterface();
-                boolean curIsInterface = registeredType.isInterface();
+            if (currentDistance == bestDistance) {
+                bestCandidates.add(new Candidate(registeredType, e.getValue(), currentDistance, getPriority(registeredType)));
+            }
+        }
 
-                if (bestIsInterface != curIsInterface) {
-                    if (bestIsInterface) {
-                        bestType = registeredType;
-                        bestHandler = e.getValue();
-                    }
+        if (bestCandidates.isEmpty()) {
+            return null;
+        }
+        if (bestCandidates.size() == 1) {
+            return bestCandidates.get(0).handler;
+        }
+
+        bestCandidates.sort(CANDIDATE_ORDER);
+        Candidate chosen = bestCandidates.get(0);
+
+        if (bestCandidates.size() > 1) {
+            int chosenPriority = chosen.priority;
+            boolean chosenIsInterface = chosen.type.isInterface();
+            List<Candidate> ambiguous = new ArrayList<>();
+            for (Candidate c : bestCandidates) {
+                if (c.distance != bestDistance) continue;
+                if (c.priority != chosenPriority) continue;
+                if (c.type.isInterface() != chosenIsInterface) continue;
+                ambiguous.add(c);
+            }
+            if (ambiguous.size() > 1) {
+                StringBuilder sb = new StringBuilder();
+                for (Candidate c : ambiguous) {
+                    if (!sb.isEmpty()) sb.append(", ");
+                    sb.append(c.type.getName())
+                            .append("{distance=").append(c.distance)
+                            .append(", priority=").append(c.priority)
+                            .append(", interface=").append(c.type.isInterface())
+                            .append("}");
+                }
+                if (failOnAmbiguousHandler()) {
+                    throw new IllegalStateException("Ambiguous TypedValidator handler for runtimeType=" + runtimeType.getName()
+                            + ", candidates=[" + sb + "]. Fix: override getPriority(registeredType) to break ties.");
                 } else {
-                    if (registeredType.getName().compareTo(bestType.getName()) < 0) {
-                        bestType = registeredType;
-                        bestHandler = e.getValue();
+                    if (log.isDebugEnabled()) {
+                        log.debug("[FailFast] Ambiguous TypedValidator handler for runtimeType={}, chosenType={} " +
+                                        "candidates=[{}]. Fix: override getPriority(registeredType) to break ties.",
+                                runtimeType.getName(), chosen.type.getName(), sb);
                     }
                 }
             }
         }
 
-        return bestHandler;
+        if (log.isDebugEnabled()) {
+            StringBuilder sb = new StringBuilder();
+            for (Candidate c : bestCandidates) {
+                if (!sb.isEmpty()) sb.append(", ");
+                sb.append(c.type.getName())
+                        .append("{distance=").append(c.distance)
+                        .append(", priority=").append(c.priority)
+                        .append(", interface=").append(c.type.isInterface())
+                        .append("}");
+            }
+            log.debug("[FailFast] TypedValidator resolved handler for runtimeType={} -> chosenType={} candidates=[{}]",
+                    runtimeType.getName(), chosen.type.getName(), sb);
+        }
+
+        return chosen.handler;
     }
+
+    private record Candidate(Class<?> type, BiConsumer<Object, ValidationContext> handler, int distance, int priority) {
+    }
+
+    private static final Comparator<Candidate> CANDIDATE_ORDER = Comparator
+            .comparingInt(Candidate::priority).reversed()
+            .thenComparingInt(c -> c.type.isInterface() ? 1 : 0)
+            .thenComparing(c -> c.type.getName());
 
     private static int distance(Class<?> from, Class<?> to) {
         if (from == null || to == null) return Integer.MAX_VALUE;

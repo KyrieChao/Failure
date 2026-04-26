@@ -1,8 +1,8 @@
 package com.chao.failfast.internal.chain.pipeline;
 
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.internal.validation.ValidationObservers;
+import com.chao.failfast.internal.validation.ValidationEventManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -62,12 +62,12 @@ class ChainCorePipelineTest {
     void notifyViolationShouldCallValidationObservers() {
         TestChain chain = TestChain.create(true);
 
-        try (MockedStatic<ValidationObservers> mocked = Mockito.mockStatic(ValidationObservers.class)) {
+        try (MockedStatic<ValidationEventManager> mocked = Mockito.mockStatic(ValidationEventManager.class)) {
             // 执行测试
             chain.publicNotifyViolation("test-source", "test-constraint");
 
             // 验证调用
-            mocked.verify(() -> ValidationObservers.notifyViolation("test-source", "test-constraint"));
+            mocked.verify(() -> ValidationEventManager.notifyViolation("test-source", "test-constraint"));
         }
     }
 
@@ -76,12 +76,12 @@ class ChainCorePipelineTest {
     void notifyValidationStartShouldCallValidationObservers() {
         TestChain chain = TestChain.create(true);
 
-        try (MockedStatic<ValidationObservers> mocked = Mockito.mockStatic(ValidationObservers.class)) {
+        try (MockedStatic<ValidationEventManager> mocked = Mockito.mockStatic(ValidationEventManager.class)) {
             // 执行测试
             chain.publicNotifyValidationStart("test-source", "test-scene");
 
             // 验证调用
-            mocked.verify(() -> ValidationObservers.notifyStart("test-source", "test-scene"));
+            mocked.verify(() -> ValidationEventManager.notifyStart("test-source", "test-scene"));
         }
     }
 
@@ -90,12 +90,12 @@ class ChainCorePipelineTest {
     void notifyValidationEndShouldCallValidationObservers() {
         TestChain chain = TestChain.create(true);
 
-        try (MockedStatic<ValidationObservers> mocked = Mockito.mockStatic(ValidationObservers.class)) {
+        try (MockedStatic<ValidationEventManager> mocked = Mockito.mockStatic(ValidationEventManager.class)) {
             // 执行测试
             chain.publicNotifyValidationEnd("test-source", 1000L, true);
 
             // 验证调用
-            mocked.verify(() -> ValidationObservers.notifyEnd("test-source", 1000L, true));
+            mocked.verify(() -> ValidationEventManager.notifyEnd("test-source", 1000L, true));
         }
     }
 
@@ -104,12 +104,12 @@ class ChainCorePipelineTest {
     void notifyValidationFailureShouldCallValidationObservers() {
         TestChain chain = TestChain.create(true);
 
-        try (MockedStatic<ValidationObservers> mocked = Mockito.mockStatic(ValidationObservers.class)) {
+        try (MockedStatic<ValidationEventManager> mocked = Mockito.mockStatic(ValidationEventManager.class)) {
             // 执行测试
             chain.publicNotifyValidationFailure("test-source", "test-error-code");
 
             // 验证调用
-            mocked.verify(() -> ValidationObservers.notifyFailure("test-source", "test-error-code"));
+            mocked.verify(() -> ValidationEventManager.notifyFailure("test-source", "test-error-code"));
         }
     }
 
@@ -118,12 +118,12 @@ class ChainCorePipelineTest {
     void checkWithPathAndConstraintShouldCallNotifyViolationWhenConstraintNotNull() {
         TestChain chain = TestChain.create(true);
 
-        try (MockedStatic<ValidationObservers> mocked = Mockito.mockStatic(ValidationObservers.class)) {
+        try (MockedStatic<ValidationEventManager> mocked = Mockito.mockStatic(ValidationEventManager.class)) {
             // 执行测试 - 条件�?false，会触发错误
             chain.publicCheckWithPathAndConstraint(false, ResponseCode.VALIDATION_ERROR_400, "Test error", "test-value", "test-path", "test-constraint", "test-source");
 
             // 验证调用
-            mocked.verify(() -> ValidationObservers.notifyViolation("test-source", "test-constraint"));
+            mocked.verify(() -> ValidationEventManager.notifyViolation("test-source", "test-constraint"));
         }
     }
 

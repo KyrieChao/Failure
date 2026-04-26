@@ -1,6 +1,6 @@
 package com.chao.failfast.aspect;
 
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import com.chao.failfast.annotation.Scene;
 import com.chao.failfast.annotation.SkipValidation;
 import com.chao.failfast.annotation.Validate;

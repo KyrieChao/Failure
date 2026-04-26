@@ -1,5 +1,6 @@
 package com.chao.failfast.internal.chain;
 
+import com.chao.failfast.condition.Predicate;
 import com.chao.failfast.internal.core.Chain;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +46,42 @@ class ChainFlowControlTest {
                 .isTrue(false) // 跳过
                 .when(true)
                 .isTrue(false, ResponseCode.of(400, "Should fail")); // 执行且失败
+
+        assertThat(chain.isValid()).isFalse();
+        assertThat(chain.getCauses()).hasSize(1);
+        assertThat(chain.getCauses().get(0).getResponseCode().getMessage()).isEqualTo("Should fail");
+    }
+
+    @Test
+    @DisplayName("when(ValidationCondition) 应支持组合条件 (如 (A||B)&&(C||D))")
+    void whenConditionShouldSupportComplexLogic() {
+        Chain chain = Chain.begin(true);
+
+        boolean a = false;
+        boolean b = true;
+        boolean c = false;
+        boolean d = false;
+
+        Predicate condition = Predicate
+                .anyOf(a, b)
+                .and(Predicate.anyOf(c, d));
+
+        chain.when(condition)
+                .isTrue(false, ResponseCode.of(400, "Should be skipped"));
+
+        assertThat(chain.isValid()).isTrue();
+        assertThat(chain.getCauses()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("when(ValidationCondition) 条件为 true 时应执行后续校验")
+    void whenConditionTrueShouldExecuteChecks() {
+        Chain chain = Chain.begin(true);
+
+        Predicate condition = Predicate.anyOf(false, true).and(true);
+
+        chain.when(condition)
+                .isTrue(false, ResponseCode.of(400, "Should fail"));
 
         assertThat(chain.isValid()).isFalse();
         assertThat(chain.getCauses()).hasSize(1);

@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  *
  * @param <T> Return value type on success
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -473,7 +473,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
          * @param data Success data
          */
         public Success(T data) {
-            super(200, "Success", "操作成功");
+            super(200, "Success", "Operation successful");
             this.data = data;
         }
     }

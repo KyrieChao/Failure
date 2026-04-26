@@ -1,6 +1,6 @@
 package com.chao.failfast.config.registry;
 
-import com.chao.failfast.spi.SkipPrefixRegistry;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
 
 import java.util.Collections;
 import java.util.Set;
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Default implementation of SkipPrefixRegistry.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public class DefaultSkipPrefixRegistry implements SkipPrefixRegistry {
 

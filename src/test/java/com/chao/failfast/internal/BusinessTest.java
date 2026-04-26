@@ -1,32 +1,40 @@
-package com.chao.failfast.exception;
+package com.chao.failfast.internal;
 
-import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.constant.Severity;
 import com.chao.failfast.constant.FailureConst;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
+import com.chao.failfast.internal.core.observability.OpenTelemetryBridge;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.internal.policy.ErrorPolicy;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import com.chao.failfast.model.TestResponseCode;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Method;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Business exception test class.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
+@Slf4j
 @DisplayName("Business Exception Test")
 @Tag("business")
 @ExtendWith(MockitoExtension.class)
@@ -203,7 +211,7 @@ class BusinessTest {
             // Given
             ErrorPolicy errorPolicy = mock(ErrorPolicy.class);
             when(errorPolicy.defaultDetail(testCode)).thenReturn("Default detail");
-            
+
             FailureContext context = mock(FailureContext.class);
             when(context.getErrorPolicy()).thenReturn(errorPolicy);
 
@@ -490,6 +498,7 @@ class BusinessTest {
                 Business business = Business.compose()
                         .responseCode(testCode)
                         .detail("Invalid input")
+                        .path("profile.mobile")
                         .invalidValue("13800138000") // Mobile number
                         .materialize();
 
@@ -677,6 +686,96 @@ class BusinessTest {
         }
 
         @Test
+        @DisplayName("shouldFillStackTrace() - should return false when context is not null but codeMappingConfig is null")
+        void testShouldFillStackTraceWithNullCodeMappingConfig() {
+            // Given
+            FailureContext context = mock(FailureContext.class);
+            when(context.isShadowTrace()).thenReturn(false);
+            when(context.getCodeMappingConfig()).thenReturn(null);
+
+            try (MockedStatic<Ex> exMock = mockStatic(Ex.class)) {
+                exMock.when(Ex::getContext).thenReturn(context);
+
+                // When
+                boolean result = invokeShouldFillStackTrace(testCode);
+
+                // Then
+                assertThat(result).isFalse();
+            }
+        }
+
+        @Test
+        @DisplayName("shouldFillStackTrace() - should return true when severity is set and fillStackTrace is true")
+        void testShouldFillStackTraceWithSeverityFillStackTraceTrue() {
+            // Given
+            FailureContext context = mock(FailureContext.class);
+            when(context.isShadowTrace()).thenReturn(false);
+
+            try (MockedStatic<Ex> exMock = mockStatic(Ex.class)) {
+                exMock.when(Ex::getContext).thenReturn(context);
+
+                // When
+                boolean result = invokeShouldFillStackTraceWithSeverity(testCode, Severity.WARNING);
+
+                // Then
+                assertThat(result).isTrue();
+            }
+        }
+
+        @Test
+        @DisplayName("shouldFillStackTrace() - should return false when severity is set but fillStackTrace is false")
+        void testShouldFillStackTraceWithSeverityFillStackTraceFalse() {
+            // Given
+            FailureContext context = mock(FailureContext.class);
+            when(context.isShadowTrace()).thenReturn(false);
+
+            try (MockedStatic<Ex> exMock = mockStatic(Ex.class)) {
+                exMock.when(Ex::getContext).thenReturn(context);
+
+                // When
+                boolean result = invokeShouldFillStackTraceWithSeverity(testCode, Severity.INFO);
+
+                // Then
+                assertThat(result).isFalse();
+            }
+        }
+
+        @Test
+        @DisplayName("firstNonBlank() - should return null when values array is empty")
+        void testFirstNonBlankWithEmptyArray() {
+            String result = invokeFirstNonBlank();
+            assertThat(result).isNull();
+        }
+
+        @Test
+        @DisplayName("firstNonBlank() - should return null when all values are null")
+        void testFirstNonBlankWithAllNullValues() {
+            String result = invokeFirstNonBlank(null, null, null);
+            assertThat(result).isNull();
+        }
+
+        @Test
+        @DisplayName("firstNonBlank() - should return first non-null non-blank value")
+        void testFirstNonBlankWithMixedValues() {
+            String result = invokeFirstNonBlank(null, "", "valid");
+            assertThat(result).isEqualTo("valid");
+        }
+
+        @Test
+        @DisplayName("firstNonBlank() - should skip blank strings")
+        void testFirstNonBlankWithBlankStrings() {
+            String result = invokeFirstNonBlank("  ", "\t", "value");
+            assertThat(result).isEqualTo("value");
+        }
+
+        @Test
+        @DisplayName("firstNonBlank() - should return first non-blank value among multiple")
+        void testFirstNonBlankWithMultipleNonBlank() {
+            String result = invokeFirstNonBlank("first", "second", "third");
+            assertThat(result).isEqualTo("first");
+        }
+
+        @Test
         @DisplayName("extractFileLine() - should extract file line correctly")
         void testExtractFileLine() {
             // Given
@@ -754,7 +853,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "13800138000");
+            String result = invokeMaskValue(business, "13800138000", null);
 
             // Then
             assertThat(result).isEqualTo("138****8000");
@@ -767,7 +866,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "test@example.com");
+            String result = invokeMaskValue(business, "test@example.com", null);
 
             // Then
             assertThat(result).contains("****@example.com");
@@ -780,7 +879,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "1234567890123456");
+            String result = invokeMaskValue(business, "1234567890123456", null);
 
             // Then
             assertThat(result).isEqualTo("1234****3456");
@@ -794,7 +893,7 @@ class BusinessTest {
             String longString = "a".repeat(60);
 
             // When
-            String result = invokeMaskValue(business, longString);
+            String result = invokeMaskValue(business, longString, null);
 
             // Then
             assertThat(result).contains("...(60char)...");
@@ -807,7 +906,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "");
+            String result = invokeMaskValue(business, "", null);
 
             // Then
             assertThat(result).isEmpty();
@@ -820,10 +919,18 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "normal string");
+            String result = invokeMaskValue(business, "normal string", null);
 
             // Then
             assertThat(result).isEqualTo("normal string");
+        }
+
+        @Test
+        @DisplayName("maskValue() - should mask by sensitive field path")
+        void testMaskValueWithSensitivePath() {
+            Business business = Business.of(testCode, "Invalid input");
+            String result = invokeMaskValue(business, "plain-token-value", "headers.accessToken");
+            assertThat(result).isEqualTo("***[MASKED]***");
         }
     }
 
@@ -853,6 +960,7 @@ class BusinessTest {
             assertThat(business.getLocation()).isEqualTo(location);
             assertThat(business.getHttpStatus()).isEqualTo(httpStatus);
             assertThat(business.getInvalidValue()).isEqualTo(invalidValue);
+            assertThat(business.getMaskedValue()).isEqualTo(invalidValue);
             assertThat(business.getPath()).isEqualTo(path);
         }
 
@@ -877,6 +985,7 @@ class BusinessTest {
             assertThat(business.getLocation()).isEqualTo(location);
             assertThat(business.getHttpStatus()).isEqualTo(httpStatus);
             assertThat(business.getInvalidValue()).isEqualTo(invalidValue);
+            assertThat(business.getMaskedValue()).isEqualTo(invalidValue);
             assertThat(business.getPath()).isNull();
         }
 
@@ -914,14 +1023,155 @@ class BusinessTest {
             // Check that super constructor was called with unknown error
             assertThat(business.getMessage()).isNotNull();
         }
+
+        @Test
+        @DisplayName("Serialization - should not serialize raw invalidValue")
+        void testSerializationWithTransientInvalidValue() throws Exception {
+            Business business = new Business(TestResponseCode.PARAM_ERROR, "Invalid input", "method", "location", org.springframework.http.HttpStatus.BAD_REQUEST, "my-secret-token", "headers.accessToken");
+            Business restored = roundTrip(business);
+            assertThat(restored.getInvalidValue()).isNull();
+            assertThat(restored.getMaskedValue()).isEqualTo("***[MASKED]***");
+        }
+
+        @Test
+        @DisplayName("Constructor - should truncate long detail")
+        void testConstructorShouldTruncateLongDetail() {
+            String longDetail = "a".repeat(2000);
+            Business business = new Business(TestResponseCode.PARAM_ERROR, longDetail, "method", "location", org.springframework.http.HttpStatus.BAD_REQUEST, null, "p");
+            assertThat(business.getDetail()).endsWith("...");
+            assertThat(business.getDetail().length()).isLessThanOrEqualTo(1027);
+        }
+
+        @Test
+        @DisplayName("Constructor - should sanitize dangerous detail")
+        void testConstructorShouldSanitizeDangerousDetail() {
+            String dangerous = "<script>alert(1)</script>";
+            Business business = new Business(TestResponseCode.PARAM_ERROR, dangerous, "method", "location", org.springframework.http.HttpStatus.BAD_REQUEST, null, "p");
+            assertThat(business.getDetail()).isEqualTo("Invalid detail content");
+        }
+
+        @Test
+        @DisplayName("Fabricator - should support explicit severity")
+        void testMaterializeWithExplicitSeverity() {
+            Business business = Business.compose()
+                    .responseCode(TestResponseCode.PARAM_ERROR)
+                    .detail("d")
+                    .severity(Severity.CRITICAL)
+                    .materialize();
+            assertThat(business.getSeverity()).isEqualTo(Severity.CRITICAL);
+        }
+
+        @Test
+        @DisplayName("Fabricator - should carry traceId/spanId")
+        void testMaterializeWithTraceAndSpan() {
+            Business business = Business.compose()
+                    .responseCode(TestResponseCode.PARAM_ERROR)
+                    .detail("d")
+                    .traceId("trace-x")
+                    .spanId("span-y")
+                    .materialize();
+            assertThat(business.getTraceId()).isEqualTo("trace-x");
+            assertThat(business.getSpanId()).isEqualTo("span-y");
+        }
+
+        @Test
+        @DisplayName("Constructor with traceId/spanId - should initialize all fields correctly")
+        void testConstructorWithTraceIdAndSpanId() {
+            // Given
+            String detail = "Invalid input";
+            String method = "testMethod";
+            String location = "TestClass.java:10";
+            org.springframework.http.HttpStatus httpStatus = org.springframework.http.HttpStatus.BAD_REQUEST;
+            Object invalidValue = "test";
+            String path = "user.name";
+            String traceId = "trace-123";
+            String spanId = "span-456";
+
+            // When
+            Business business = new Business(TestResponseCode.PARAM_ERROR, detail, method, location, httpStatus, invalidValue, path, traceId, spanId);
+
+            // Then
+            assertThat(business).isNotNull();
+            assertThat(business.getResponseCode()).isEqualTo(TestResponseCode.PARAM_ERROR);
+            assertThat(business.getDetail()).isEqualTo(detail);
+            assertThat(business.getMethod()).isEqualTo(method);
+            assertThat(business.getLocation()).isEqualTo(location);
+            assertThat(business.getHttpStatus()).isEqualTo(httpStatus);
+            assertThat(business.getInvalidValue()).isEqualTo(invalidValue);
+            assertThat(business.getPath()).isEqualTo(path);
+            assertThat(business.getTraceId()).isEqualTo(traceId);
+            assertThat(business.getSpanId()).isEqualTo(spanId);
+        }
+
+        @Test
+        @DisplayName("Constructor with traceId/spanId - should prefer explicit traceId over otel")
+        void testConstructorPrefersExplicitTraceId() {
+            // When
+            Business business = new Business(TestResponseCode.PARAM_ERROR, "detail", "method", "location",
+                    HttpStatus.BAD_REQUEST, null, null, "explicit-trace", "explicit-span");
+
+            // Then
+            assertThat(business.getTraceId()).isEqualTo("explicit-trace");
+            assertThat(business.getSpanId()).isEqualTo("explicit-span");
+        }
+
+        @Test
+        @DisplayName("Constructor - should resolve severity by properties mapping")
+        void testResolveSeverityByProperties() {
+            FailureProperties properties = new FailureProperties();
+            properties.getLogging().setDefaultSeverity("INFO");
+            properties.getLogging().getSeverityMapping().put(String.valueOf(TestResponseCode.PARAM_ERROR.getCode()), "DEBUG");
+            FailureContext context = new FailureContext(properties, new CodeMappingConfig(properties), null);
+            Ex.setContext(context);
+            try {
+                Business business = Business.of(TestResponseCode.PARAM_ERROR, "detail");
+                assertThat(business.getSeverity()).isEqualTo(Severity.DEBUG);
+            } finally {
+                Ex.setContext(null);
+            }
+        }
+
+        @Test
+        @DisplayName("FristBlank")
+        void testFristBlank() {
+            // 在测试中
+            try (MockedStatic<OpenTelemetryBridge> mock = mockStatic(OpenTelemetryBridge.class)) {
+                mock.when(OpenTelemetryBridge::currentTraceId).thenReturn(null);
+                mock.when(OpenTelemetryBridge::currentSpanId).thenReturn(null);
+
+                // 执行测试代码
+                Business business = new Business(TestResponseCode.PARAM_ERROR, "detail", "method", "location", HttpStatus.BAD_REQUEST, null, null, null, null);
+                log.info("business: {}", String.valueOf(business));
+            }
+        }
     }
 
     // Helper methods to invoke private methods using reflection
     private boolean invokeShouldFillStackTrace(ResponseCode code) {
         try {
-            java.lang.reflect.Method method = Business.class.getDeclaredMethod("shouldFillStackTrace", ResponseCode.class);
+            Method method = Business.class.getDeclaredMethod("shouldFillStackTrace", ResponseCode.class, Severity.class);
             method.setAccessible(true);
-            return (boolean) method.invoke(null, code);
+            return (boolean) method.invoke(null, code, null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean invokeShouldFillStackTraceWithSeverity(ResponseCode code, Severity severity) {
+        try {
+            Method method = Business.class.getDeclaredMethod("shouldFillStackTrace", ResponseCode.class, Severity.class);
+            method.setAccessible(true);
+            return (boolean) method.invoke(null, code, severity);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String invokeFirstNonBlank(String... values) {
+        try {
+            java.lang.reflect.Method method = Business.class.getDeclaredMethod("firstNonBlank", String[].class);
+            method.setAccessible(true);
+            return (String) method.invoke(null, (Object) values);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -937,13 +1187,23 @@ class BusinessTest {
         }
     }
 
-    private String invokeMaskValue(Business business, Object value) {
+    private String invokeMaskValue(Business business, Object value, String path) {
         try {
-            java.lang.reflect.Method method = Business.class.getDeclaredMethod("maskValue", Object.class);
+            java.lang.reflect.Method method = Business.class.getDeclaredMethod("maskValue", Object.class, String.class);
             method.setAccessible(true);
-            return (String) method.invoke(business, value);
+            return (String) method.invoke(business, value, path);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private Business roundTrip(Business business) throws Exception {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(bos)) {
+            oos.writeObject(business);
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()))) {
+            return (Business) ois.readObject();
         }
     }
 

@@ -1,7 +1,7 @@
 package com.chao.failfast.test;
 
 import com.chao.failfast.Failure;
-import com.chao.failfast.annotation.FastValidator;
+import com.chao.failfast.validator.FastValidator;
 import com.chao.failfast.config.mapping.CodeMappingConfig;
 import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.internal.core.ResponseCode;

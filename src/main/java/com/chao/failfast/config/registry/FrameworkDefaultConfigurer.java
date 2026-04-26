@@ -1,8 +1,8 @@
 package com.chao.failfast.config.registry;
 
-import com.chao.failfast.spi.FailFastConfigurer;
-import com.chao.failfast.spi.SkipPrefixRegistry;
-import com.chao.failfast.spi.SkipTypeRegistry;
+import com.chao.failfast.spi.config.FailFastConfigurer;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.validation.Validator;
@@ -21,24 +21,24 @@ public class FrameworkDefaultConfigurer implements FailFastConfigurer {
     @Override
     public void addExceptionSkipPrefixes(SkipPrefixRegistry registry) {
         registry.add(
-                "com.chao.failfast.annotation",   // 注解类
-                "com.chao.failfast.aspect",       // 切面类
-                "com.chao.failfast.autoconfigure",// 自动配置类
-                "com.chao.failfast.config",       // 配置类
-                "com.chao.failfast.constant",     // 常量类
-                "com.chao.failfast.exception",    // 异常类
-                "com.chao.failfast.integration",  // 集成类
-                "com.chao.failfast.internal",     // 内部类
-                "com.chao.failfast.result",       // Result类
-                "com.chao.failfast.spi",          // SPI接口
-                "com.chao.failfast.util",         // 工具类
-                "com.chao.failfast.Failure",      // 入口
-                "org.springframework",            // Spring框架
-                "org.apache",                     // Apache相关组件
-                "jakarta",                        // Jakarta EE规范
-                "java.",                          // Java标准库
-                "jdk.",                           // JDK内部类
-                "sun."                            // Sun Microsystems遗留类
+                "com.chao.failfast.annotation",   // Annotation classes
+                "com.chao.failfast.aspect",       // Aspect classes
+                "com.chao.failfast.autoconfigure",// Auto-configuration classes
+                "com.chao.failfast.config",       // Configuration classes
+                "com.chao.failfast.constant",     // Constant classes
+                "com.chao.failfast.exception",    // Exception classes
+                "com.chao.failfast.integration",  // Integration classes
+                "com.chao.failfast.internal",     // Internal classes
+                "com.chao.failfast.result",       // Result classes
+                "com.chao.failfast.spi",          // SPI interfaces
+                "com.chao.failfast.util",         // Utility classes
+                "com.chao.failfast.Failure",      // Entry point
+                "org.springframework",            // Spring framework
+                "org.apache",                     // Apache components
+                "jakarta",                        // Jakarta EE spec
+                "java.",                          // Java standard library
+                "jdk.",                           // JDK internal classes
+                "sun."                            // Sun Microsystems legacy classes
         );
     }
 

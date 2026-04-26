@@ -161,13 +161,14 @@ class MultiBusinessTest {
         }
 
         @Test
-        @DisplayName("httpStatus 应为 BAD_REQUEST")
-        void shouldHaveBadRequestStatus() {
+        @DisplayName("httpStatus 应为第一个错误的 HTTP 状态码")
+        void shouldHaveFirstErrorHttpStatus() {
             List<Business> errors = List.of(Business.of(TestResponseCode.PARAM_ERROR));
 
             MultiBusiness multiBusiness = new MultiBusiness(errors);
 
-            assertThat(multiBusiness.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            // MultiBusiness 应该继承第一个 Business 对象的 HTTP 状态码
+            assertThat(multiBusiness.getHttpStatus()).isEqualTo(errors.get(0).getHttpStatus());
         }
     }
 }

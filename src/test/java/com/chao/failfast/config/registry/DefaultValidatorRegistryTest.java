@@ -1,7 +1,7 @@
 package com.chao.failfast.config.registry;
 
-import com.chao.failfast.annotation.FastValidator;
-import com.chao.failfast.spi.ValidatorRegistry;
+import com.chao.failfast.validator.FastValidator;
+import com.chao.failfast.spi.validation.ValidatorRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

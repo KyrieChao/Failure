@@ -1,21 +1,21 @@
 package com.chao.failfast.internal.chain.pipeline;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.exception.Business;
+import com.chao.failfast.internal.core.Ex;
+import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.internal.validation.RecursiveOptions;
+import com.chao.failfast.internal.validation.RecursiveOption;
 import com.chao.failfast.validator.TypedValidator;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class ChainCoreTest {
 
@@ -196,7 +196,7 @@ class ChainCoreTest {
     void testRecursive() {
         TestChainCore chain = new TestChainCore(true, null);
         TypedValidator validator = Mockito.mock(TypedValidator.class);
-        RecursiveOptions options = RecursiveOptions.builder().build();
+        RecursiveOption options = RecursiveOption.builder().build();
         TestChainCore result = chain.recursive(new Object(), validator, options);
         assertSame(chain, result);
     }
@@ -213,5 +213,41 @@ class ChainCoreTest {
         TestChainCore chain = new TestChainCore(true, null);
         TestChainCore result = chain.print(System.out::println);
         assertSame(chain, result);
+    }
+
+    @Test
+    void should_returnTrue_when_hasReachedErrorLimitHitsConfiguredCap() throws Exception {
+        TestChainCore chain = new TestChainCore(false, null);
+        FailureContext failureContext = Mockito.mock(FailureContext.class);
+        try {
+            Ex.setContext(failureContext);
+            Mockito.when(failureContext.getStrictMaxErrors()).thenReturn(1);
+            chain.check(false, ResponseCode.VALIDATION_ERROR_400, "boom");
+
+            var method = ChainCore.class.getDeclaredMethod("hasReachedErrorLimit");
+            method.setAccessible(true);
+
+            assertTrue((boolean) method.invoke(chain));
+        } finally {
+            Ex.setContext(null);
+        }
+    }
+
+    @Test
+    void should_returnFalse_when_hasReachedErrorLimitSeesNonPositiveLimit() throws Exception {
+        TestChainCore chain = new TestChainCore(false, null);
+        FailureContext failureContext = Mockito.mock(FailureContext.class);
+        try {
+            Ex.setContext(failureContext);
+            Mockito.when(failureContext.getStrictMaxErrors()).thenReturn(0);
+            chain.check(false, ResponseCode.VALIDATION_ERROR_400, "boom");
+
+            var method = ChainCore.class.getDeclaredMethod("hasReachedErrorLimit");
+            method.setAccessible(true);
+
+            assertFalse((boolean) method.invoke(chain));
+        } finally {
+            Ex.setContext(null);
+        }
     }
 }

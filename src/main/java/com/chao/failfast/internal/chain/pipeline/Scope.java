@@ -16,9 +16,9 @@ import java.util.function.*;
  *
  * @param <T> Element type
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
-@ToImprove(value = "Scope 可能会变肿", version = "1.3.0", tag = "1.8.0")
+@ToImprove(value = "Scope might become bloated", version = "1.3.0", tag = "1.8.0")
 public class Scope<T> {
 
     private final ChainCore<?> chain;
@@ -445,7 +445,7 @@ public class Scope<T> {
         return check(ref.ref(), ok, code, detail);
     }
 
-    // ===== 数字比较方法 =====
+    // ===== Numeric comparison methods =====
 
     /**
      * Check if number is greater than threshold.
@@ -563,7 +563,7 @@ public class Scope<T> {
         return lessOrEqual(ref.ref(), threshold, code);
     }
 
-    // ===== 字符串比较方法 =====
+    // ===== String comparison methods =====
 
     /**
      * Check if string length is between min and max (inclusive).

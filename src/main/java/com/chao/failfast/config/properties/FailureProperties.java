@@ -12,7 +12,7 @@ import java.util.Map;
  * Failure configuration properties - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Data
 @ConfigurationProperties(prefix = "fail-fast")
@@ -52,6 +52,13 @@ public class FailureProperties {
     private TraceId traceId = new TraceId();
 
     private Reactive reactive = new Reactive();
+    private Logging logging = new Logging();
+    private Masking masking = new Masking();
+
+    /**
+     * Chain-level behavior configuration.
+     */
+    private Chain chain = new Chain();
 
     /**
      * Internationalization configuration class.
@@ -143,5 +150,52 @@ public class FailureProperties {
     @Data
     public static class Reactive {
         private boolean contextFirst = false;
+    }
+
+    @Data
+    public static class Logging {
+        /**
+         * Default error severity for Business exception.
+         */
+        private String defaultSeverity = "INFO";
+
+        /**
+         * Whether to use compact banner style in logs when shadow-trace is enabled.
+         */
+        private boolean banner = true;
+
+        /**
+         * Business code to severity mapping.
+         */
+        private Map<String, String> severityMapping = new HashMap<>();
+    }
+
+    @Data
+    public static class Masking {
+        /**
+         * Enable structured masking for object snapshots.
+         */
+        private boolean structuredEnabled = false;
+        /**
+         * Max recursion depth.
+         */
+        private int maxDepth = 3;
+        /**
+         * Max collection entries.
+         */
+        private int maxCollectionSize = 20;
+        /**
+         * Max object fields.
+         */
+        private int maxFields = 30;
+    }
+
+    @Data
+    public static class Chain {
+        /**
+         * Maximum number of errors collected in strict mode.
+         * Non-positive value means using framework default.
+         */
+        private int maxErrors = 50;
     }
 }

@@ -1,8 +1,12 @@
 package com.chao.failfast.internal.chain;
 
+import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.internal.chain.pipeline.ChainCore;
+import com.chao.failfast.internal.core.Ex;
+import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -159,6 +163,27 @@ class ChainTerminatorTest {
     void failAllShouldPassWhenValid() {
         TestTerminator chain = TestTerminator.create(true);
         chain.failAll();
+    }
+
+    @Test
+    @DisplayName("strict 模式到达错误上限后应抛出 MultiBusiness（即使仅收集到1条）")
+    void failAllShouldThrowMultiBusinessWhenTruncated() {
+        FailureProperties properties = new FailureProperties();
+        properties.getChain().setMaxErrors(1);
+        FailureContext context = new FailureContext(properties, new CodeMappingConfig(properties), null);
+        Ex.setContext(context);
+        try {
+            TestTerminator chain = TestTerminator.create(false);
+            chain.addError(ResponseCode.of(400, "Error 1"));
+            chain.addError(ResponseCode.of(401, "Error 2"));
+
+            assertThatThrownBy(chain::failAll)
+                    .isInstanceOf(MultiBusiness.class)
+                    .extracting(e -> ((MultiBusiness) e).isTruncated())
+                    .isEqualTo(true);
+        } finally {
+            Ex.setContext(null);
+        }
     }
 
     @Test

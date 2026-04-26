@@ -4,10 +4,11 @@ import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
-import com.chao.failfast.internal.core.ContextResolver;
 import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.util.I18n;
+import com.chao.failfast.internal.core.i18n.LocalizedTexts;
+import com.chao.failfast.internal.core.observability.OpenTelemetryBridge;
+import com.chao.failfast.internal.core.observability.TraceInfoExtractor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintViolation;
@@ -45,12 +46,7 @@ public class FailFastWebExceptionHandler implements WebExceptionHandler, Ordered
         return Ordered.HIGHEST_PRECEDENCE;
     }
 
-    @Override
-    public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
-        return Mono.deferContextual(ctxView -> handleInternal(exchange, ex, ctxView));
-    }
-
-    private Mono<Void> handleInternal(ServerWebExchange exchange, Throwable ex, ContextView ctxView) {
+    public Mono<Void> handleInternal(ServerWebExchange exchange, Throwable ex, ContextView ctxView) {
         if (exchange.getResponse().isCommitted()) {
             return Mono.error(ex);
         }
@@ -91,7 +87,12 @@ public class FailFastWebExceptionHandler implements WebExceptionHandler, Ordered
         return Mono.error(ex);
     }
 
-    private Mono<Void> handleErrors(ServerWebExchange exchange, List<Business> errors, ContextView ctxView) {
+    @Override
+    public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
+        return Mono.deferContextual(ctxView -> handleInternal(exchange, ex, ctxView));
+    }
+
+    public Mono<Void> handleErrors(ServerWebExchange exchange, List<Business> errors, ContextView ctxView) {
         if (errors.isEmpty()) {
             Business b = Business.of(ResponseCode.VALIDATION_ERROR_400, FailureConst.VALIDATION_ERROR);
             return write(exchange, 400, buildMap(exchange, b, ctxView));
@@ -104,15 +105,28 @@ public class FailFastWebExceptionHandler implements WebExceptionHandler, Ordered
         return write(exchange, multi.getHttpStatus().value(), buildMultiMap(exchange, multi, ctxView));
     }
 
-    private Map<String, Object> buildMap(ServerWebExchange exchange, Business e, ContextView ctxView) {
+    public Map<String, Object> buildMap(ServerWebExchange exchange, Business e, ContextView ctxView) {
         Map<String, Object> body = new HashMap<>();
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
-        body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
-        body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
+        body.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
+        body.put(FailureConst.FIELD_DESCRIPTION, LocalizedTexts.detail(e.getResponseCode(), e.getDetail()));
         if (properties != null && properties.getTraceId() != null && properties.getTraceId().isEnabled()) {
-            body.put(FailureConst.FIELD_TRACE_ID, resolveTraceId(exchange, ctxView));
+            String traceId = e.getTraceId();
+            if (traceId == null || traceId.isBlank()) {
+                traceId = resolveTraceId(exchange, ctxView);
+            }
+            if (traceId != null && !traceId.isBlank()) {
+                body.put(FailureConst.FIELD_TRACE_ID, traceId);
+            }
+            String spanId = e.getSpanId();
+            if (spanId == null || spanId.isBlank()) {
+                spanId = OpenTelemetryBridge.currentSpanId();
+            }
+            if (spanId != null && !spanId.isBlank()) {
+                body.put(FailureConst.FIELD_SPAN_ID, spanId);
+            }
         }
-        String scene = ContextResolver.scene(context, ctxView);
+        String scene = TraceInfoExtractor.scene(context, ctxView);
         if (scene == null) {
             scene = FailureConst.DEFAULT_SCENE;
         }
@@ -126,15 +140,28 @@ public class FailFastWebExceptionHandler implements WebExceptionHandler, Ordered
         return body;
     }
 
-    private Map<String, Object> buildMultiMap(ServerWebExchange exchange, MultiBusiness e, ContextView ctxView) {
+    public Map<String, Object> buildMultiMap(ServerWebExchange exchange, MultiBusiness e, ContextView ctxView) {
         Map<String, Object> body = new HashMap<>();
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
-        body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
-        body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
+        body.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
+        body.put(FailureConst.FIELD_DESCRIPTION, LocalizedTexts.detail(e.getResponseCode(), e.getDetail()));
         if (properties != null && properties.getTraceId() != null && properties.getTraceId().isEnabled()) {
-            body.put(FailureConst.FIELD_TRACE_ID, resolveTraceId(exchange, ctxView));
+            String traceId = e.getTraceId();
+            if (traceId == null || traceId.isBlank()) {
+                traceId = resolveTraceId(exchange, ctxView);
+            }
+            if (traceId != null && !traceId.isBlank()) {
+                body.put(FailureConst.FIELD_TRACE_ID, traceId);
+            }
+            String spanId = !e.getErrors().isEmpty() ? e.getErrors().get(0).getSpanId() : null;
+            if (spanId == null || spanId.isBlank()) {
+                spanId = OpenTelemetryBridge.currentSpanId();
+            }
+            if (spanId != null && !spanId.isBlank()) {
+                body.put(FailureConst.FIELD_SPAN_ID, spanId);
+            }
         }
-        String scene = ContextResolver.scene(context, ctxView);
+        String scene = TraceInfoExtractor.scene(context, ctxView);
         if (scene == null) {
             scene = FailureConst.DEFAULT_SCENE;
         }
@@ -152,17 +179,17 @@ public class FailFastWebExceptionHandler implements WebExceptionHandler, Ordered
         return body;
     }
 
-    private Map<String, Object> buildMapDetail(Business e) {
+    public Map<String, Object> buildMapDetail(Business e) {
         Map<String, Object> item = new HashMap<>();
         item.put(FailureConst.FIELD_PATH, e.getPath());
         item.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
         item.put(FailureConst.FIELD_REJECTED, e.getInvalidValue());
-        item.put(FailureConst.FIELD_DETAIL, I18n.get(e.getDetail()));
-        item.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
+        item.put(FailureConst.FIELD_DETAIL, LocalizedTexts.detail(e.getResponseCode(), e.getDetail()));
+        item.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
         return item;
     }
 
-    private Mono<Void> write(ServerWebExchange exchange, int status, Map<String, Object> body) {
+    public Mono<Void> write(ServerWebExchange exchange, int status, Map<String, Object> body) {
         exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.valueOf(status));
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
@@ -175,11 +202,11 @@ public class FailFastWebExceptionHandler implements WebExceptionHandler, Ordered
         return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(bytes)));
     }
 
-    private String resolveTraceId(ServerWebExchange exchange, ContextView ctxView) {
+    public String resolveTraceId(ServerWebExchange exchange, ContextView ctxView) {
         if (exchange == null) {
             return context != null ? context.getTraceId() : null;
         }
-        String ctxFirst = ContextResolver.traceId(context, ctxView);
+        String ctxFirst = TraceInfoExtractor.traceId(context, ctxView);
         if (ctxFirst != null && !ctxFirst.isBlank()) {
             return ctxFirst;
         }

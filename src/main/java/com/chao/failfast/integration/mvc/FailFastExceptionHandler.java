@@ -6,9 +6,13 @@ import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.internal.core.observability.TraceInfoExtractor;
 import com.chao.failfast.internal.core.FailureContext;
+import com.chao.failfast.constant.Severity;
+import com.chao.failfast.internal.core.i18n.LocalizedTexts;
+import com.chao.failfast.internal.core.observability.OpenTelemetryBridge;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.internal.validation.ValidationObservers;
+import com.chao.failfast.internal.validation.ValidationEventManager;
 import com.chao.failfast.util.I18n;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -24,12 +28,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.UUID;
 
 /**
  * Abstract exception handler - Extensible base class.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -86,24 +91,24 @@ public abstract class FailFastExceptionHandler {
             BindingResult result = e.getBindingResult();
             List<Business> errors = new ArrayList<>();
 
-            // 尝试获取目标类信息用于位置格式化
+            // Try to get target class information for location formatting
             Class<?> targetClass = null;
             if (result.getTarget() != null) targetClass = result.getTarget().getClass();
 
-            // 获取方法名
+            // Get method name
             String methodName = "Validation";
             if (e.getParameter().getMethod() != null) {
                 java.lang.reflect.Method method = e.getParameter().getMethod();
                 methodName = method.getDeclaringClass().getSimpleName() + "#" + method.getName();
             }
 
-            // 遍历所有字段错误并转换为Business异常
+            // Iterate through all field errors and convert to Business exceptions
             for (FieldError fieldError : result.getFieldErrors()) {
                 String location = formatValidationLocation(targetClass, fieldError.getField());
                 errors.add(parseError(fieldError.getDefaultMessage(), location, methodName));
             }
 
-            // 检查方法上是否有 @Validate 注解来控制是否快速失败
+            // Check if method has @Validate annotation to control fail-fast behavior
             boolean failFast = true;
             if (e.getParameter().getMethod() != null) {
                 Validate validate = e.getParameter().getMethod().getAnnotation(Validate.class);
@@ -112,7 +117,7 @@ public abstract class FailFastExceptionHandler {
                 }
             }
 
-            // 如果是快速失败模式且有多个错误，只保留第一个
+            // If fail-fast mode and multiple errors, keep only the first one
             if (failFast && errors.size() > 1) {
                 Business first = errors.get(0);
                 errors.clear();
@@ -144,15 +149,15 @@ public abstract class FailFastExceptionHandler {
 
         try {
             List<Business> errors = new ArrayList<>();
-            // 遍历所有约束违反并转换为Business异常
+            // Iterate through all constraint violations and convert to Business exceptions
             for (ConstraintViolation<?> violation : e.getConstraintViolations()) {
                 String location = formatValidationLocation(violation.getRootBeanClass(), violation.getPropertyPath().toString());
 
-                // 尝试获取方法名
+                // Try to get method name
                 String methodName = "Validation";
                 if (violation.getRootBeanClass() != null) {
                     String className = violation.getRootBeanClass().getSimpleName();
-                    // 尝试从 propertyPath 获取方法名 (通常是第一个节点)
+                    // Try to get method name from propertyPath (usually the first node)
                     String path = violation.getPropertyPath().toString();
                     String methodPart = path.split("\\.")[0];
                     methodName = className + "#" + methodPart;
@@ -189,10 +194,17 @@ public abstract class FailFastExceptionHandler {
     protected ResponseEntity<?> buildMultiErrorResponse(MultiBusiness e) {
         Map<String, Object> body = new HashMap<>();
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
-        body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
-        body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
+        body.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
+        body.put(FailureConst.FIELD_DESCRIPTION, LocalizedTexts.detail(e.getResponseCode(), e.getDetail()));
         if (isTraceIdEnabled()) {
-            body.put(FailureConst.FIELD_TRACE_ID, getTraceId());
+            String traceId = resolveTraceId(e);
+            if (traceId != null && !traceId.isBlank()) {
+                body.put(FailureConst.FIELD_TRACE_ID, traceId);
+            }
+            String spanId = resolveSpanId(e);
+            if (spanId != null && !spanId.isBlank()) {
+                body.put(FailureConst.FIELD_SPAN_ID, spanId);
+            }
         }
 
         String scene = getScene();
@@ -249,12 +261,66 @@ public abstract class FailFastExceptionHandler {
      */
     protected void logException(Business e) {
         if (e instanceof MultiBusiness m) {
-            log.error("Multi Failure: {} errors", m.getErrors().size());
+            Severity severity = resolveMultiSeverity(m);
+            logBySeverity(severity, "Multi Failure: {} errors", m.getErrors().size());
             for (int i = 0; i < m.getErrors().size(); i++) {
-                log.error("{}. {}", i + 1, m.getErrors().get(i).toString());
+                logBySeverity(severity, "{}. {}", i + 1, renderLogMessage(m.getErrors().get(i)));
             }
         } else {
-            log.error("{}", e.toString());
+            logBySeverity(e.getSeverity(), "{}", renderLogMessage(e));
+        }
+    }
+
+    private String renderLogMessage(Business e) {
+        if (e == null) {
+            return "null";
+        }
+        if (!isBannerMode()) {
+            return e.toString();
+        }
+        Integer code = e.getResponseCode() != null ? e.getResponseCode().getCode() : null;
+        String message = LocalizedTexts.message(e.getResponseCode());
+        String trace = resolveTraceId(e);
+        return "BANNER{code=%s, message=%s, path=%s, traceId=%s}".formatted(
+                code != null ? code : "UNKNOWN",
+                message,
+                e.getPath() != null ? e.getPath() : "-",
+                trace != null ? trace : "-"
+        );
+    }
+
+    private boolean isBannerMode() {
+        FailureContext ctx = Ex.getContext();
+        if (ctx == null || !TraceInfoExtractor.shadowTrace(ctx, null)) {
+            return false;
+        }
+        if (properties == null || properties.getLogging() == null) {
+            return true;
+        }
+        return properties.getLogging().isBanner();
+    }
+
+    private Severity resolveMultiSeverity(MultiBusiness multi) {
+        Severity best = Severity.INFO;
+        for (Business err : multi.getErrors()) {
+            Severity current = err != null && err.getSeverity() != null ? err.getSeverity() : Severity.INFO;
+            if (current.getWeight() > best.getWeight()) {
+                best = current;
+            }
+        }
+        return best;
+    }
+
+    private void logBySeverity(Severity severity, String pattern, Object... args) {
+        Severity level = severity != null ? severity : Severity.INFO;
+        if (!level.isLogRequired()) {
+            return;
+        }
+        switch (level) {
+            case DEBUG -> log.debug(pattern, args);
+            case INFO -> log.info(pattern, args);
+            case WARNING -> log.warn(pattern, args);
+            case ERROR, CRITICAL -> log.error(pattern, args);
         }
     }
 
@@ -372,10 +438,23 @@ public abstract class FailFastExceptionHandler {
     private Map<String, Object> buildMap(Business e) {
         Map<String, Object> body = new HashMap<>();
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
-        body.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getResponseCode().getMessage()));
-        body.put(FailureConst.FIELD_DESCRIPTION, I18n.get(e.getDetail()));
+        body.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
+        body.put(FailureConst.FIELD_DESCRIPTION, LocalizedTexts.detail(e.getResponseCode(), e.getDetail()));
         if (isTraceIdEnabled()) {
-            body.put(FailureConst.FIELD_TRACE_ID, getTraceId());
+            String traceId = e.getTraceId();
+            if (traceId == null || traceId.isBlank()) {
+                traceId = getTraceId();
+            }
+            if (traceId != null && !traceId.isBlank()) {
+                body.put(FailureConst.FIELD_TRACE_ID, traceId);
+            }
+            String spanId = e.getSpanId();
+            if (spanId == null || spanId.isBlank()) {
+                spanId = OpenTelemetryBridge.currentSpanId();
+            }
+            if (spanId != null && !spanId.isBlank()) {
+                body.put(FailureConst.FIELD_SPAN_ID, spanId);
+            }
         }
 
         String scene = getScene();
@@ -396,9 +475,9 @@ public abstract class FailFastExceptionHandler {
     private Map<String, Object> buildMapDetail(Business e) {
         Map<String, Object> errorItem = new HashMap<>();
         errorItem.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
-        errorItem.put(FailureConst.FIELD_MESSAGE, I18n.get(e.getMessage()));
+        errorItem.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
         errorItem.put(FailureConst.FIELD_PATH, e.getPath());
-        errorItem.put(FailureConst.FIELD_DETAIL, I18n.get(e.getDetail()));
+        errorItem.put(FailureConst.FIELD_DETAIL, LocalizedTexts.detail(e.getResponseCode(), e.getDetail()));
         errorItem.put(FailureConst.FIELD_REJECTED, e.getInvalidValue());
         return errorItem;
     }
@@ -427,7 +506,25 @@ public abstract class FailFastExceptionHandler {
                 return traceId;
             }
         }
+        String otel = OpenTelemetryBridge.currentTraceId();
+        if (otel != null && !otel.isBlank()) {
+            return otel;
+        }
         return UUID.randomUUID().toString();
+    }
+
+    private String resolveTraceId(Business business) {
+        if (business != null && business.getTraceId() != null && !business.getTraceId().isBlank()) {
+            return business.getTraceId();
+        }
+        return getTraceId();
+    }
+
+    private String resolveSpanId(Business business) {
+        if (business != null && business.getSpanId() != null && !business.getSpanId().isBlank()) {
+            return business.getSpanId();
+        }
+        return OpenTelemetryBridge.currentSpanId();
     }
 
     /**
@@ -453,7 +550,7 @@ public abstract class FailFastExceptionHandler {
      * @param scene validation scene
      */
     private void notifyValidationStart(String scene) {
-        ValidationObservers.notifyStart(FailureConst.FIELD_METHOD, scene);
+        ValidationEventManager.notifyStart(FailureConst.FIELD_METHOD, scene);
     }
 
     /**
@@ -463,7 +560,7 @@ public abstract class FailFastExceptionHandler {
      * @param success       whether validation was successful
      */
     private void notifyValidationEnd(long durationNanos, boolean success) {
-        ValidationObservers.notifyEnd(FailureConst.FIELD_METHOD, durationNanos, success);
+        ValidationEventManager.notifyEnd(FailureConst.FIELD_METHOD, durationNanos, success);
     }
 
     /**
@@ -472,6 +569,6 @@ public abstract class FailFastExceptionHandler {
      * @param errorCode error code
      */
     private void notifyValidationFailure(String errorCode) {
-        ValidationObservers.notifyFailure(FailureConst.FIELD_METHOD, errorCode);
+        ValidationEventManager.notifyFailure(FailureConst.FIELD_METHOD, errorCode);
     }
 }

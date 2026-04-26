@@ -1,15 +1,18 @@
 package com.chao.failfast.internal.chain;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.internal.chain.pipeline.ChainCore;
 import com.chao.failfast.internal.chain.pipeline.Scope;
+import com.chao.failfast.spi.validation.CancelToken;
+import com.chao.failfast.spi.validation.ProgressListener;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 /**
  * IterableTerm 100% 覆盖率测试
@@ -27,9 +30,8 @@ public class IterableTermTest {
     @Test
     @DisplayName("测试 forEach 方法 - 无路径前缀")
     void testForEachWithoutPathPrefix() {
-        // 创建测试对象
-        ValidationContext mockContext = mock(ValidationContext.class);
-        TestChainCore mockCore = mock(TestChainCore.class);
+        ValidationContext mockContext = new ValidationContext(false);
+        TestChainCore mockCore = new TestChainCore(mockContext);
         IterableTerm<TestChainCore> iterableTerm = new IterableTerm<TestChainCore>() {
             @Override
             public TestChainCore core() {
@@ -37,22 +39,18 @@ public class IterableTermTest {
             }
         };
 
-        // 准备测试数据
-        Consumer<Scope<String>> mockBlock = mock(Consumer.class);
+        Consumer<Scope<String>> block = scope -> { };
 
-        // 调用 forEach 方法
-        TestChainCore result = iterableTerm.forEach(null, mockBlock);
+        TestChainCore result = iterableTerm.forEach(null, block);
 
-        // 验证结果
-        assertNotNull(result);
+        assertSame(mockCore, result);
     }
 
     @Test
     @DisplayName("测试 forEach 方法 - 有路径前缀")
     void testForEachWithPathPrefix() {
-        // 创建测试对象
-        ValidationContext mockContext = mock(ValidationContext.class);
-        TestChainCore mockCore = mock(TestChainCore.class);
+        ValidationContext mockContext = new ValidationContext(false);
+        TestChainCore mockCore = new TestChainCore(mockContext);
         IterableTerm<TestChainCore> iterableTerm = new IterableTerm<TestChainCore>() {
             @Override
             public TestChainCore core() {
@@ -60,14 +58,65 @@ public class IterableTermTest {
             }
         };
 
-        // 准备测试数据
         String pathPrefix = "test";
-        Consumer<Scope<String>> mockBlock = mock(Consumer.class);
+        Consumer<Scope<String>> block = scope -> { };
 
-        // 调用 forEach 方法
-        TestChainCore result = iterableTerm.forEach(null, pathPrefix, mockBlock);
+        TestChainCore result = iterableTerm.forEach(null, pathPrefix, block);
 
-        // 验证结果
-        assertNotNull(result);
+        assertSame(mockCore, result);
+    }
+
+    @Test
+    @DisplayName("测试 forEach 方法 - 带监听器和取消令牌")
+    void testForEachWithListenerAndCancelToken() {
+        ValidationContext context = new ValidationContext(false);
+        TestChainCore core = new TestChainCore(context);
+        IterableTerm<TestChainCore> iterableTerm = new IterableTerm<TestChainCore>() {
+            @Override
+            public TestChainCore core() {
+                return core;
+            }
+        };
+
+        List<String> processed = new ArrayList<>();
+        CancelToken token = new CancelToken();
+        ProgressListener listener = new ProgressListener() {
+            @Override
+            public void onProgress(long processedItems, long totalItems, com.chao.failfast.exception.Business error) {
+                token.cancel();
+            }
+        };
+
+        TestChainCore result = iterableTerm.forEach(List.of("a", "b"), "p", scope -> processed.add(scope.it().value()), listener, token);
+
+        assertSame(core, result);
+        assertEquals(List.of("a"), processed);
+    }
+
+    @Test
+    @DisplayName("测试 forEach 简化重载 - 带监听器和取消令牌")
+    void testForEachShortcutWithListenerAndCancelToken() {
+        ValidationContext context = new ValidationContext(false);
+        TestChainCore core = new TestChainCore(context);
+        IterableTerm<TestChainCore> iterableTerm = new IterableTerm<TestChainCore>() {
+            @Override
+            public TestChainCore core() {
+                return core;
+            }
+        };
+
+        List<String> processed = new ArrayList<>();
+        CancelToken token = new CancelToken();
+        ProgressListener listener = new ProgressListener() {
+            @Override
+            public void onProgress(long processedItems, long totalItems, com.chao.failfast.exception.Business error) {
+                token.cancel();
+            }
+        };
+
+        TestChainCore result = iterableTerm.forEach(List.of("x", "y"), scope -> processed.add(scope.it().path()), listener, token);
+
+        assertSame(core, result);
+        assertEquals(List.of("[0]"), processed);
     }
 }

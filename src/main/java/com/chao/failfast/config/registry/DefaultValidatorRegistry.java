@@ -1,7 +1,7 @@
 package com.chao.failfast.config.registry;
 
-import com.chao.failfast.annotation.FastValidator;
-import com.chao.failfast.spi.ValidatorRegistry;
+import com.chao.failfast.validator.FastValidator;
+import com.chao.failfast.spi.validation.ValidatorRegistry;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Default implementation of ValidatorRegistry.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public class DefaultValidatorRegistry implements ValidatorRegistry {
 

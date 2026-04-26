@@ -1,7 +1,7 @@
 package com.chao.failfast.test;
 
 import com.chao.failfast.Failure;
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.internal.core.ResponseCode;
 import org.junit.jupiter.api.Test;
 

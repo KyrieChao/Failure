@@ -5,9 +5,14 @@ import com.chao.failfast.exception.Business;
 import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.model.TestResponseCode;
+import com.chao.failfast.config.mapping.CodeMappingConfig;
+import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.internal.core.Ex;
+import com.chao.failfast.internal.core.FailureContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -171,6 +176,12 @@ class ChainCoverageTest {
     @Test
     @DisplayName("测试所有方法的失败路径 (Fail-Strict 模式)")
     void testAllMethodsFailure() {
+        // Set a FailureContext with a higher error limit to avoid truncation
+        FailureProperties props = new FailureProperties();
+        props.getChain().setMaxErrors(100);
+        FailureContext ctx = new FailureContext(props, new CodeMappingConfig(props), null);
+        Ex.setContext(ctx);
+        
         Chain chain = Chain.begin(false);
         int expectedErrors = 0;
 
@@ -379,6 +390,9 @@ class ChainCoverageTest {
 
         // Test failAll
         assertThrows(MultiBusiness.class, chain::failAll);
+        
+        // Clean up
+        Ex.setContext(null);
     }
 
     @Test
@@ -408,6 +422,18 @@ class ChainCoverageTest {
         assertFalse(chain2.getCauses().isEmpty());
         // Now fail() should throw generic Business exception
         assertThrows(Business.class, chain2::fail);
+    }
+
+    @Test
+    void should_throwMultiBusiness_when_singleCauseIsMarkedAsTruncated() throws Exception {
+        Chain chain = Chain.begin(false);
+        chain.isTrue(false, CODE);
+
+        Field truncated = chain.getClass().getSuperclass().getDeclaredField("errorsTruncated");
+        truncated.setAccessible(true);
+        truncated.set(chain, true);
+
+        assertThrows(MultiBusiness.class, chain::failAll);
     }
 
     enum TestEnum {A, B}

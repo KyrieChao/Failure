@@ -1,6 +1,6 @@
 package com.chao.failfast.internal.core;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.exception.Business;
@@ -14,13 +14,12 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
 /**
  * Validation Chain - Facade class.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public final class Chain extends ChainCore<Chain> implements
         ArrayTerm<Chain>,
@@ -104,8 +103,8 @@ public final class Chain extends ChainCore<Chain> implements
                 if (getCauses().isEmpty()) {
                     throw Business.of(ResponseCode.VALIDATION_ERROR_500);
                 }
-                if (getCauses().size() == 1) throw getCauses().get(0);
-                throw new MultiBusiness(getCauses());
+                if (getCauses().size() == 1 && !isErrorsTruncated()) throw getCauses().get(0);
+                throw new MultiBusiness(getCauses(), isErrorsTruncated());
             }
         } finally {
             long duration = System.nanoTime() - startTime;

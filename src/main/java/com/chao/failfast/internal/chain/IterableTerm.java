@@ -3,6 +3,8 @@ package com.chao.failfast.internal.chain;
 import com.chao.failfast.internal.chain.pipeline.ChainCore;
 import com.chao.failfast.internal.chain.pipeline.Scope;
 import com.chao.failfast.internal.check.IterableChecks;
+import com.chao.failfast.spi.validation.CancelToken;
+import com.chao.failfast.spi.validation.ProgressListener;
 import java.util.function.Consumer;
 
 /**
@@ -10,7 +12,7 @@ import java.util.function.Consumer;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public interface IterableTerm<S extends ChainCore<S>> {
 
@@ -44,5 +46,13 @@ public interface IterableTerm<S extends ChainCore<S>> {
      */
     default <T> S forEach(Iterable<T> items, String pathPrefix, Consumer<Scope<T>> block) {
         return IterableChecks.forEach(core(), items, pathPrefix, block);
+    }
+
+    default <T> S forEach(Iterable<T> items, Consumer<Scope<T>> block, ProgressListener listener, CancelToken cancelToken) {
+        return forEach(items, "", block, listener, cancelToken);
+    }
+
+    default <T> S forEach(Iterable<T> items, String pathPrefix, Consumer<Scope<T>> block, ProgressListener listener, CancelToken cancelToken) {
+        return IterableChecks.forEach(core(), items, pathPrefix, block, listener, cancelToken);
     }
 }

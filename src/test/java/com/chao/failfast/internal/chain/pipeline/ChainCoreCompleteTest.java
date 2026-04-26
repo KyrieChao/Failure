@@ -1,10 +1,10 @@
 package com.chao.failfast.internal.chain.pipeline;
 
-import com.chao.failfast.annotation.FastValidator.ValidationContext;
+import com.chao.failfast.validator.FastValidator.ValidationContext;
 import com.chao.failfast.constant.Scenario;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.internal.validation.RecursiveOptions;
+import com.chao.failfast.internal.validation.RecursiveOption;
 import com.chao.failfast.validator.TypedValidator;
 import lombok.Getter;
 import lombok.Setter;
@@ -322,7 +322,7 @@ class ChainCoreCompleteTest {
         TypedValidator typedValidator = mock(TypedValidator.class);
         when(typedValidator.validateIfRegistered(any(), any())).thenReturn(false);
 
-        RecursiveOptions options = RecursiveOptions.builder()
+        RecursiveOption options = RecursiveOption.builder()
                 .maxDepth(5)
                 .maxErrors(10)
                 .maxItems(10)

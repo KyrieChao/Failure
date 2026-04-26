@@ -1,15 +1,16 @@
 package com.chao.failfast.internal.core;
 
 import com.chao.failfast.constant.FailureConst;
-import com.chao.failfast.spi.SkipPrefixRegistry;
-import com.chao.failfast.spi.SkipTypeRegistry;
+import com.chao.failfast.internal.core.observability.TraceInfoExtractor;
+import com.chao.failfast.spi.filter.SkipPrefixRegistry;
+import com.chao.failfast.spi.filter.SkipTypeRegistry;
 import lombok.Getter;
 
 /**
  * Exception builder utility class - Enhanced thread-safe version.
  *
  * @author Kyrie Chao
- * @version 1.2.0
+ * @version 1.3.0
  */
 public final class Ex {
     /**
@@ -17,9 +18,10 @@ public final class Ex {
      */
     private static final StackWalker WALKER = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
     
+    @Getter
     private static SkipPrefixRegistry skipPrefixRegistry;
+    @Getter
     private static SkipTypeRegistry skipTypeRegistry;
-
     @Getter
     private static FailureContext context;
 
@@ -36,16 +38,8 @@ public final class Ex {
         Ex.skipPrefixRegistry = registry;
     }
 
-    public static SkipPrefixRegistry getSkipPrefixRegistry() {
-        return skipPrefixRegistry;
-    }
-
     public static void setSkipTypeRegistry(SkipTypeRegistry registry) {
         Ex.skipTypeRegistry = registry;
-    }
-
-    public static SkipTypeRegistry getSkipTypeRegistry() {
-        return skipTypeRegistry;
     }
 
     /**
@@ -79,7 +73,7 @@ public final class Ex {
      */
     private static boolean isShadowTrace() {
         if (context == null) return false;
-        return ContextResolver.shadowTrace(context, null);
+        return TraceInfoExtractor.shadowTrace(context, null);
     }
 
     /**
