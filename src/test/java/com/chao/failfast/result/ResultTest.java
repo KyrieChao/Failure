@@ -518,7 +518,7 @@ class ResultTest {
         Result.Success<String> success = new Result.Success<>(value);
         assertEquals(200, success.getCode());
         assertEquals("Success", success.getMessage());
-        assertEquals("操作成功", success.getDescription());
+        assertEquals(com.chao.failfast.util.I18n.get("{result.success}"), success.getDescription());
         assertEquals(value, success.getData());
     }
 

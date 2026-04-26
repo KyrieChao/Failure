@@ -235,17 +235,23 @@ class ChainCoreEdgeCoverageTest {
 
     @Test
     void addErrorShouldReturnEarlyWhenStrictErrorLimitAlreadyReached() {
+        com.chao.failfast.internal.core.FailureContext original = Ex.getContext();
+        Ex.setContext(null);
         TestChainCore chain = new TestChainCore(false, null);
 
-        for (int i = 0; i < 50; i++) {
-            chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d", "v", "p", "c");
+        try {
+            for (int i = 0; i < 50; i++) {
+                chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d", "v", "p", "c");
+            }
+            int before = chain.errorSize();
+
+            chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d2", "v2", "p2", "c2");
+
+            assertThat(chain.errorSize()).isEqualTo(before);
+            assertThat(chain.isErrorsTruncated()).isTrue();
+        } finally {
+            Ex.setContext(original);
         }
-        int before = chain.errorSize();
-
-        chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d2", "v2", "p2", "c2");
-
-        assertThat(chain.errorSize()).isEqualTo(before);
-        assertThat(chain.isErrorsTruncated()).isTrue();
     }
 
     @Test

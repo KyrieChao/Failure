@@ -473,7 +473,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
          * @param data Success data
          */
         public Success(T data) {
-            super(200, "Success", "Operation successful");
+            super(200, "Success", I18n.get("{result.success}"));
             this.data = data;
         }
     }

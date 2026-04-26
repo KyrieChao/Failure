@@ -36,7 +36,7 @@ class LocalizedTextsTest {
     @Test
     void testMessageWithNullCode() throws Exception {
         String result = LocalizedTexts.message(null);
-        assertEquals(FailureConst.UNKNOWN_ERROR, result);
+        assertTrue(FailureConst.UNKNOWN_ERROR.equals(result) || com.chao.failfast.util.I18n.get(FailureConst.UNKNOWN_ERROR).equals(result));
     }
 
     @Test

@@ -450,7 +450,11 @@ public class Business extends RuntimeException implements Serializable {
         if (value == null) {
             return null;
         }
-        return ValueMaskerRegistry.getDefault().mask(value, fieldPath);
+        Object masked = ValueMaskerRegistry.getDefault().mask(value, fieldPath);
+        if (masked != null) {
+            return masked;
+        }
+        return new com.chao.failfast.config.masking.DefaultValueMasker().mask(value, fieldPath);
     }
 
     private String sanitizeDetail(String detail) {
