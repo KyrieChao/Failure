@@ -434,15 +434,24 @@ public class Business extends RuntimeException implements Serializable {
 
     private static HttpStatus resolveHttpStatusWithoutContext(int code) {
         if (code >= 100 && code <= 599) {
-            try {
-                return HttpStatus.valueOf(code);
-            } catch (IllegalArgumentException ignored) {
+            HttpStatus status = resolveHttpStatusEnum(code);
+            if (status != null) {
+                return status;
             }
         }
         if (code >= 40000 && code < 50000) {
             return HttpStatus.BAD_REQUEST;
         }
         return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    private static HttpStatus resolveHttpStatusEnum(int code) {
+        for (HttpStatus s : HttpStatus.values()) {
+            if (s.value() == code) {
+                return s;
+            }
+        }
+        return null;
     }
 
     private String extractFileLine(String loc) {

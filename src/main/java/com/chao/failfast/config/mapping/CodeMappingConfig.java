@@ -74,7 +74,11 @@ public class CodeMappingConfig {
         properties.getCodeMapping().getHttpStatus().forEach((key, status) -> {
             try {
                 int code = Integer.parseInt(key.trim());
-                map.put(code, HttpStatus.valueOf(status));
+                HttpStatus resolved = resolveHttpStatusEnum(status);
+                if (resolved == null) {
+                    throw new IllegalArgumentException();
+                }
+                map.put(code, resolved);
             } catch (NumberFormatException e) {
                 log.warn("Invalid business code '{}', must be integer", key);
             } catch (IllegalArgumentException e) {
@@ -231,9 +235,9 @@ public class CodeMappingConfig {
      */
     public HttpStatus resolveHttpStatus(int code) {
         if (code >= 100 && code <= 599) {
-            try {
-                return HttpStatus.valueOf(code);
-            } catch (IllegalArgumentException ignored) {
+            HttpStatus status = resolveHttpStatusEnum(code);
+            if (status != null) {
+                return status;
             }
         }
         HttpStatus exact = DEFAULT_MAPPINGS.get(code);
@@ -244,6 +248,15 @@ public class CodeMappingConfig {
         if (code >= 40000 && code < 50000) return HttpStatus.BAD_REQUEST;
 
         return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    private static HttpStatus resolveHttpStatusEnum(int code) {
+        for (HttpStatus s : HttpStatus.values()) {
+            if (s.value() == code) {
+                return s;
+            }
+        }
+        return null;
     }
 
     private record CodeRange(int start, int end) {

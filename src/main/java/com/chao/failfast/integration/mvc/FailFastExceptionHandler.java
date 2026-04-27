@@ -165,6 +165,7 @@ public abstract class FailFastExceptionHandler {
 
                 errors.add(parseError(violation.getMessage(), location, methodName));
             }
+            errors.sort(Comparator.comparingInt(b -> b.getResponseCode().getCode()));
             return handleMultiErrors(errors);
         } finally {
             // End method validation metrics
