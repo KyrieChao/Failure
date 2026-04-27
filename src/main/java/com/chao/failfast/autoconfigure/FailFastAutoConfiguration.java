@@ -88,6 +88,10 @@ public class FailFastAutoConfiguration {
 
     @PostConstruct
     public void init() {
+        FailureProperties.Logging logging = properties != null ? properties.getLogging() : null;
+        if (logging != null && !logging.isBanner()) {
+            return;
+        }
         log.info("====================================================================");
         log.info(getMessage());
         log.info("Shadow Trace: {}", properties.isShadowTrace());

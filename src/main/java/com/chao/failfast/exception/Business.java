@@ -380,8 +380,9 @@ public class Business extends RuntimeException implements Serializable {
                 if (method == null) method = Ex.method();
                 if (location == null) location = Ex.location();
             }
-            CodeMappingConfig cfg = Ex.getContext() != null ? Ex.getContext().getCodeMappingConfig() : null;
-            HttpStatus status = (cfg != null) ? cfg.resolveHttpStatus(responseCode.getCode()) : HttpStatus.INTERNAL_SERVER_ERROR;
+            CodeMappingConfig cfg = ctx != null ? ctx.getCodeMappingConfig() : null;
+            int code = responseCode.getCode();
+            HttpStatus status = (cfg != null) ? cfg.resolveHttpStatus(code) : resolveHttpStatusWithoutContext(code);
             Severity finalSeverity = severity != null ? severity : resolveSeverity(responseCode);
             Business business = new Business(finalSeverity, responseCode, detail, method, location, status, invalidValue, path, traceId, spanId);
             if (ctx != null && ctx.isTrimStackTrace()) {
@@ -429,6 +430,19 @@ public class Business extends RuntimeException implements Serializable {
             }
         }
         return "[%s] %s".formatted(displayMethod, base) + (location != null ? " (" + extractFileLine(location) + ")" : "");
+    }
+
+    private static HttpStatus resolveHttpStatusWithoutContext(int code) {
+        if (code >= 100 && code <= 599) {
+            try {
+                return HttpStatus.valueOf(code);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        if (code >= 40000 && code < 50000) {
+            return HttpStatus.BAD_REQUEST;
+        }
+        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
     private String extractFileLine(String loc) {

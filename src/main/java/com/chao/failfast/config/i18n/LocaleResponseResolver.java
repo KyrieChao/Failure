@@ -1,11 +1,5 @@
 package com.chao.failfast.config.i18n;
 
-/**
- * Locale response resolver for localized message handling.
- *
- * @author Kyrie Chao
- * @version 1.3.0
- */
 
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.spi.i18n.LocalizedResponseResolver;
@@ -15,6 +9,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Locale response resolver for localized message handling.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
+ */
 public final class LocaleResponseResolver implements LocalizedResponseResolver {
     private final Map<Key, String> messages = new ConcurrentHashMap<>();
     private final Map<Key, String> details = new ConcurrentHashMap<>();

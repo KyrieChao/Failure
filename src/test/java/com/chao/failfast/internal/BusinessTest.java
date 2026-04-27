@@ -335,7 +335,7 @@ class BusinessTest {
         }
 
         @Test
-        @DisplayName("materialize() - should use internal server error when code mapping config is null")
+        @DisplayName("materialize() - should fallback HTTP status when code mapping config is null")
         void testMaterializeWithNullCodeMappingConfig() {
             // Given
             FailureContext context = mock(FailureContext.class);
@@ -349,7 +349,7 @@ class BusinessTest {
 
                 // Then
                 assertThat(business).isNotNull();
-                assertThat(business.getHttpStatus()).isEqualTo(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+                assertThat(business.getHttpStatus()).isEqualTo(org.springframework.http.HttpStatus.BAD_REQUEST);
             }
         }
 

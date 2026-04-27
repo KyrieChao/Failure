@@ -181,7 +181,7 @@ public abstract class FailFastExceptionHandler {
      * @return ResponseEntity response object
      */
     protected ResponseEntity<?> buildResponse(Business e) {
-        Map<String, Object> body = buildMap(e);
+        Object body = buildBody(e);
         return ResponseEntity.status(e.getHttpStatus()).body(body);
     }
 
@@ -192,37 +192,16 @@ public abstract class FailFastExceptionHandler {
      * @return ResponseEntity response object
      */
     protected ResponseEntity<?> buildMultiErrorResponse(MultiBusiness e) {
-        Map<String, Object> body = new HashMap<>();
-        body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
-        body.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
-        body.put(FailureConst.FIELD_DESCRIPTION, LocalizedTexts.detail(e.getResponseCode(), e.getDetail()));
-        if (isTraceIdEnabled()) {
-            String traceId = resolveTraceId(e);
-            if (traceId != null && !traceId.isBlank()) {
-                body.put(FailureConst.FIELD_TRACE_ID, traceId);
-            }
-            String spanId = resolveSpanId(e);
-            if (spanId != null && !spanId.isBlank()) {
-                body.put(FailureConst.FIELD_SPAN_ID, spanId);
-            }
-        }
-
-        String scene = getScene();
-        if (!scene.isBlank() && !FailureConst.DEFAULT_SCENE.equals(scene)) {
-            body.put(FailureConst.FIELD_SCENE, scene);
-        }
-        if (isVerbose()) {
-            List<Map<String, Object>> errorList = new ArrayList<>();
-            for (Business err : e.getErrors()) {
-                Map<String, Object> errorItem = buildMapDetail(err);
-                errorList.add(errorItem);
-            }
-            body.put(FailureConst.FIELD_ERRORS, errorList);
-        }
-        String format = ZonedDateTime.now(FailureConst.CST).format(FailureConst.DEFAULT_DATETIME_FORMATTER);
-        body.put(FailureConst.FIELD_TIMESTAMP, format);
-
+        Object body = buildBody(e);
         return ResponseEntity.status(e.getHttpStatus()).body(body);
+    }
+
+    protected Object buildBody(Business e) {
+        return buildMap(e);
+    }
+
+    protected Object buildBody(MultiBusiness e) {
+        return buildMultiMap(e);
     }
 
     /**
@@ -275,29 +254,14 @@ public abstract class FailFastExceptionHandler {
         if (e == null) {
             return "null";
         }
-        if (!isBannerMode()) {
+        if (!isTraceIdEnabled()) {
             return e.toString();
         }
-        Integer code = e.getResponseCode() != null ? e.getResponseCode().getCode() : null;
-        String message = LocalizedTexts.message(e.getResponseCode());
         String trace = resolveTraceId(e);
-        return "BANNER{code=%s, message=%s, path=%s, traceId=%s}".formatted(
-                code != null ? code : "UNKNOWN",
-                message,
-                e.getPath() != null ? e.getPath() : "-",
-                trace != null ? trace : "-"
-        );
-    }
-
-    private boolean isBannerMode() {
-        FailureContext ctx = Ex.getContext();
-        if (ctx == null || !TraceInfoExtractor.shadowTrace(ctx, null)) {
-            return false;
+        if (trace == null || trace.isBlank()) {
+            return e.toString();
         }
-        if (properties == null || properties.getLogging() == null) {
-            return true;
-        }
-        return properties.getLogging().isBanner();
+        return e.toString() + " [traceId=" + trace + "]";
     }
 
     private Severity resolveMultiSeverity(MultiBusiness multi) {
@@ -435,7 +399,7 @@ public abstract class FailFastExceptionHandler {
      * @param e Business object containing response code, message and detail
      * @return Map object containing response code, message, detail and timestamp
      */
-    private Map<String, Object> buildMap(Business e) {
+    protected Map<String, Object> buildMap(Business e) {
         Map<String, Object> body = new HashMap<>();
         body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
         body.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
@@ -472,7 +436,41 @@ public abstract class FailFastExceptionHandler {
         return body;
     }
 
-    private Map<String, Object> buildMapDetail(Business e) {
+    protected Map<String, Object> buildMultiMap(MultiBusiness e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
+        body.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));
+        body.put(FailureConst.FIELD_DESCRIPTION, LocalizedTexts.detail(e.getResponseCode(), e.getDetail()));
+        if (isTraceIdEnabled()) {
+            String traceId = resolveTraceId(e);
+            if (traceId != null && !traceId.isBlank()) {
+                body.put(FailureConst.FIELD_TRACE_ID, traceId);
+            }
+            String spanId = resolveSpanId(e);
+            if (spanId != null && !spanId.isBlank()) {
+                body.put(FailureConst.FIELD_SPAN_ID, spanId);
+            }
+        }
+
+        String scene = getScene();
+        if (!scene.isBlank() && !FailureConst.DEFAULT_SCENE.equals(scene)) {
+            body.put(FailureConst.FIELD_SCENE, scene);
+        }
+        if (isVerbose()) {
+            List<Map<String, Object>> errorList = new ArrayList<>();
+            for (Business err : e.getErrors()) {
+                Map<String, Object> errorItem = buildMapDetail(err);
+                errorList.add(errorItem);
+            }
+            body.put(FailureConst.FIELD_ERRORS, errorList);
+        }
+        String format = ZonedDateTime.now(FailureConst.CST).format(FailureConst.DEFAULT_DATETIME_FORMATTER);
+        body.put(FailureConst.FIELD_TIMESTAMP, format);
+
+        return body;
+    }
+
+    protected Map<String, Object> buildMapDetail(Business e) {
         Map<String, Object> errorItem = new HashMap<>();
         errorItem.put(FailureConst.FIELD_CODE, e.getResponseCode().getCode());
         errorItem.put(FailureConst.FIELD_MESSAGE, LocalizedTexts.message(e.getResponseCode()));

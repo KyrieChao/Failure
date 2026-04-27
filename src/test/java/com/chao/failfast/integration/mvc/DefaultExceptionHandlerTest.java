@@ -60,7 +60,7 @@ class DefaultExceptionHandlerTest {
         Business business = Business.of(TestResponseCode.PARAM_ERROR, "详情");
         ResponseEntity<?> response = handler.handleBusinessException(business);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         // TestResponseCode.PARAM_ERROR is 40001, default mapping is 500 if not configured? No, CodeMappingConfig initializes defaults.
         // Wait, here we don't have CodeMappingConfig context, so Business.of uses default mapping which might be INTERNAL_SERVER_ERROR if Ex.context is null.
         // Business constructor logic: HttpStatus status = (cfg != null) ? cfg.resolveHttpStatus(code.getCode()) : HttpStatus.INTERNAL_SERVER_ERROR;
@@ -83,7 +83,7 @@ class DefaultExceptionHandlerTest {
         MultiBusiness multi = new MultiBusiness(errors);
         ResponseEntity<?> response = handler.handleMultiBusinessException(multi);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR); // MultiBusiness constructor hardcodes INTERNAL_SERVER_ERROR
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> body = (Map<String, Object>) response.getBody();

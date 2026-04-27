@@ -1,12 +1,12 @@
-package com.chao.failfast;
+package com.chao.failfast.reactive;
 
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.reactive.StrictProcessor;
+import lombok.NonNull;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.BaseSubscriber;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -15,15 +15,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class FailureStrictStreamTest {
-
+class StrictProcessorTest {
     @Test
     void strictStreamShouldEmitEveryError() {
         Flux<Business> flux = StrictProcessor.strictStream(List.of("a", "b"), "p", scope -> {
             scope.check(scope.it(), v -> false, ResponseCode.VALIDATION_ERROR_400, "e1");
             scope.check(scope.it(), v -> false, ResponseCode.VALIDATION_ERROR_400, "e2");
         });
-
+        new StrictProcessor();
         List<Business> out = flux.collectList().block();
         assertThat(out).hasSize(4);
     }
@@ -52,12 +51,12 @@ class FailureStrictStreamTest {
             scope.check(scope.it(), v -> false, ResponseCode.VALIDATION_ERROR_400, "e2");
         }).subscribe(new BaseSubscriber<>() {
             @Override
-            protected void hookOnSubscribe(Subscription subscription) {
+            protected void hookOnSubscribe(@NonNull Subscription subscription) {
                 request(1);
             }
 
             @Override
-            protected void hookOnNext(Business value) {
+            protected void hookOnNext(@NonNull Business value) {
                 received.incrementAndGet();
                 cancel();
                 latch.countDown();
@@ -68,4 +67,3 @@ class FailureStrictStreamTest {
         assertThat(received.get()).isEqualTo(1);
     }
 }
-

@@ -1,35 +1,50 @@
 package com.chao.failfast.integration.mvc;
 
 import com.chao.failfast.annotation.Validate;
+import com.chao.failfast.config.properties.FailureProperties;
 import com.chao.failfast.constant.FailureConst;
 import com.chao.failfast.constant.Severity;
-import com.chao.failfast.config.properties.FailureProperties;
+import com.chao.failfast.exception.Business;
+import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.internal.core.Ex;
 import com.chao.failfast.internal.core.FailureContext;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.exception.Business;
-import com.chao.failfast.exception.MultiBusiness;
 import com.chao.failfast.internal.core.observability.OpenTelemetryBridge;
-import com.chao.failfast.internal.core.observability.TraceInfoExtractor;
+import com.chao.failfast.internal.validation.ValidationEventManager;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Path;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.core.MethodParameter;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 class FailFastExceptionHandlerTest {
 
@@ -40,1062 +55,447 @@ class FailFastExceptionHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new TestFailFastExceptionHandler();
-        properties = Mockito.mock(FailureProperties.class);
+        properties = new FailureProperties();
         context = Mockito.mock(FailureContext.class);
         handler.setFailFastProperties(properties);
         Ex.setContext(context);
+        when(context.getScene()).thenReturn(null);
+        when(context.getTraceId()).thenReturn(null);
+        when(context.resolveSeverity(Mockito.any())).thenReturn(null);
     }
 
-    @Test
-    void testHandleBusinessException() {
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        var response = handler.handleBusinessException(business);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testHandleMultiBusinessException() {
-        List<Business> errors = List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 2")
-        );
-        MultiBusiness multiBusiness = new MultiBusiness(errors);
-        var response = handler.handleMultiBusinessException(multiBusiness);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testHandleMethodArgumentNotValidException() throws Exception {
-        MethodParameter parameter = Mockito.mock(MethodParameter.class);
-        Method method = getClass().getMethod("testMethod");
-        Mockito.when(parameter.getMethod()).thenReturn(method);
-
-        BindingResult bindingResult = Mockito.mock(BindingResult.class);
-        FieldError fieldError = Mockito.mock(FieldError.class);
-        Mockito.when(fieldError.getField()).thenReturn("field");
-        Mockito.when(fieldError.getDefaultMessage()).thenReturn("Invalid field");
-        Mockito.when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
-        Mockito.when(bindingResult.getTarget()).thenReturn(new Object());
-
-        MethodArgumentNotValidException exception = new MethodArgumentNotValidException(parameter, bindingResult);
-        var response = handler.handleMethodArgumentNotValidException(exception);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testHandleMethodArgumentNotValidExceptionWithValidateAnnotation() throws Exception {
-        MethodParameter parameter = Mockito.mock(MethodParameter.class);
-        Method method = getClass().getMethod("testMethodWithValidate");
-        Mockito.when(parameter.getMethod()).thenReturn(method);
-
-        BindingResult bindingResult = Mockito.mock(BindingResult.class);
-        FieldError fieldError1 = Mockito.mock(FieldError.class);
-        FieldError fieldError2 = Mockito.mock(FieldError.class);
-        Mockito.when(fieldError1.getField()).thenReturn("field1");
-        Mockito.when(fieldError1.getDefaultMessage()).thenReturn("Invalid field1");
-        Mockito.when(fieldError2.getField()).thenReturn("field2");
-        Mockito.when(fieldError2.getDefaultMessage()).thenReturn("Invalid field2");
-        Mockito.when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError1, fieldError2));
-
-        MethodArgumentNotValidException exception = new MethodArgumentNotValidException(parameter, bindingResult);
-        var response = handler.handleMethodArgumentNotValidException(exception);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testHandleConstraintViolationException() {
-        @SuppressWarnings("unchecked")
-        ConstraintViolation<Object> violation = Mockito.mock(ConstraintViolation.class);
-        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
-        Mockito.when(violation.getPropertyPath()).thenReturn(path);
-        Mockito.when(path.toString()).thenReturn("method.field");
-        Mockito.when(violation.getMessage()).thenReturn("Invalid field");
-        Mockito.when(violation.getRootBeanClass()).thenReturn(Object.class);
-
-        @SuppressWarnings("unchecked")
-        ConstraintViolationException exception = new ConstraintViolationException((Set) Set.of(violation));
-        var response = handler.handleConstraintViolationException(exception);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testBuildResponse() {
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        var response = handler.buildResponse(business);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testBuildResponseWithTraceAndSpan() {
-        Business business = Business.compose()
-                .responseCode(ResponseCode.VALIDATION_ERROR_400)
-                .detail("Error")
-                .traceId("trace-mvc")
-                .spanId("span-mvc")
-                .materialize();
-        FailureProperties local = new FailureProperties();
-        local.getTraceId().setEnabled(true);
-        handler.setFailFastProperties(local);
-        var response = handler.buildResponse(business);
-        assertNotNull(response);
-        assertTrue(((Map<?, ?>) response.getBody()).containsKey(FailureConst.FIELD_TRACE_ID));
-        assertTrue(((Map<?, ?>) response.getBody()).containsKey(FailureConst.FIELD_SPAN_ID));
-    }
-
-    @Test
-    void testBuildResponseWithScene() {
-        Mockito.when(context.getScene()).thenReturn("custom-scene");
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        var response = handler.buildResponse(business);
-        assertNotNull(response);
-        assertTrue(((Map<?, ?>) response.getBody()).containsKey(FailureConst.FIELD_SCENE));
-    }
-
-    @Test
-    void testBuildResponseWithoutSceneWhenBlankOrDefault() {
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-
-        Mockito.when(context.getScene()).thenReturn("   ");
-        var blankScene = handler.buildResponse(business);
-        assertNotNull(blankScene);
-        assertFalse(((Map<?, ?>) blankScene.getBody()).containsKey(FailureConst.FIELD_SCENE));
-
-        Mockito.when(context.getScene()).thenReturn(FailureConst.DEFAULT_SCENE);
-        var defaultScene = handler.buildResponse(business);
-        assertNotNull(defaultScene);
-        assertFalse(((Map<?, ?>) defaultScene.getBody()).containsKey(FailureConst.FIELD_SCENE));
-    }
-
-    @Test
-    void testBuildMultiErrorResponseWithVerbose() {
-        List<Business> errors = List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 2")
-        );
-        MultiBusiness multiBusiness = new MultiBusiness(errors);
-        Mockito.when(properties.isVerbose()).thenReturn(true);
-        var response = handler.buildMultiErrorResponse(multiBusiness);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testBuildMultiErrorResponseWithoutVerbose() {
-        List<Business> errors = List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1")
-        );
-        MultiBusiness multiBusiness = new MultiBusiness(errors);
-        Mockito.when(properties.isVerbose()).thenReturn(false);
-        var response = handler.buildMultiErrorResponse(multiBusiness);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testBuildMultiErrorResponseWithScene() {
-        List<Business> errors = List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 2")
-        );
-        MultiBusiness multiBusiness = new MultiBusiness(errors);
-        Mockito.when(properties.isVerbose()).thenReturn(false);
-        Mockito.when(context.getScene()).thenReturn("custom-scene");
-
-        var response = handler.buildMultiErrorResponse(multiBusiness);
-        assertNotNull(response);
-        assertTrue(((Map<?, ?>) response.getBody()).containsKey(FailureConst.FIELD_SCENE));
-    }
-
-    @Test
-    void testBuildMultiErrorResponseWithoutSceneWhenBlankOrDefault() {
-        List<Business> errors = List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 2")
-        );
-        MultiBusiness multiBusiness = new MultiBusiness(errors);
-        Mockito.when(properties.isVerbose()).thenReturn(false);
-
-        Mockito.when(context.getScene()).thenReturn("   ");
-        var blankScene = handler.buildMultiErrorResponse(multiBusiness);
-        assertNotNull(blankScene);
-        assertFalse(((Map<?, ?>) blankScene.getBody()).containsKey(FailureConst.FIELD_SCENE));
-
-        Mockito.when(context.getScene()).thenReturn(FailureConst.DEFAULT_SCENE);
-        var defaultScene = handler.buildMultiErrorResponse(multiBusiness);
-        assertNotNull(defaultScene);
-        assertFalse(((Map<?, ?>) defaultScene.getBody()).containsKey(FailureConst.FIELD_SCENE));
-    }
-
-    @Test
-    void testIsVerboseWithProperties() {
-        Mockito.when(properties.isVerbose()).thenReturn(true);
-        assertTrue(handler.isVerbose());
-    }
-
-    @Test
-    void testIsVerboseWithoutProperties() {
-        handler.setFailFastProperties(null);
-        assertFalse(handler.isVerbose());
-    }
-
-    @Test
-    void testHandleMultiErrorsWithEmptyList() {
-        var response = handler.handleMultiErrors(new ArrayList<>());
-        assertNotNull(response);
-    }
-
-    @Test
-    void testHandleMultiErrorsWithSingleError() {
-        List<Business> errors = List.of(Business.of(ResponseCode.VALIDATION_ERROR_400, "Error"));
-        var response = handler.handleMultiErrors(errors);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testHandleMultiErrorsWithMultipleErrors() {
-        List<Business> errors = List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 2")
-        );
-        var response = handler.handleMultiErrors(errors);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testLogExceptionWithSingleBusiness() {
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        handler.logException(business);
-    }
-
-    @Test
-    void testLogExceptionWithMultiBusiness() {
-        List<Business> errors = List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 2")
-        );
-        MultiBusiness multiBusiness = new MultiBusiness(errors);
-        handler.logException(multiBusiness);
-    }
-
-    @Test
-    void testRenderLogMessageUseBannerWhenShadowTraceEnabled() throws Exception {
-        FailureProperties local = new FailureProperties();
-        local.getLogging().setBanner(true);
-        handler.setFailFastProperties(local);
-        Mockito.when(context.isShadowTrace()).thenReturn(true);
-        Mockito.when(context.getTraceId()).thenReturn("trace-banner");
-
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        java.lang.reflect.Method m = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
-        m.setAccessible(true);
-        String out = (String) m.invoke(handler, business);
-
-        assertTrue(out.startsWith("BANNER{"));
-        assertTrue(out.contains("trace-banner"));
-    }
-
-    @Test
-    void testRenderLogMessageFallbackToDefaultWhenShadowTraceDisabled() throws Exception {
-        FailureProperties local = new FailureProperties();
-        local.getLogging().setBanner(true);
-        handler.setFailFastProperties(local);
-        Mockito.when(context.isShadowTrace()).thenReturn(false);
-
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        java.lang.reflect.Method m = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
-        m.setAccessible(true);
-        String out = (String) m.invoke(handler, business);
-
-        assertFalse(out.startsWith("BANNER{"));
-    }
-
-    @Test
-    void testFormatValidationLocationWithNullField() {
-        String location = handler.formatValidationLocation(getClass(), null);
-        assertNotNull(location);
-    }
-
-    @Test
-    void testFormatValidationLocationWithSimpleField() {
-        String location = handler.formatValidationLocation(getClass(), "field");
-        assertNotNull(location);
-    }
-
-    @Test
-    void testFormatValidationLocationWithNestedField() {
-        String location = handler.formatValidationLocation(getClass(), "method.field");
-        assertNotNull(location);
-    }
-
-    @Test
-    void testFormatValidationLocationWithNestedFieldWithoutClass() {
-        String location = handler.formatValidationLocation(null, "method.field");
-        assertNotNull(location);
-        assertTrue(location.contains("method"));
-    }
-
-    @Test
-    void testFormatValidationLocationWithProxyClass() {
-        class ProxyClass {}
-        String location = handler.formatValidationLocation(ProxyClass.class, "field");
-        assertNotNull(location);
-    }
-
-    @Test
-    void testFormatValidationLocationWithDollarDollarClassName() {
-        class $$ProxyClass extends Object {}
-        String location = handler.formatValidationLocation($$ProxyClass.class, "field");
-        assertNotNull(location);
-    }
-
-    @Test
-    void testParseErrorWithNullMessage() {
-        Business business = handler.parseError(null, "location", "method");
-        assertNotNull(business);
-    }
-
-    @Test
-    void testParseErrorWithBlankMessage() {
-        Business business = handler.parseError("", "location", "method");
-        assertNotNull(business);
-    }
-
-    @Test
-    void testParseErrorWithCodeAndMessage() {
-        Business business = handler.parseError("400: Invalid field", "location", "method");
-        assertNotNull(business);
-    }
-
-    @Test
-    void testParseErrorWithCodeAndBlankMessage() {
-        Business business = handler.parseError("400:   ", "location", "method");
-        assertNotNull(business);
-    }
-
-    @Test
-    void testParseErrorWithCodeOnly() {
-        Business business = handler.parseError("400", "location", "method");
-        assertNotNull(business);
-    }
-
-    @Test
-    void testParseErrorWithMessageOnly() {
-        Business business = handler.parseError("Invalid field", "location", "method");
-        assertNotNull(business);
-    }
-
-    @Test
-    void testParseErrorWithoutLocation() {
-        Business business = handler.parseError("Invalid field", null, "method");
-        assertNotNull(business);
-    }
-
-    @Test
-    void testParseValidationMessageWithNull() {
-        Object result = handler.parseValidationMessage(null);
-        // 通过反射获取code和text属性
-        try {
-            var codeMethod = result.getClass().getMethod("code");
-            var textMethod = result.getClass().getMethod("text");
-            assertNull(codeMethod.invoke(result));
-            assertNull(textMethod.invoke(result));
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
-    void testParseValidationMessageWithEmptyString() {
-        Object result = handler.parseValidationMessage("   ");
-        // 通过反射获取code和text属性
-        try {
-            var codeMethod = result.getClass().getMethod("code");
-            var textMethod = result.getClass().getMethod("text");
-            assertNull(codeMethod.invoke(result));
-            assertNull(textMethod.invoke(result));
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
-    void testParseValidationMessageWithCodeAndText() {
-        Object result = handler.parseValidationMessage("400: Invalid field");
-        // 通过反射获取code和text属性
-        try {
-            var codeMethod = result.getClass().getMethod("code");
-            var textMethod = result.getClass().getMethod("text");
-            assertEquals(400, codeMethod.invoke(result));
-            assertEquals("Invalid field", textMethod.invoke(result));
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
-    void testParseValidationMessageWithCodeAndEmptyText() {
-        Object result = handler.parseValidationMessage("400:");
-        try {
-            var codeMethod = result.getClass().getMethod("code");
-            var textMethod = result.getClass().getMethod("text");
-            assertEquals(400, codeMethod.invoke(result));
-            assertNull(textMethod.invoke(result));
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
-    void testParseValidationMessageWithCodeOnly() {
-        Object result = handler.parseValidationMessage("400");
-        // 通过反射获取code和text属性
-        try {
-            var codeMethod = result.getClass().getMethod("code");
-            var textMethod = result.getClass().getMethod("text");
-            assertEquals(400, codeMethod.invoke(result));
-            assertNull(textMethod.invoke(result));
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
-    void testParseValidationMessageWithTextOnly() {
-        Object result = handler.parseValidationMessage("Invalid field");
-        // 通过反射获取code和text属性
-        try {
-            var codeMethod = result.getClass().getMethod("code");
-            var textMethod = result.getClass().getMethod("text");
-            assertNull(codeMethod.invoke(result));
-            assertEquals("Invalid field", textMethod.invoke(result));
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
-    void testIsNumericWithNull() {
-        assertFalse(handler.isNumeric(null));
-    }
-
-    @Test
-    void testIsNumericWithEmptyString() {
-        assertFalse(handler.isNumeric(""));
-    }
-
-    @Test
-    void testIsNumericWithValidNumber() {
-        assertTrue(handler.isNumeric("123"));
-    }
-
-    @Test
-    void testIsNumericWithInvalidNumber() {
-        assertFalse(handler.isNumeric("123a"));
-    }
-
-    @Test
-    void testBuildMap() {
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        var map = handler.buildMap(business);
-        assertNotNull(map);
-    }
-
-    @Test
-    void testBuildMapWithoutTraceIdWhenDisabled() {
-        FailureProperties.TraceId traceId = new FailureProperties.TraceId();
-        traceId.setEnabled(false);
-        Mockito.when(properties.getTraceId()).thenReturn(traceId);
-
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        var map = handler.buildMap(business);
-        assertNotNull(map);
-        assertFalse(map.containsKey(FailureConst.FIELD_TRACE_ID));
-    }
-
-    @Test
-    void testBuildMultiErrorResponseWithoutTraceIdWhenDisabled() {
-        FailureProperties.TraceId traceId = new FailureProperties.TraceId();
-        traceId.setEnabled(false);
-        Mockito.when(properties.getTraceId()).thenReturn(traceId);
-        Mockito.when(properties.isVerbose()).thenReturn(false);
-
-        List<Business> errors = List.of(
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 1"),
-                Business.of(ResponseCode.VALIDATION_ERROR_400, "Error 2")
-        );
-        MultiBusiness multiBusiness = new MultiBusiness(errors);
-        var response = handler.buildMultiErrorResponse(multiBusiness);
-        assertNotNull(response);
-        assertFalse(((Map<?, ?>) response.getBody()).containsKey(FailureConst.FIELD_TRACE_ID));
-    }
-
-    @Test
-    void testBuildMapDetail() {
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        var map = handler.buildMapDetail(business);
-        assertNotNull(map);
-    }
-
-    @Test
-    void testGetTraceIdWithContext() {
-        Mockito.when(context.getTraceId()).thenReturn("test-trace-id");
-        assertEquals("test-trace-id", handler.getTraceId());
-    }
-
-    @Test
-    void testGetTraceIdWithoutContext() {
+    @AfterEach
+    void tearDown() {
         Ex.setContext(null);
-        String traceId = handler.getTraceId();
-        assertNotNull(traceId);
     }
 
     @Test
-    void testGetSceneWithContext() {
-        Mockito.when(context.getScene()).thenReturn("test-scene");
-        assertEquals("test-scene", handler.getScene());
+    void handleBusinessException_shouldBuildSingleResponse() {
+        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "single");
+
+        ResponseEntity<?> response = handler.handleBusinessException(business);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(ResponseCode.VALIDATION_ERROR_400.getCode(), body(response).get(FailureConst.FIELD_CODE));
+        assertInstanceOf(Map.class, handler.buildBody(business));
     }
 
     @Test
-    void testGetSceneWithoutContext() {
-        Ex.setContext(null);
-        String scene = handler.getScene();
-        assertNotNull(scene);
+    void handleMultiBusinessException_shouldBuildVerboseMultiResponse() {
+        properties.setVerbose(true);
+        MultiBusiness multi = new MultiBusiness(List.of(
+                Business.of(ResponseCode.VALIDATION_ERROR_400, "first"),
+                Business.of(ResponseCode.VALIDATION_ERROR_400, "second")
+        ));
+
+        ResponseEntity<?> response = handler.handleMultiBusinessException(multi);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(2, errors(body(response)).size());
+        assertInstanceOf(Map.class, handler.buildBody(multi));
     }
 
     @Test
-    void testNotifyValidationStart() {
-        handler.notifyValidationStart("test-scene");
-    }
-
-    @Test
-    void testNotifyValidationEnd() {
-        handler.notifyValidationEnd(1000, true);
-    }
-
-    @Test
-    void testNotifyValidationFailure() {
-        handler.notifyValidationFailure("400");
-    }
-
-    @Test
-    void testHandleMethodArgumentNotValidExceptionWithoutValidateAnnotation() throws Exception {
+    void handleMethodArgumentNotValidException_shouldFailFastByDefaultWhenMethodAndTargetAreMissing() {
         MethodParameter parameter = Mockito.mock(MethodParameter.class);
-        Method method = getClass().getMethod("testMethod");
-        Mockito.when(parameter.getMethod()).thenReturn(method);
+        when(parameter.getMethod()).thenReturn(null);
 
-        BindingResult bindingResult = Mockito.mock(BindingResult.class);
-        FieldError fieldError = Mockito.mock(FieldError.class);
-        Mockito.when(fieldError.getField()).thenReturn("field");
-        Mockito.when(fieldError.getDefaultMessage()).thenReturn("Invalid field");
-        Mockito.when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
+        BindingResult result = Mockito.mock(BindingResult.class);
+        FieldError first = Mockito.mock(FieldError.class);
+        FieldError second = Mockito.mock(FieldError.class);
+        when(first.getField()).thenReturn("name");
+        when(first.getDefaultMessage()).thenReturn("410: first");
+        when(second.getField()).thenReturn("age");
+        when(second.getDefaultMessage()).thenReturn("411: second");
+        when(result.getFieldErrors()).thenReturn(List.of(first, second));
+        when(result.getTarget()).thenReturn(null);
 
-        MethodArgumentNotValidException exception = new MethodArgumentNotValidException(parameter, bindingResult);
-        var response = handler.handleMethodArgumentNotValidException(exception);
-        assertNotNull(response);
-    }
-
-    @Test
-    void testHandleConstraintViolationExceptionWithNullRootBeanClass() {
-        @SuppressWarnings("unchecked")
-        ConstraintViolation<Object> violation = Mockito.mock(ConstraintViolation.class);
-        jakarta.validation.Path path = Mockito.mock(jakarta.validation.Path.class);
-        Mockito.when(violation.getPropertyPath()).thenReturn(path);
-        Mockito.when(path.toString()).thenReturn("field");
-        Mockito.when(violation.getMessage()).thenReturn("Invalid field");
-        Mockito.when(violation.getRootBeanClass()).thenReturn(null);
-
-        @SuppressWarnings("unchecked")
-        ConstraintViolationException exception = new ConstraintViolationException((Set) Set.of(violation));
-        var response = handler.handleConstraintViolationException(exception);
-        assertNotNull(response);
-    }
-
-    @Test
-    void should_renderNullLiteral_when_renderLogMessageReceivesNullBusiness() throws Exception {
-        Method m = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
-        m.setAccessible(true);
-
-        String out = (String) m.invoke(handler, new Object[]{null});
-
-        assertEquals("null", out);
-    }
-
-    @Test
-    void should_enableBannerMode_when_loggingConfigIsMissingButShadowTraceIsTrue() throws Exception {
-        FailureContext localContext = Mockito.mock(FailureContext.class);
-        Mockito.when(localContext.isShadowTrace()).thenReturn(true);
-        Ex.setContext(localContext);
-        handler.setFailFastProperties(new FailureProperties());
-        handler.setFailFastProperties(null);
-
-        Method method = FailFastExceptionHandler.class.getDeclaredMethod("isBannerMode");
-        method.setAccessible(true);
-
-        boolean result = (boolean) method.invoke(handler);
-
-        assertTrue(result);
-    }
-
-    @Test
-    void should_pickHighestSeverity_when_multiBusinessContainsNulls() throws Exception {
-        List<Business> errors = List.of(
-                Business.compose().responseCode(ResponseCode.VALIDATION_ERROR_400).detail("a").severity(null).materialize(),
-                Business.compose().responseCode(ResponseCode.VALIDATION_ERROR_400).detail("b").severity(Severity.CRITICAL).materialize()
+        ResponseEntity<?> response = handler.handleMethodArgumentNotValidException(
+                new MethodArgumentNotValidException(parameter, result)
         );
-        MultiBusiness multiBusiness = new MultiBusiness(errors);
-        Method method = FailFastExceptionHandler.class.getDeclaredMethod("resolveMultiSeverity", MultiBusiness.class);
-        method.setAccessible(true);
 
-        Severity result = (Severity) method.invoke(handler, multiBusiness);
+        Map<String, Object> body = body(response);
+        List<Map<String, Object>> errors = errors(body);
 
-        assertEquals(Severity.CRITICAL, result);
+        assertEquals(HttpStatus.GONE, response.getStatusCode());
+        assertEquals(1, errors.size());
+        assertEquals(410, errors.get(0).get(FailureConst.FIELD_CODE));
     }
 
     @Test
-    void should_coverAllSeverityBranches_when_logBySeverityInvokedReflectively() throws Exception {
-        Method method = FailFastExceptionHandler.class.getDeclaredMethod("logBySeverity", Severity.class, String.class, Object[].class);
-        method.setAccessible(true);
+    void handleMethodArgumentNotValidException_shouldKeepAllErrorsWhenValidateFastIsFalse() throws Exception {
+        properties.setVerbose(true);
+        when(context.getScene()).thenReturn("mvc-scene");
+        Method method = SampleController.class.getMethod("collectAll", String.class);
+        MethodParameter parameter = new MethodParameter(method, 0);
+        BeanPropertyBindingResult result = new BeanPropertyBindingResult(new Payload(), "payload");
+        result.addError(new FieldError("payload", "name", "420: invalid-name"));
+        result.addError(new FieldError("payload", "age", "421: invalid-age"));
 
-        method.invoke(handler, null, "{}", new Object[]{"a"});
-        method.invoke(handler, Severity.WARNING, "{}", new Object[]{"a"});
-        method.invoke(handler, Severity.ERROR, "{}", new Object[]{"a"});
-        method.invoke(handler, Severity.INFO, "{}", new Object[]{"a"});
-        method.invoke(handler, Severity.CRITICAL, "{}", new Object[]{"a"});
+        ResponseEntity<?> response = handler.handleMethodArgumentNotValidException(
+                new MethodArgumentNotValidException(parameter, result)
+        );
+
+        Map<String, Object> body = body(response);
+
+        assertEquals(HttpStatus.METHOD_FAILURE, response.getStatusCode());
+        assertEquals("mvc-scene", body.get(FailureConst.FIELD_SCENE));
+        assertEquals(2, errors(body).size());
     }
 
     @Test
-    void should_useOpenTelemetryFallbacks_when_traceAndSpanAreMissing() {
-        Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
-        Mockito.when(context.getTraceId()).thenReturn(null);
+    void handleConstraintViolationException_shouldSupportSingleAndMultiViolations() {
+        properties.setVerbose(true);
+
+        ConstraintViolation<Object> single = violation(SampleController.class, "plain.name", "430: invalid-name");
+        ResponseEntity<?> singleResponse = handler.handleConstraintViolationException(
+                new ConstraintViolationException(rawSet(single))
+        );
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, singleResponse.getStatusCode());
+        assertEquals(1, errors(body(singleResponse)).size());
+
+        ConstraintViolation<Object> first = violation(SampleController.class, "plain.name", "431: first");
+        ConstraintViolation<Object> second = violation(null, "age", "432: second");
+        ResponseEntity<?> multiResponse = handler.handleConstraintViolationException(
+                new ConstraintViolationException(rawSet(first, second))
+        );
+
+        assertEquals(HttpStatus.REQUEST_HEADER_FIELDS_TOO_LARGE, multiResponse.getStatusCode());
+        assertEquals(2, errors(body(multiResponse)).size());
+    }
+
+    @Test
+    void buildMap_shouldCoverTraceSceneAndDetailBranches() {
+        properties.getTraceId().setEnabled(true);
+        when(context.getScene()).thenReturn("api-scene");
+        Business business = mockedBusiness("detail", Severity.ERROR, null, null, "payload.name", "raw-value");
 
         try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
             otel.when(OpenTelemetryBridge::currentTraceId).thenReturn("otel-trace");
             otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
 
-            Map<String, Object> body = handler.buildMap(business);
+            Map<String, Object> map = handler.buildMap(business);
+            Map<String, Object> detail = handler.buildMapDetail(business);
 
-            assertEquals("otel-trace", body.get(FailureConst.FIELD_TRACE_ID));
-            assertEquals("otel-span", body.get(FailureConst.FIELD_SPAN_ID));
+            assertEquals("otel-trace", map.get(FailureConst.FIELD_TRACE_ID));
+            assertEquals("otel-span", map.get(FailureConst.FIELD_SPAN_ID));
+            assertEquals("api-scene", map.get(FailureConst.FIELD_SCENE));
+            assertEquals("payload.name", detail.get(FailureConst.FIELD_PATH));
+            assertEquals("raw-value", detail.get(FailureConst.FIELD_REJECTED));
         }
     }
 
     @Test
-    void should_fallbackResolveTraceAndSpan_when_businessValuesAreBlank() throws Exception {
-        Business business = Business.compose()
-                .responseCode(ResponseCode.VALIDATION_ERROR_400)
-                .detail("x")
-                .traceId(" ")
-                .spanId(" ")
-                .materialize();
-        Mockito.when(context.getTraceId()).thenReturn("ctx-trace");
+    void buildMap_shouldSkipTraceAndSceneWhenDisabledOrBlank() {
+        properties.getTraceId().setEnabled(false);
+        when(context.getScene()).thenReturn(FailureConst.DEFAULT_SCENE);
+        Business business = mockedBusiness("detail", Severity.INFO, "trace-direct", "span-direct", null, null);
+
+        Map<String, Object> defaultScene = handler.buildMap(business);
+
+        assertFalse(defaultScene.containsKey(FailureConst.FIELD_TRACE_ID));
+        assertFalse(defaultScene.containsKey(FailureConst.FIELD_SPAN_ID));
+        assertFalse(defaultScene.containsKey(FailureConst.FIELD_SCENE));
+
+        when(context.getScene()).thenReturn("   ");
+        assertFalse(handler.buildMap(business).containsKey(FailureConst.FIELD_SCENE));
+    }
+
+    @Test
+    void buildMultiMap_shouldCoverVerboseAndTraceIdConfigurationBranches() {
+        FailureProperties traceIdMissingProps = new FailureProperties();
+        traceIdMissingProps.setVerbose(true);
+        traceIdMissingProps.setTraceId(null);
+        handler.setFailFastProperties(traceIdMissingProps);
+        when(context.getScene()).thenReturn("multi-scene");
+
+        MultiBusiness verboseMulti = mockedMultiBusiness("trace-explicit", List.of(
+                mockedBusiness("first", Severity.INFO, null, null, "f1", "v1"),
+                mockedBusiness("second", Severity.WARNING, null, null, "f2", "v2")
+        ));
 
         try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
             otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
 
-            Method resolveTraceId = FailFastExceptionHandler.class.getDeclaredMethod("resolveTraceId", Business.class);
-            resolveTraceId.setAccessible(true);
-            Method resolveSpanId = FailFastExceptionHandler.class.getDeclaredMethod("resolveSpanId", Business.class);
-            resolveSpanId.setAccessible(true);
+            Map<String, Object> verboseMap = handler.buildMultiMap(verboseMulti);
 
-            assertEquals("ctx-trace", resolveTraceId.invoke(handler, business));
-            assertEquals("otel-span", resolveSpanId.invoke(handler, business));
+            assertEquals("trace-explicit", verboseMap.get(FailureConst.FIELD_TRACE_ID));
+            assertEquals("otel-span", verboseMap.get(FailureConst.FIELD_SPAN_ID));
+            assertEquals("multi-scene", verboseMap.get(FailureConst.FIELD_SCENE));
+            assertEquals(2, errors(verboseMap).size());
         }
-    }
 
-    @Test
-    void should_useBusinessTraceAndSpan_when_buildMultiErrorResponseReceivesExplicitValues() {
-        FailureProperties local = new FailureProperties();
-        local.getTraceId().setEnabled(true);
-        handler.setFailFastProperties(local);
-
-        MultiBusiness multi = Mockito.mock(MultiBusiness.class);
-        Mockito.when(multi.getResponseCode()).thenReturn(ResponseCode.VALIDATION_ERROR_400);
-        Mockito.when(multi.getDetail()).thenReturn("x");
-        Mockito.when(multi.getHttpStatus()).thenReturn(org.springframework.http.HttpStatus.BAD_REQUEST);
-        Mockito.when(multi.getTraceId()).thenReturn("trace-explicit");
-        Mockito.when(multi.getErrors()).thenReturn(List.of());
+        FailureProperties disabledProps = new FailureProperties();
+        disabledProps.setVerbose(false);
+        disabledProps.getTraceId().setEnabled(true);
+        handler.setFailFastProperties(disabledProps);
+        when(context.getScene()).thenReturn(FailureConst.DEFAULT_SCENE);
+        when(context.getTraceId()).thenReturn(" ");
+        MultiBusiness blankMulti = mockedMultiBusiness(" ", List.of(mockedBusiness("only", Severity.INFO, null, null, null, null)));
 
         try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
-            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn(" ");
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(" ");
 
-            var response = handler.buildMultiErrorResponse(multi);
-            Map<?, ?> body = (Map<?, ?>) response.getBody();
+            Map<String, Object> map = handler.buildMultiMap(blankMulti);
 
-            assertEquals("trace-explicit", body.get(FailureConst.FIELD_TRACE_ID));
-            assertEquals("otel-span", body.get(FailureConst.FIELD_SPAN_ID));
+            assertFalse(map.containsKey(FailureConst.FIELD_TRACE_ID));
+            assertFalse(map.containsKey(FailureConst.FIELD_SPAN_ID));
+            assertFalse(map.containsKey(FailureConst.FIELD_ERRORS));
         }
     }
 
     @Test
-    void should_renderUnknownBannerFields_when_businessMetadataIsMissing() throws Exception {
-        FailureProperties local = new FailureProperties();
-        local.getLogging().setBanner(true);
-        handler.setFailFastProperties(local);
-        FailureContext localContext = Mockito.mock(FailureContext.class);
-        Ex.setContext(localContext);
-        Business business = Mockito.mock(Business.class);
-        Mockito.when(business.getResponseCode()).thenReturn(null);
-        Mockito.when(business.getPath()).thenReturn(null);
-        Mockito.when(business.getTraceId()).thenReturn(null);
+    void privateHelpers_shouldCoverFormattingParsingAndNumericChecks() {
+        String unknown = invokePrivate("formatValidationLocation", new Class[]{Class.class, String.class}, Payload.class, null);
+        String simple = invokePrivate("formatValidationLocation", new Class[]{Class.class, String.class}, Payload.class, "name");
+        String nested = invokePrivate("formatValidationLocation", new Class[]{Class.class, String.class}, Payload.class, "plain.name");
+        String noClass = invokePrivate("formatValidationLocation", new Class[]{Class.class, String.class}, null, "plain.name");
+        String proxy = invokePrivate("formatValidationLocation", new Class[]{Class.class, String.class}, Proxy$$Payload.class, "field");
 
-        try (var trace = mockStatic(com.chao.failfast.internal.core.observability.TraceInfoExtractor.class)) {
-            trace.when(() -> com.chao.failfast.internal.core.observability.TraceInfoExtractor.shadowTrace(localContext, null)).thenReturn(true);
-            Method method = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
+        assertNotNull(unknown);
+        assertTrue(simple.contains("name"));
+        assertTrue(nested.contains("plain"));
+        assertTrue(noClass.contains("plain"));
+        assertTrue(proxy.contains(Payload.class.getSimpleName()));
+
+        Business nullMessage = invokePrivate("parseError",
+                new Class[]{String.class, String.class, String.class}, null, "location", "method");
+        Business blankMessage = invokePrivate("parseError",
+                new Class[]{String.class, String.class, String.class}, "   ", "location", "method");
+        Business codeAndText = invokePrivate("parseError",
+                new Class[]{String.class, String.class, String.class}, "440: custom", "location", "method");
+        Business codeOnly = invokePrivate("parseError",
+                new Class[]{String.class, String.class, String.class}, "441", "location", "method");
+        Business plainText = invokePrivate("parseError",
+                new Class[]{String.class, String.class, String.class}, "plain-text", null, "method");
+
+        assertEquals(ResponseCode.VALIDATION_ERROR_400.getCode(), nullMessage.getResponseCode().getCode());
+        assertEquals(ResponseCode.VALIDATION_ERROR_400.getCode(), blankMessage.getResponseCode().getCode());
+        assertEquals(440, codeAndText.getResponseCode().getCode());
+        assertEquals(441, codeOnly.getResponseCode().getCode());
+        assertEquals("plain-text", plainText.getDetail());
+
+        Object parsedNull = invokePrivate("parseValidationMessage", new Class[]{String.class}, new Object[]{null});
+        Object parsedBlank = invokePrivate("parseValidationMessage", new Class[]{String.class}, "   ");
+        Object parsedCodeText = invokePrivate("parseValidationMessage", new Class[]{String.class}, "442: parsed");
+        Object parsedCodeOnly = invokePrivate("parseValidationMessage", new Class[]{String.class}, "443");
+        Object parsedColonText = invokePrivate("parseValidationMessage", new Class[]{String.class}, "x: parsed");
+
+        assertNull(invokeRecord(parsedNull, "code"));
+        assertNull(invokeRecord(parsedBlank, "text"));
+        assertEquals(Integer.valueOf(442), invokeRecord(parsedCodeText, "code"));
+        assertEquals("parsed", invokeRecord(parsedCodeText, "text"));
+        assertEquals(Integer.valueOf(443), invokeRecord(parsedCodeOnly, "code"));
+        assertEquals("x: parsed", invokeRecord(parsedColonText, "text"));
+
+        assertFalse((Boolean) invokePrivate("isNumeric", new Class[]{String.class}, new Object[]{null}));
+        assertFalse((Boolean) invokePrivate("isNumeric", new Class[]{String.class}, ""));
+        assertTrue((Boolean) invokePrivate("isNumeric", new Class[]{String.class}, "12345"));
+        assertFalse((Boolean) invokePrivate("isNumeric", new Class[]{String.class}, "12a45"));
+    }
+
+    @Test
+    void privateHelpers_shouldCoverTraceSceneSeverityLoggingAndResolution() {
+        Business nullSeverity = mockedBusiness("null-severity", null, null, null, null, null);
+        Business critical = mockedBusiness("critical", Severity.CRITICAL, "trace-direct", "span-direct", null, null);
+
+        MultiBusiness severityMulti = Mockito.mock(MultiBusiness.class);
+        when(severityMulti.getErrors()).thenReturn(Arrays.asList(null, nullSeverity, critical));
+        assertEquals(Severity.CRITICAL, invokePrivate("resolveMultiSeverity", new Class[]{MultiBusiness.class}, severityMulti));
+
+        invokePrivate("logBySeverity", new Class[]{Severity.class, String.class, Object[].class}, null, "{}", new Object[]{"info"});
+        invokePrivate("logBySeverity", new Class[]{Severity.class, String.class, Object[].class}, Severity.DEBUG, "{}", new Object[]{"debug"});
+        invokePrivate("logBySeverity", new Class[]{Severity.class, String.class, Object[].class}, Severity.INFO, "{}", new Object[]{"info"});
+        invokePrivate("logBySeverity", new Class[]{Severity.class, String.class, Object[].class}, Severity.WARNING, "{}", new Object[]{"warn"});
+        invokePrivate("logBySeverity", new Class[]{Severity.class, String.class, Object[].class}, Severity.ERROR, "{}", new Object[]{"error"});
+        invokePrivate("logBySeverity", new Class[]{Severity.class, String.class, Object[].class}, Severity.CRITICAL, "{}", new Object[]{"critical"});
+        handler.logException(critical);
+        handler.logException(new MultiBusiness(List.of(Business.of(ResponseCode.VALIDATION_ERROR_400, "a"))));
+
+        assertEquals("null", invokePrivate("renderLogMessage", new Class[]{Business.class}, new Object[]{null}));
+
+        properties.getTraceId().setEnabled(false);
+        assertEquals("business{disabled}", invokePrivate("renderLogMessage",
+                new Class[]{Business.class}, mockedBusiness("disabled", Severity.INFO, null, null, null, null, "business{disabled}")));
+
+        properties.getTraceId().setEnabled(true);
+        when(context.getTraceId()).thenReturn("ctx-trace");
+        assertEquals("business{trace} [traceId=ctx-trace]", invokePrivate("renderLogMessage",
+                new Class[]{Business.class}, mockedBusiness("trace", Severity.INFO, null, null, null, null, "business{trace}")));
+
+        when(context.getTraceId()).thenReturn(" ");
+        assertEquals("business{blank}", invokePrivate("renderLogMessage",
+                new Class[]{Business.class}, mockedBusiness("blank", Severity.INFO, " ", null, null, null, "business{blank}")));
+
+        when(context.getTraceId()).thenReturn("ctx-trace");
+        assertEquals("trace-direct", invokePrivate("resolveTraceId", new Class[]{Business.class}, critical));
+        assertEquals("span-direct", invokePrivate("resolveSpanId", new Class[]{Business.class}, critical));
+        assertEquals("ctx-trace", invokePrivate("resolveTraceId", new Class[]{Business.class}, new Object[]{null}));
+
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn("otel-trace");
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
+
+            Ex.setContext(null);
+            assertEquals("otel-trace", invokePrivate("getTraceId", new Class[]{}));
+            assertEquals("otel-span", invokePrivate("resolveSpanId", new Class[]{Business.class}, new Object[]{null}));
+            assertEquals(FailureConst.DEFAULT_SCENE, invokePrivate("getScene", new Class[]{}));
+        }
+
+        Ex.setContext(context);
+        when(context.getTraceId()).thenReturn(" ");
+        assertEquals(" ", invokePrivate("getTraceId", new Class[]{}));
+
+        when(context.getTraceId()).thenReturn(null);
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn(" ");
+
+            String generated = invokePrivate("getTraceId", new Class[]{});
+
+            assertDoesNotThrow(() -> UUID.fromString(generated));
+        }
+
+        when(context.getScene()).thenReturn("scene-x");
+        assertEquals("scene-x", invokePrivate("getScene", new Class[]{}));
+
+        handler.setFailFastProperties(null);
+        Business fallbackBusiness = mockedBusiness("fallback", Severity.INFO, null, null, null, null);
+        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
+            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn("otel-trace-2");
+            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span-2");
+
+            Map<String, Object> map = handler.buildMap(fallbackBusiness);
+
+            assertEquals("otel-trace-2", map.get(FailureConst.FIELD_TRACE_ID));
+            assertEquals("otel-span-2", map.get(FailureConst.FIELD_SPAN_ID));
+        }
+    }
+
+    @Test
+    void privateNotificationAndMultiErrorHelpers_shouldDelegateCorrectly() {
+        try (MockedStatic<ValidationEventManager> events = mockStatic(ValidationEventManager.class)) {
+            invokePrivate("notifyValidationStart", new Class[]{String.class}, "scene-a");
+            invokePrivate("notifyValidationEnd", new Class[]{long.class, boolean.class}, 7L, true);
+            invokePrivate("notifyValidationFailure", new Class[]{String.class}, "499");
+
+            events.verify(() -> ValidationEventManager.notifyStart(FailureConst.FIELD_METHOD, "scene-a"));
+            events.verify(() -> ValidationEventManager.notifyEnd(FailureConst.FIELD_METHOD, 7L, true));
+            events.verify(() -> ValidationEventManager.notifyFailure(FailureConst.FIELD_METHOD, "499"));
+        }
+
+        properties.setVerbose(true);
+        Map<String, Object> empty = body((ResponseEntity<?>) invokePrivate("handleMultiErrors",
+                new Class[]{List.class}, List.of()));
+        Map<String, Object> single = body((ResponseEntity<?>) invokePrivate("handleMultiErrors",
+                new Class[]{List.class}, List.of(Business.of(ResponseCode.VALIDATION_ERROR_400, "single"))));
+        Map<String, Object> multi = body((ResponseEntity<?>) invokePrivate("handleMultiErrors",
+                new Class[]{List.class}, List.of(
+                        Business.of(ResponseCode.VALIDATION_ERROR_400, "first"),
+                        Business.of(ResponseCode.VALIDATION_ERROR_400, "second")
+                )));
+
+        assertEquals(ResponseCode.VALIDATION_ERROR.getCode(), empty.get(FailureConst.FIELD_CODE));
+        assertEquals(1, errors(single).size());
+        assertEquals(2, errors(multi).size());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> body(ResponseEntity<?> response) {
+        return (Map<String, Object>) response.getBody();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> errors(Map<String, Object> body) {
+        return (List<Map<String, Object>>) body.get(FailureConst.FIELD_ERRORS);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Set<ConstraintViolation<?>> rawSet(ConstraintViolation<?>... violations) {
+        return (Set<ConstraintViolation<?>>) (Set<?>) new LinkedHashSet<>(Arrays.asList(violations));
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T invokePrivate(String name, Class<?>[] parameterTypes, Object... args) {
+        try {
+            Method method = FailFastExceptionHandler.class.getDeclaredMethod(name, parameterTypes);
             method.setAccessible(true);
-            String result = (String) method.invoke(handler, business);
-
-            assertTrue(result.contains("code=UNKNOWN"));
-            assertTrue(result.contains("path=-"));
-            assertTrue(result.contains("traceId="));
+            return (T) method.invoke(handler, args);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    @Test
-    void should_useOpenTelemetryTraceId_when_contextTraceIdIsMissing() {
-        Ex.setContext(null);
-
-        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
-            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn("otel-trace");
-
-            assertEquals("otel-trace", handler.getTraceId());
+    @SuppressWarnings("unchecked")
+    private static <T> T invokeRecord(Object target, String accessor) {
+        try {
+            Method method = target.getClass().getMethod(accessor);
+            return (T) method.invoke(target);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    @Test
-    void should_returnBusinessSpanId_when_resolveSpanIdReceivesNonBlankValue() throws Exception {
-        Business business = Business.compose()
-                .responseCode(ResponseCode.VALIDATION_ERROR_400)
-                .detail("x")
-                .spanId("span-direct")
-                .materialize();
-
-        Method resolveSpanId = FailFastExceptionHandler.class.getDeclaredMethod("resolveSpanId", Business.class);
-        resolveSpanId.setAccessible(true);
-
-        assertEquals("span-direct", resolveSpanId.invoke(handler, business));
+    private static ConstraintViolation<Object> violation(Class<?> rootBeanClass, String propertyPath, String message) {
+        @SuppressWarnings("unchecked")
+        ConstraintViolation<Object> violation = Mockito.mock(ConstraintViolation.class);
+        Path path = Mockito.mock(Path.class);
+        @SuppressWarnings("unchecked")
+        Class<Object> typedRootBeanClass = (Class<Object>) rootBeanClass;
+        when(violation.getRootBeanClass()).thenReturn(typedRootBeanClass);
+        when(violation.getPropertyPath()).thenReturn(path);
+        when(path.toString()).thenReturn(propertyPath);
+        when(violation.getMessage()).thenReturn(message);
+        return violation;
     }
 
-    @Test
-    void should_returnBusinessTraceId_when_resolveTraceIdReceivesNonBlankValue() throws Exception {
-        Business business = Business.compose()
-                .responseCode(ResponseCode.VALIDATION_ERROR_400)
-                .detail("x")
-                .traceId("trace-direct")
-                .materialize();
-
-        Method resolveTraceId = FailFastExceptionHandler.class.getDeclaredMethod("resolveTraceId", Business.class);
-        resolveTraceId.setAccessible(true);
-
-        assertEquals("trace-direct", resolveTraceId.invoke(handler, business));
+    private static Business mockedBusiness(String detail, Severity severity, String traceId, String spanId,
+                                          String path, Object invalidValue) {
+        return mockedBusiness(detail, severity, traceId, spanId, path, invalidValue, "business{" + detail + "}");
     }
 
-    @Test
-    void should_includeExplicitTraceAndSpan_when_buildMapReceivesBusinessMetadata() {
-        FailureProperties local = new FailureProperties();
-        local.getTraceId().setEnabled(true);
-        handler.setFailFastProperties(local);
-        Business business = Business.compose()
-                .responseCode(ResponseCode.VALIDATION_ERROR_400)
-                .detail("x")
-                .traceId("trace-direct")
-                .spanId("span-direct")
-                .materialize();
-
-        Map<String, Object> body = handler.buildMap(business);
-
-        assertEquals("trace-direct", body.get(FailureConst.FIELD_TRACE_ID));
-        assertEquals("span-direct", body.get(FailureConst.FIELD_SPAN_ID));
+    private static Business mockedBusiness(String detail, Severity severity, String traceId, String spanId,
+                                          String path, Object invalidValue, String text) {
+        Business business = Mockito.mock(Business.class);
+        when(business.getResponseCode()).thenReturn(ResponseCode.VALIDATION_ERROR_400);
+        when(business.getDetail()).thenReturn(detail);
+        when(business.getHttpStatus()).thenReturn(HttpStatus.BAD_REQUEST);
+        when(business.getSeverity()).thenReturn(severity);
+        when(business.getTraceId()).thenReturn(traceId);
+        when(business.getSpanId()).thenReturn(spanId);
+        when(business.getPath()).thenReturn(path);
+        when(business.getInvalidValue()).thenReturn(invalidValue);
+        when(business.toString()).thenReturn(text);
+        return business;
     }
 
-    @Test
-    void should_treatDebugSeverityAsNoLogRequired_when_logBySeverityReceivesDebug() throws Exception {
-        Method method = FailFastExceptionHandler.class.getDeclaredMethod("logBySeverity", Severity.class, String.class, Object[].class);
-        method.setAccessible(true);
-
-        method.invoke(handler, Severity.DEBUG, "{}", new Object[]{"a"});
-    }
-
-    @Test
-    void should_skipBlankTraceAndSpan_when_buildMapResolvesOnlyBlankMetadata() {
-        FailureProperties local = new FailureProperties();
-        local.getTraceId().setEnabled(true);
-        handler.setFailFastProperties(local);
-
-        Business business = Business.compose()
-                .responseCode(ResponseCode.VALIDATION_ERROR_400)
-                .detail("x")
-                .traceId(" ")
-                .spanId(" ")
-                .materialize();
-        Mockito.when(context.getTraceId()).thenReturn(" ");
-
-        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
-            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn(" ");
-            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(" ");
-
-            Map<String, Object> body = handler.buildMap(business);
-
-            assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
-            assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
-        }
-    }
-
-    @Test
-    void should_skipBlankTraceAndSpan_when_buildMultiErrorResponseResolvesOnlyBlankMetadata() {
-        FailureProperties local = new FailureProperties();
-        local.getTraceId().setEnabled(true);
-        local.setVerbose(false);
-        handler.setFailFastProperties(local);
-
+    private static MultiBusiness mockedMultiBusiness(String traceId, List<Business> errors) {
         MultiBusiness multi = Mockito.mock(MultiBusiness.class);
-        Mockito.when(multi.getResponseCode()).thenReturn(ResponseCode.VALIDATION_ERROR_400);
-        Mockito.when(multi.getDetail()).thenReturn("x");
-        Mockito.when(multi.getHttpStatus()).thenReturn(org.springframework.http.HttpStatus.BAD_REQUEST);
-        Mockito.when(multi.getTraceId()).thenReturn(" ");
-        Mockito.when(multi.getErrors()).thenReturn(List.of());
-        Mockito.when(context.getTraceId()).thenReturn(" ");
+        when(multi.getResponseCode()).thenReturn(ResponseCode.VALIDATION_ERROR_400);
+        when(multi.getDetail()).thenReturn("multi");
+        when(multi.getHttpStatus()).thenReturn(HttpStatus.BAD_REQUEST);
+        when(multi.getTraceId()).thenReturn(traceId);
+        when(multi.getErrors()).thenReturn(errors);
+        return multi;
+    }
 
-        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
-            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn(" ");
-            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn(" ");
+    static class Payload {
+        String name;
+        int age;
+    }
 
-            var response = handler.buildMultiErrorResponse(multi);
-            Map<?, ?> body = (Map<?, ?>) response.getBody();
+    static class Proxy$$Payload extends Payload {
+    }
 
-            assertFalse(body.containsKey(FailureConst.FIELD_TRACE_ID));
-            assertFalse(body.containsKey(FailureConst.FIELD_SPAN_ID));
+    static class SampleController {
+        public void plain(String name) {
+        }
+
+        @Validate(fast = false)
+        public void collectAll(String name) {
         }
     }
 
-    @Test
-    void should_enableBannerMode_when_shadowTraceTrueAndLoggingConfigIsNull() throws Exception {
-        FailureProperties mockProperties = Mockito.mock(FailureProperties.class);
-        FailureContext localContext = Mockito.mock(FailureContext.class);
-        Ex.setContext(localContext);
-        handler.setFailFastProperties(mockProperties);
-        Mockito.when(mockProperties.getLogging()).thenReturn(null);
-
-        Method method = FailFastExceptionHandler.class.getDeclaredMethod("isBannerMode");
-        method.setAccessible(true);
-
-        try (MockedStatic<TraceInfoExtractor> trace = mockStatic(TraceInfoExtractor.class)) {
-            trace.when(() -> TraceInfoExtractor.shadowTrace(localContext, null)).thenReturn(true);
-
-            assertTrue((boolean) method.invoke(handler));
-        }
-    }
-
-    @Test
-    void should_treatNullErrorsAsInfo_when_resolveMultiSeveritySeesNullEntry() throws Exception {
-        Method method = FailFastExceptionHandler.class.getDeclaredMethod("resolveMultiSeverity", MultiBusiness.class);
-        method.setAccessible(true);
-
-        MultiBusiness multi = Mockito.mock(MultiBusiness.class);
-        List<Business> errors = new ArrayList<>();
-        errors.add(null);
-        Mockito.when(multi.getErrors()).thenReturn(errors);
-
-        assertEquals(Severity.INFO, method.invoke(handler, multi));
-    }
-
-    @Test
-    void should_generateUuidTraceId_when_contextAndOpenTelemetryAreBlank() {
-        Mockito.when(context.getTraceId()).thenReturn(null);
-
-        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
-            otel.when(OpenTelemetryBridge::currentTraceId).thenReturn(" ");
-
-            String traceId = handler.getTraceId();
-
-            assertNotNull(traceId);
-            assertFalse(traceId.isBlank());
-            assertDoesNotThrow(() -> java.util.UUID.fromString(traceId));
-        }
-    }
-
-    @Test
-    void should_renderConcretePathInBanner_when_businessProvidesPath() throws Exception {
-        FailureProperties local = new FailureProperties();
-        local.getLogging().setBanner(true);
-        handler.setFailFastProperties(local);
-        Mockito.when(context.getTraceId()).thenReturn("trace-banner");
-
-        Business business = Business.compose()
-                .responseCode(ResponseCode.VALIDATION_ERROR_400)
-                .detail("x")
-                .path("request.path")
-                .materialize();
-
-        Method method = FailFastExceptionHandler.class.getDeclaredMethod("renderLogMessage", Business.class);
-        method.setAccessible(true);
-
-        try (MockedStatic<TraceInfoExtractor> trace = mockStatic(TraceInfoExtractor.class)) {
-            trace.when(() -> TraceInfoExtractor.shadowTrace(context, null)).thenReturn(true);
-            String result = (String) method.invoke(handler, business);
-
-            assertTrue(result.contains("path=request.path"));
-        }
-    }
-
-    @Test
-    void should_fallbackWhen_resolveTraceIdReceivesNullBusiness() throws Exception {
-        Mockito.when(context.getTraceId()).thenReturn("ctx-trace");
-        Method resolveTraceId = FailFastExceptionHandler.class.getDeclaredMethod("resolveTraceId", Business.class);
-        resolveTraceId.setAccessible(true);
-
-        assertEquals("ctx-trace", resolveTraceId.invoke(handler, new Object[]{null}));
-    }
-
-    @Test
-    void should_fallbackWhen_resolveSpanIdReceivesNullBusiness() throws Exception {
-        Method resolveSpanId = FailFastExceptionHandler.class.getDeclaredMethod("resolveSpanId", Business.class);
-        resolveSpanId.setAccessible(true);
-
-        try (MockedStatic<OpenTelemetryBridge> otel = mockStatic(OpenTelemetryBridge.class)) {
-            otel.when(OpenTelemetryBridge::currentSpanId).thenReturn("otel-span");
-
-            assertEquals("otel-span", resolveSpanId.invoke(handler, new Object[]{null}));
-        }
-    }
-
-    // 测试方法，用于模拟MethodArgumentNotValidException
-    public void testMethod() {}
-
-    @Validate(fast = true)
-    public void testMethodWithValidate() {}
-
-    // 测试实现类
     private static class TestFailFastExceptionHandler extends FailFastExceptionHandler {
-        // 暴露protected和private方法用于测试
-        public boolean isVerbose() {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("isVerbose");
-                method.setAccessible(true);
-                return (boolean) method.invoke(this);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public String formatValidationLocation(Class<?> clazz, String fieldOrPath) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("formatValidationLocation", Class.class, String.class);
-                method.setAccessible(true);
-                return (String) method.invoke(this, clazz, fieldOrPath);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public Business parseError(String message, String location, String methodName) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("parseError", String.class, String.class, String.class);
-                method.setAccessible(true);
-                return (Business) method.invoke(this, message, location, methodName);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public Map<String, Object> buildMap(Business e) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("buildMap", Business.class);
-                method.setAccessible(true);
-                return (Map<String, Object>) method.invoke(this, e);
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-
-        public Map<String, Object> buildMapDetail(Business e) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("buildMapDetail", Business.class);
-                method.setAccessible(true);
-                return (Map<String, Object>) method.invoke(this, e);
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-
-        public String getTraceId() {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("getTraceId");
-                method.setAccessible(true);
-                return (String) method.invoke(this);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public String getScene() {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("getScene");
-                method.setAccessible(true);
-                return (String) method.invoke(this);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void notifyValidationStart(String scene) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("notifyValidationStart", String.class);
-                method.setAccessible(true);
-                method.invoke(this, scene);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void notifyValidationEnd(long durationNanos, boolean success) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("notifyValidationEnd", long.class, boolean.class);
-                method.setAccessible(true);
-                method.invoke(this, durationNanos, success);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void notifyValidationFailure(String errorCode) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("notifyValidationFailure", String.class);
-                method.setAccessible(true);
-                method.invoke(this, errorCode);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        // 解析验证消息的方法
-        public Object parseValidationMessage(String raw) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("parseValidationMessage", String.class);
-                method.setAccessible(true);
-                return method.invoke(this, raw);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        // 检查字符串是否为数字的方法
-        public boolean isNumeric(String str) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("isNumeric", String.class);
-                method.setAccessible(true);
-                return (boolean) method.invoke(this, str);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        // 处理多个错误的方法
-        public Object handleMultiErrors(List<Business> errors) {
-            try {
-                var method = FailFastExceptionHandler.class.getDeclaredMethod("handleMultiErrors", List.class);
-                method.setAccessible(true);
-                return method.invoke(this, errors);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 }

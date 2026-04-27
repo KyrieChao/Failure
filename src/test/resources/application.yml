@@ -32,3 +32,5 @@ fail-fast:
         code: 40070
   i18n:
     default-locale: zh_CN
+  logging:
+    banner: true

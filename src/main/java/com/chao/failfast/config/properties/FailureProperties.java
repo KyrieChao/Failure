@@ -157,7 +157,7 @@ public class FailureProperties {
         /**
          * Default error severity for Business exception.
          */
-        private String defaultSeverity = "INFO";
+        private String defaultSeverity = "ERROR";
 
         /**
          * Whether to use compact banner style in logs when shadow-trace is enabled.
