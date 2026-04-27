@@ -8,7 +8,10 @@ import java.util.Map;
 
 /**
  * Template validator abstract class, implements FastValidator interface, provides common validation framework
+ *
  * @param <T> Target type to validate
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public abstract class TemplateValidator<T> implements FastValidator<T> {
 

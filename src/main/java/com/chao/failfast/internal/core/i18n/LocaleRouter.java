@@ -9,6 +9,9 @@ import java.util.Locale;
 /**
  * LocaleRouter class is a utility class for handling localized message routing
  * It provides functionality to resolve messages and details based on different locales and response codes
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public final class LocaleRouter {
 

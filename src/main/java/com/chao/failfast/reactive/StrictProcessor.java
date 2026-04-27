@@ -1,5 +1,7 @@
 package com.chao.failfast.reactive;
 
+
+
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.chain.pipeline.Scope;
 import com.chao.failfast.internal.core.Chain;
@@ -8,8 +10,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
 import java.util.function.Consumer;
-
-public class FailureFlux {
+/**
+ * Strict processor for reactive validation streams.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
+ */
+public class StrictProcessor {
 
     /**
      * Generic method to create a strict Flux stream.

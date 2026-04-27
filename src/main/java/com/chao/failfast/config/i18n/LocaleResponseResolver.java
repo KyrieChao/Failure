@@ -1,5 +1,12 @@
 package com.chao.failfast.config.i18n;
 
+/**
+ * Locale response resolver for localized message handling.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
+ */
+
 import com.chao.failfast.internal.core.ResponseCode;
 import com.chao.failfast.spi.i18n.LocalizedResponseResolver;
 

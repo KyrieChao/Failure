@@ -2,7 +2,7 @@ package com.chao.failfast;
 
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.ResponseCode;
-import com.chao.failfast.reactive.FailureFlux;
+import com.chao.failfast.reactive.StrictProcessor;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
@@ -19,7 +19,7 @@ class FailureStrictStreamTest {
 
     @Test
     void strictStreamShouldEmitEveryError() {
-        Flux<Business> flux = FailureFlux.strictStream(List.of("a", "b"), "p", scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(List.of("a", "b"), "p", scope -> {
             scope.check(scope.it(), v -> false, ResponseCode.VALIDATION_ERROR_400, "e1");
             scope.check(scope.it(), v -> false, ResponseCode.VALIDATION_ERROR_400, "e2");
         });
@@ -31,7 +31,7 @@ class FailureStrictStreamTest {
     @Test
     void strictStreamShouldStopEmittingAfterCancel() {
         AtomicInteger processed = new AtomicInteger();
-        Flux<Business> flux = FailureFlux.strictStream(List.of(1, 2, 3, 4, 5), "p", scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(List.of(1, 2, 3, 4, 5), "p", scope -> {
             processed.incrementAndGet();
             scope.check(scope.it(), v -> false, ResponseCode.VALIDATION_ERROR_400, "e");
         });
@@ -47,7 +47,7 @@ class FailureStrictStreamTest {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger received = new AtomicInteger();
 
-        FailureFlux.strictStream(List.of("x"), "p", scope -> {
+        StrictProcessor.strictStream(List.of("x"), "p", scope -> {
             scope.check(scope.it(), v -> false, ResponseCode.VALIDATION_ERROR_400, "e1");
             scope.check(scope.it(), v -> false, ResponseCode.VALIDATION_ERROR_400, "e2");
         }).subscribe(new BaseSubscriber<>() {

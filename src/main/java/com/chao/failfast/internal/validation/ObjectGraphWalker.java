@@ -16,6 +16,9 @@ import java.util.Set;
 
 /**
  * Object graph walker for recursive traversal and validation of all objects in the object graph
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public class ObjectGraphWalker {
 

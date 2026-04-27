@@ -5,6 +5,9 @@ import java.util.function.Consumer;
 /**
  * Predicate class is a utility class for building and evaluating boolean expressions.
  * It supports combining multiple boolean values through AND and OR operations, and provides a chained way to build complex boolean expressions.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public final class Predicate {
 

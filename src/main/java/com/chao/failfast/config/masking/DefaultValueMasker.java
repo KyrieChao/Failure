@@ -11,6 +11,9 @@ import java.util.regex.Matcher;
 /**
  * DefaultValueMasker is a class that implements ValueMasker interface, used for masking sensitive data
  * This class can determine if a field is sensitive based on its path, and perform appropriate masking or truncation formatting for different types of data
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public class DefaultValueMasker implements ValueMasker {
 

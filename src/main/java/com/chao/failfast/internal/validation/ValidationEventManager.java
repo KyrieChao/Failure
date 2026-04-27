@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
  * Validation observer manager class
  * Used to manage and notify various events during validation process
  * Uses singleton pattern to ensure only one observer instance globally
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 @Slf4j
 public class ValidationEventManager {

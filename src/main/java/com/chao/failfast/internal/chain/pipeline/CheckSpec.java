@@ -5,6 +5,9 @@ import com.chao.failfast.internal.core.ResponseCode;
 /**
  * Check specification record class, used to represent check result information
  * Contains three properties: response code, detailed information, and invalid value
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public record CheckSpec(ResponseCode code, String detail, Object invalidValue) {
     /**

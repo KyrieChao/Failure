@@ -3,7 +3,7 @@ package com.chao.failfast.test;
 import com.chao.failfast.Failure;
 import com.chao.failfast.exception.Business;
 import com.chao.failfast.internal.core.Chain;
-import com.chao.failfast.reactive.FailureFlux;
+import com.chao.failfast.reactive.StrictProcessor;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
@@ -32,7 +32,7 @@ class FailureTest {
     void testStrictStreamWithValidItems() {
         List<String> items = Arrays.asList("a", "b", "c");
 
-        Flux<Business> flux = FailureFlux.strictStream(items, scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, scope -> {
         });
 
         List<Business> result = flux.collectList().block();
@@ -44,7 +44,7 @@ class FailureTest {
     void testStrictStreamWithEmptyItems() {
         List<String> items = Collections.emptyList();
 
-        Flux<Business> flux = FailureFlux.strictStream(items, scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, scope -> {
         });
 
         List<Business> result = flux.collectList().block();
@@ -56,7 +56,7 @@ class FailureTest {
     void testStrictStreamWithNullItems() {
         List<String> items = null;
 
-        Flux<Business> flux = FailureFlux.strictStream(items, scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, scope -> {
         });
 
         List<Business> result = flux.collectList().block();
@@ -68,7 +68,7 @@ class FailureTest {
     void testStrictStreamWithPathPrefix() {
         List<String> items = Arrays.asList("a", "b");
 
-        Flux<Business> flux = FailureFlux.strictStream(items, "prefix", scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, "prefix", scope -> {
         });
 
         List<Business> result = flux.collectList().block();
@@ -80,7 +80,7 @@ class FailureTest {
     void testStrictStreamWithNullPathPrefix() {
         List<String> items = Arrays.asList("a");
 
-        Flux<Business> flux = FailureFlux.strictStream(items, null, scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, null, scope -> {
         });
 
         List<Business> result = flux.collectList().block();
@@ -92,7 +92,7 @@ class FailureTest {
     void testStrictStreamCancelBehavior() {
         List<String> items = Arrays.asList("a", "b", "c");
 
-        Flux<Business> flux = FailureFlux.strictStream(items, scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, scope -> {
         });
 
         Flux<Business> cancelledFlux = flux.take(1);
@@ -106,7 +106,7 @@ class FailureTest {
     void testStrictStreamErrorPropagation() {
         List<String> items = Arrays.asList("error-item");
 
-        Flux<Business> flux = FailureFlux.strictStream(items, scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, scope -> {
             throw new RuntimeException("Test error");
         });
 
@@ -117,7 +117,7 @@ class FailureTest {
     void testStrictStreamMultipleItemsProcessing() {
         List<Integer> items = Arrays.asList(1, 2, 3);
 
-        Flux<Business> flux = FailureFlux.strictStream(items, scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, scope -> {
         });
 
         List<Business> result = flux.collectList().block();
@@ -131,7 +131,7 @@ class FailureTest {
 
         AtomicBoolean errorHandled = new AtomicBoolean(false);
 
-        Flux<Business> flux = FailureFlux.strictStream(items, scope -> {
+        Flux<Business> flux = StrictProcessor.strictStream(items, scope -> {
             if ("invalid".equals(scope.it().value())) {
                 errorHandled.set(true);
             }

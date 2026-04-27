@@ -7,6 +7,9 @@ import com.chao.failfast.spi.security.ValueMasker;
 /**
  * ValueMaskerRegistry is a value masker registry class for managing and obtaining default ValueMasker implementations.
  * This class is designed with singleton pattern to ensure only one instance globally, and provides thread-safe access and setting methods.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public final class ValueMaskerRegistry {
 

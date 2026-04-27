@@ -1,5 +1,12 @@
 package com.chao.failfast.integration.webflux;
 
+/**
+ * Reactive trace utility for context propagation.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
+ */
+
 import reactor.util.context.ContextView;
 
 public final class ReactiveTrace {

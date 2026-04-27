@@ -7,6 +7,9 @@ import reactor.util.context.ContextView;
 /**
  * TraceInfoExtractor class is a utility class for parsing and obtaining trace ID, scene, shadow trace, and method enabled status from context information.
  * This class provides static methods to extract these information from FailureContext or ContextView.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public final class TraceInfoExtractor {
 

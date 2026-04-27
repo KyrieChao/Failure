@@ -4,6 +4,9 @@ package com.chao.failfast.internal.validation;
 /**
  * Validation observer interface for listening and responding to various events during validation process
  * This interface defines callback methods for validation start, validation end, validation failure, and constraint violation
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public interface ValidationEventListener {
 

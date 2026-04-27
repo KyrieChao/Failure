@@ -1,5 +1,12 @@
 package com.chao.failfast.integration.aot;
 
+/**
+ * FailFast runtime hints for AOT compilation.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
+ */
+
 import com.chao.failfast.Failure;
 import com.chao.failfast.autoconfigure.FailFastAutoConfiguration;
 import com.chao.failfast.config.properties.FailureProperties;

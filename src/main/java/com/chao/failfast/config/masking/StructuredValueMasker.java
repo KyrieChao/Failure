@@ -19,6 +19,9 @@ import java.util.Set;
 /**
  * StructuredValueMasker is a structured value masker that implements ValueMasker interface,
  * used for recursive value masking of complex objects.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public class StructuredValueMasker implements ValueMasker {
     // Fallback masker for handling primitive types

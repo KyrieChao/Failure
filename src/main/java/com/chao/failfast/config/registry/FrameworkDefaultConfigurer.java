@@ -14,6 +14,9 @@ import org.springframework.web.server.ServerWebExchange;
 
 /**
  * Internal default configurer for framework baseline.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class FrameworkDefaultConfigurer implements FailFastConfigurer {

@@ -5,6 +5,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * A validation cancel token class for canceling operations
  * This class uses atomic boolean to manage cancel status, ensuring thread safety
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public final class CancelToken {
     // Use AtomicBoolean to ensure atomic operations on cancel status, avoiding state inconsistency in multi-threaded environment

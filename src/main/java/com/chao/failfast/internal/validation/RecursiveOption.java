@@ -8,6 +8,9 @@ import java.util.List;
 /**
  * Recursive option configuration class, using Builder pattern to build objects
  * Automatically generates getter methods through Lombok's @Getter and annotations
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 @Getter
 @Builder

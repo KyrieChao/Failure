@@ -10,6 +10,9 @@ import java.util.Locale;
 /**
  * LocalizedTexts class provides internationalization text processing functionality, used to obtain localized messages and details.
  * This class contains two static methods for getting localized text based on response code and locale.
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public final class LocalizedTexts {
 

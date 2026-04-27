@@ -5,6 +5,9 @@ import com.chao.failfast.validator.FastValidator;
 /**
  * Validator whitelist registry interface
  * This interface is used to manage validator whitelist, can add validator types and check if validator is in whitelist
+ *
+ * @author Kyrie Chao
+ * @version 1.3.0
  */
 public interface ValidatorWhitelistRegistry {
 
