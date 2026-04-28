@@ -1,2 +1,2 @@
 org.springframework.aot.hint.RuntimeHintsRegistrar=\
-com.chao.failfast.integration.aot.FailFastRuntimeHints
+com.chao.failure.integration.aot.FailFastRuntimeHints

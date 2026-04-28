@@ -1,2 +1,2 @@
-com.chao.failfast.autoconfigure.FailFastAutoConfiguration
-com.chao.failfast.autoconfigure.FailFastReactiveAutoConfiguration
+com.chao.failure.autoconfigure.FailFastAutoConfiguration
+com.chao.failure.autoconfigure.FailFastReactiveAutoConfiguration

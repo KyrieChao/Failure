@@ -7,6 +7,6 @@
     <file url="file://$PROJECT_DIR$/failure-test/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/src/test/java/com/chao/failfast/internal/ChainJsrValidatorImplTest.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/test/java/com/chao/failure/internal/ChainJsrValidatorImplTest.java" charset="UTF-8" />
   </component>
 </project>

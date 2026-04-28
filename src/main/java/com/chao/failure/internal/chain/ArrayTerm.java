@@ -1,0 +1,132 @@
+package com.chao.failure.internal.chain;
+
+import com.chao.failure.constant.FailureConst;
+import com.chao.failure.internal.chain.pipeline.ChainCore;
+import com.chao.failure.internal.check.ArrayChecks;
+import com.chao.failure.internal.core.ResponseCode;
+
+/**
+ * Array validation interface.
+ *
+ * @param <S> Subclass type of ChainCore
+ * @author Kyrie Chao
+ * @version 1.3.0
+ */
+public interface ArrayTerm<S extends ChainCore<S>> {
+
+    /**
+     * Get chain core.
+     *
+     * @return Chain core instance
+     */
+    S core();
+
+    default <T> S notEmpty(T[] array) {
+        return notEmpty(array, FailureConst.NOT_EMPTY_ERROR, null);
+    }
+
+    default <T> S notEmpty(T[] array, ResponseCode code) {
+        return notEmpty(array, code, null);
+    }
+
+    default <T> S notEmpty(T[] array, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.notEmpty(array), code, detail);
+    }
+
+    default <T> S isEmpty(T[] array) {
+        return isEmpty(array, FailureConst.IS_EMPTY_ERROR, null);
+    }
+
+    default <T> S isEmpty(T[] array, ResponseCode code) {
+        return isEmpty(array, code, null);
+    }
+
+    default <T> S isEmpty(T[] array, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.isEmpty(array), code, detail);
+    }
+
+    default <T> S sizeBetween(T[] array, int min, int max) {
+        return sizeBetween(array, min, max, FailureConst.SIZE_BETWEEN_ERROR, null);
+    }
+
+    default <T> S sizeBetween(T[] array, int min, int max, ResponseCode code) {
+        return sizeBetween(array, min, max, code, null);
+    }
+
+    default <T> S sizeBetween(T[] array, int min, int max, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.sizeBetween(array, min, max), code, detail);
+    }
+
+    default <T> S sizeEquals(T[] array, int expectedSize) {
+        return sizeEquals(array, expectedSize, FailureConst.SIZE_EQUALS_ERROR, null);
+    }
+
+    default <T> S sizeEquals(T[] array, int expectedSize, ResponseCode code) {
+        return sizeEquals(array, expectedSize, code, null);
+    }
+
+    default <T> S sizeEquals(T[] array, int expectedSize, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.sizeEquals(array, expectedSize), code, detail);
+    }
+
+    default <T> S contains(T[] array, T o) {
+        return contains(array, o, FailureConst.CONTAINS_ERROR, null);
+    }
+
+    default <T> S contains(T[] array, T o, ResponseCode code) {
+        return contains(array, o, code, null);
+    }
+
+    default <T> S contains(T[] array, T o, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.contains(array, o), code, detail);
+    }
+
+    default <T> S notContains(T[] array, T o) {
+        return notContains(array, o, FailureConst.NOT_CONTAINS_ERROR, null);
+    }
+
+    default <T> S notContains(T[] array, T o, ResponseCode code) {
+        return notContains(array, o, code, null);
+    }
+
+    default <T> S notContains(T[] array, T o, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.notContains(array, o), code, detail);
+    }
+
+    default <T> S hasNoNullElements(T[] array) {
+        return hasNoNullElements(array, FailureConst.HAS_NO_NULL_ELEMENTS_ERROR, null);
+    }
+
+    default <T> S hasNoNullElements(T[] array, ResponseCode code) {
+        return hasNoNullElements(array, code, null);
+    }
+
+    default <T> S hasNoNullElements(T[] array, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.hasNoNullElements(array), code, detail);
+    }
+
+    default <T> S allMatch(T[] array, java.util.function.Predicate<T> predicate) {
+        return allMatch(array, predicate, FailureConst.ALL_MATCH_ERROR, null);
+    }
+
+    default <T> S allMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code) {
+        return allMatch(array, predicate, code, null);
+    }
+
+    default <T> S allMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.allMatch(array, predicate), code, detail);
+    }
+
+    default <T> S anyMatch(T[] array, java.util.function.Predicate<T> predicate) {
+        return anyMatch(array, predicate, FailureConst.ANY_MATCH_ERROR, null);
+    }
+
+    default <T> S anyMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code) {
+        return anyMatch(array, predicate, code, null);
+    }
+
+    default <T> S anyMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code, String detail) {
+        return core().check(ArrayChecks.anyMatch(array, predicate), code, detail);
+    }
+
+}

@@ -1,2 +1,2 @@
 # Failure Spring Boot Starter Auto-Configuration
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.chao.failfast.autoconfigure.FailFastAutoConfiguration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.chao.failure.autoconfigure.FailFastAutoConfiguration
