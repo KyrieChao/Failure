@@ -1,12 +1,16 @@
 package com.chao.failure.exception;
 
 import com.chao.failure.config.mapping.CodeMappingConfig;
-import com.chao.failure.constant.Severity;
+import com.chao.failure.config.masking.DefaultValueMasker;
 import com.chao.failure.constant.FailureConst;
-import com.chao.failure.internal.core.*;
+import com.chao.failure.constant.Severity;
+import com.chao.failure.internal.core.Ex;
+import com.chao.failure.internal.core.FailureContext;
+import com.chao.failure.internal.core.ResponseCode;
 import com.chao.failure.internal.core.i18n.LocalizedTexts;
 import com.chao.failure.internal.core.observability.OpenTelemetryBridge;
 import com.chao.failure.internal.core.observability.TraceInfoExtractor;
+import com.chao.failure.internal.core.security.MaskPickRegistry;
 import com.chao.failure.internal.core.security.ValueMaskerRegistry;
 import com.chao.failure.internal.policy.DefaultErrorPolicy;
 import com.chao.failure.internal.policy.ErrorPolicy;
@@ -23,7 +27,7 @@ import java.util.regex.Pattern;
  * Business exception class - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Getter
 public class Business extends RuntimeException implements Serializable {
@@ -411,7 +415,6 @@ public class Business extends RuntimeException implements Serializable {
         if (maskedValue != null && ctx != null && ctx.isDebugSnapshot()) {
             valStr = ", val=" + maskedValue;
         }
-
         String base = "{code=%s, mes=%s, des=%s%s%s}".formatted(
                 codeStr,
                 LocalizedTexts.message(responseCode),
@@ -470,14 +473,10 @@ public class Business extends RuntimeException implements Serializable {
     }
 
     private Object maskValue(Object value, String fieldPath) {
-        if (value == null) {
-            return null;
-        }
-        Object masked = ValueMaskerRegistry.getDefault().mask(value, fieldPath);
-        if (masked != null) {
-            return masked;
-        }
-        return new com.chao.failure.config.masking.DefaultValueMasker().mask(value, fieldPath);
+        if (value == null) return null;
+        Object masked = ValueMaskerRegistry.getDefault().mask(value, MaskPickRegistry.getDefault().resolve(fieldPath));
+        if (masked != null) return masked;
+        return new DefaultValueMasker().mask(value, MaskPickRegistry.getDefault().resolve(fieldPath));
     }
 
     private String sanitizeDetail(String detail) {

@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  *
  * @param <T> Return value type on success
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -52,7 +52,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      * @param <T>   Value type
      * @return Success result
      */
-    public static <T> Result<T> ok(T value) {
+    public static <T> Result<T> success(T value) {
         return new Success<>(value);
     }
 
@@ -99,7 +99,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      * @return Result object
      */
     public static <T> Result<T> ofNullable(T value, ResponseCode code) {
-        return value != null ? ok(value) : fail(code);
+        return value != null ? success(value) : fail(code);
     }
 
     /**
@@ -112,7 +112,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      * @return Result object
      */
     public static <T> Result<T> ofNullable(T value, ResponseCode code, String detail) {
-        return value != null ? ok(value) : fail(code, detail);
+        return value != null ? success(value) : fail(code, detail);
     }
 
     /**
@@ -185,7 +185,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     public <R> Result<R> map(Function<T, R> mapper) {
         if (this instanceof Success<T> s) {
             try {
-                return Result.ok(mapper.apply(s.data));
+                return Result.success(mapper.apply(s.data));
             } catch (Exception e) {
                 if (e instanceof Business b) {
                     return Result.fail(b);
@@ -275,7 +275,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      */
     public Result<T> recover(Function<Business, T> recovery) {
         if (this instanceof Result.Fail<T> f) {
-            return Result.ok(recovery.apply(f.error));
+            return Result.success(recovery.apply(f.error));
         }
         return this;
     }
@@ -362,7 +362,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
             Result<R> failResult = (Result<R>) other;
             return failResult;
         }
-        return Result.ok(combiner.apply(this.get(), other.get()));
+        return Result.success(combiner.apply(this.get(), other.get()));
     }
 
 // ============ Conversion Operations ============
@@ -426,8 +426,8 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      */
     public <R> Result<R> fold(Function<T, R> successFn, Function<Business, R> failureFn) {
         return isSuccess()
-                ? Result.ok(successFn.apply(get()))
-                : Result.ok(failureFn.apply(getError()));
+                ? Result.success(successFn.apply(get()))
+                : Result.success(failureFn.apply(getError()));
     }
 
     /**
@@ -436,7 +436,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     public Result<T> swap(ResponseCode successAsError) {
         return isSuccess()
                 ? Result.fail(successAsError, "Success result swapped to failure")
-                : Result.ok(null);
+                : Result.success(null);
     }
 
     /**

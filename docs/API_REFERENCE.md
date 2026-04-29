@@ -356,7 +356,7 @@ Scope 既提供“路径引用构造”，也提供常用断言代理与嵌套�
 - `merge()`：结束当前元素 scope
 - `stopItemOnFail()`：当当前元素产生错误后，停止该元素后续校验（不影响其它元素）
 
-完整实现见：[Scope.java](file:///d:/Work/WorkIDEA/SpringBoot/mvn/fail-fast-improved/failure-spring-boot-starter/src/main/java/com/chao/failfast/internal/chain/pipeline/Scope.java)
+完整实现见：[Scope.java](file:///d:/Work/WorkIDEA/SpringBoot/mvn/fail-fast-improved/src/main/java/com/chao/failure/internal/chain/pipeline/Scope.java)
 
 ---
 
@@ -502,7 +502,7 @@ Controller/ServiceImpl 中使用：
 public Result<?> register(@RequestBody UserRegisterDTO dto) {
     // AOP 自动执行校验
     userService.register(dto);
-    return Result.success("注册成功");
+    return Result.ok("注册成功");
 }
 ```
 

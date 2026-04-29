@@ -23,7 +23,7 @@ import java.util.Map;
  * Default exception handler - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)

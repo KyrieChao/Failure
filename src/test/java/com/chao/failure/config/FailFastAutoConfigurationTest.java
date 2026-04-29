@@ -9,6 +9,7 @@ import com.chao.failure.autoconfigure.FailFastAutoConfiguration;
 import com.chao.failure.integration.mvc.OptionalBodyResolver;
 import com.chao.failure.spi.filter.SkipPrefixRegistry;
 import com.chao.failure.spi.filter.SkipTypeRegistry;
+import com.chao.failure.spi.security.MaskPick;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -525,7 +526,9 @@ class FailFastAutoConfigurationTest {
         // 测试ExInitializer内部类
         SkipPrefixRegistry skipPrefixRegistry = mock(SkipPrefixRegistry.class);
         SkipTypeRegistry skipTypeRegistry = mock(SkipTypeRegistry.class);
-        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, validator, skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver);
+        ObjectProvider<MaskPick> maskResolvers = mock(ObjectProvider.class);
+        when(maskResolvers.orderedStream()).thenReturn(java.util.stream.Stream.empty());
+        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, validator, skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver, maskResolvers);
         assertNotNull(initializer);
         // 验证Ex.setContext被调用
         // 验证Chain.setValidator被调用
@@ -537,7 +540,9 @@ class FailFastAutoConfigurationTest {
         // 测试ExInitializer内部类（无validator）
         SkipPrefixRegistry skipPrefixRegistry = mock(SkipPrefixRegistry.class);
         SkipTypeRegistry skipTypeRegistry = mock(SkipTypeRegistry.class);
-        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, null, skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver);
+        ObjectProvider<MaskPick> maskResolvers = mock(ObjectProvider.class);
+        when(maskResolvers.orderedStream()).thenReturn(java.util.stream.Stream.empty());
+        FailFastAutoConfiguration.ExInitializer initializer = configuration.new ExInitializer(context, null, skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver, maskResolvers);
         assertNotNull(initializer);
         // 验证Ex.setContext被调用
         // 验证Chain.setFailureProperties被调用

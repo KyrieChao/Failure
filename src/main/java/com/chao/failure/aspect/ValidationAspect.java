@@ -54,7 +54,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Validation aspect - Handle custom validators declared by @Validate annotation.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Slf4j
 @Aspect

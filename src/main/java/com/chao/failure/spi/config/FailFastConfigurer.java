@@ -11,7 +11,7 @@ import com.chao.failure.spi.validation.ValidatorWhitelistRegistry;
  * Implement this interface in a Spring @Configuration class to customize.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public interface FailFastConfigurer {
 

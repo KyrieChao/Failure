@@ -19,7 +19,7 @@ import java.util.Map;
  * FailFast body argument resolver - handles @FailFastBody annotation.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public class OptionalBodyResolver implements HandlerMethodArgumentResolver {
 

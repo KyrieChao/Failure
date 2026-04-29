@@ -90,8 +90,8 @@ class ResultsTest2 {
         @Test
         @DisplayName("当所有Result都成功时应返回成功列表")
         void shouldReturnSuccessListWhenAllResultsAreSuccess() {
-            Result<String> r1 = Result.ok("a");
-            Result<String> r2 = Result.ok("b");
+            Result<String> r1 = Result.success("a");
+            Result<String> r2 = Result.success("b");
             Result<List<String>> result = Results.sequence(r1, r2);
 
             assertThat(result.isSuccess()).isTrue();
@@ -101,7 +101,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("当存在失败Result时应返回第一个失败")
         void shouldReturnFirstFailureWhenAnyResultIsFailure() {
-            Result<String> r1 = Result.ok("a");
+            Result<String> r1 = Result.success("a");
             Result<String> r2 = Result.fail(TestResponseCode.PARAM_ERROR);
             Result<List<String>> result = Results.sequence(r1, r2);
 
@@ -116,8 +116,8 @@ class ResultsTest2 {
         @Test
         @DisplayName("应当收集所有成功结果")
         void shouldCollectAllSuccess() {
-            Result<String> r1 = Result.ok("a");
-            Result<String> r2 = Result.ok("b");
+            Result<String> r1 = Result.success("a");
+            Result<String> r2 = Result.success("b");
             Result<List<String>> result = Results.sequenceAll(r1, r2);
 
             assertThat(result.isSuccess()).isTrue();
@@ -127,7 +127,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("应当收集所有错误")
         void shouldCollectAllErrors() {
-            Result<String> r1 = Result.ok("a");
+            Result<String> r1 = Result.success("a");
             Result<String> r2 = Result.fail(TestResponseCode.PARAM_ERROR);
             Result<String> r3 = Result.fail(TestResponseCode.SYSTEM_ERROR);
 
@@ -200,7 +200,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("当条件满足时应执行Supplier")
         void shouldExecuteWhenTrue() {
-            Result<String> result = Results.when(true, () -> Result.ok("executed"));
+            Result<String> result = Results.when(true, () -> Result.success("executed"));
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.get()).isEqualTo("executed");
         }
@@ -208,7 +208,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("当条件不满足时应返回Null Result")
         void shouldReturnNullWhenFalse() {
-            Result<String> result = Results.when(false, () -> Result.ok("executed"));
+            Result<String> result = Results.when(false, () -> Result.success("executed"));
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.get()).isNull();
         }
@@ -220,7 +220,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("当Result成功时应返回值")
         void shouldReturnValueWhenResultIsSuccess() {
-            Result<String> result = Result.ok("test");
+            Result<String> result = Result.success("test");
             assertThat(Results.getOrNull(result)).isEqualTo("test");
         }
 
@@ -239,7 +239,7 @@ class ResultsTest2 {
         @DisplayName("当所有转换成功时应返回列表")
         void shouldReturnSuccessList() {
             List<Integer> inputs = Arrays.asList(1, 2, 3);
-            Result<List<String>> result = Results.traverse(inputs, i -> Result.ok(String.valueOf(i)));
+            Result<List<String>> result = Results.traverse(inputs, i -> Result.success(String.valueOf(i)));
 
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.get()).containsExactly("1", "2", "3");
@@ -251,7 +251,7 @@ class ResultsTest2 {
             List<Integer> inputs = Arrays.asList(1, 2, 3);
             Result<List<String>> result = Results.traverse(inputs, i -> {
                 if (i == 2) return Result.fail(TestResponseCode.PARAM_ERROR);
-                return Result.ok(String.valueOf(i));
+                return Result.success(String.valueOf(i));
             });
 
             assertThat(result.isFail()).isTrue();
@@ -267,7 +267,7 @@ class ResultsTest2 {
         @DisplayName("当输入列表为空时应返回空列表")
         void shouldReturnEmptyListWhenInputIsEmpty() {
             List<Integer> emptyList = Arrays.asList();
-            Result<List<String>> result = Results.traverse(emptyList, i -> Result.ok(String.valueOf(i)));
+            Result<List<String>> result = Results.traverse(emptyList, i -> Result.success(String.valueOf(i)));
 
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.get()).isEmpty();
@@ -276,7 +276,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("当输入列表为null时应抛出NullPointerException")
         void shouldThrowNpeWhenInputIsNull() {
-            assertThatThrownBy(() -> Results.traverse(null, i -> Result.ok(String.valueOf(i))))
+            assertThatThrownBy(() -> Results.traverse(null, i -> Result.success(String.valueOf(i))))
                     .isInstanceOf(NullPointerException.class);
         }
 
@@ -294,7 +294,7 @@ class ResultsTest2 {
             List<Integer> inputs = Arrays.asList(1, 2, 3);
             Result<List<String>> result = Results.traverse(inputs, i -> {
                 if (i == 1) return Result.fail(TestResponseCode.PARAM_ERROR);
-                return Result.ok(String.valueOf(i));
+                return Result.success(String.valueOf(i));
             });
 
             assertThat(result.isFail()).isTrue();
@@ -319,7 +319,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("当只有一个成功Result时应返回单元素列表")
         void shouldReturnSingleElementList() {
-            Result<String> r1 = Result.ok("only");
+            Result<String> r1 = Result.success("only");
             Result<List<String>> result = Results.sequence(r1);
 
             assertThat(result.isSuccess()).isTrue();
@@ -330,7 +330,7 @@ class ResultsTest2 {
         @DisplayName("当第一个就是失败时应立即返回")
         void shouldFailImmediatelyOnFirstFailure() {
             Result<String> r1 = Result.fail(TestResponseCode.PARAM_ERROR);
-            Result<String> r2 = Result.ok("b");  // 不应该被处理
+            Result<String> r2 = Result.success("b");  // 不应该被处理
 
             Result<List<String>> result = Results.sequence(r1, r2);
 
@@ -370,7 +370,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("当只有一个失败时应返回该错误（不是MultiBusiness）")
         void shouldReturnSingleErrorWhenOnlyOneFails() {
-            Result<String> r1 = Result.ok("a");
+            Result<String> r1 = Result.success("a");
             Result<String> r2 = Result.fail(TestResponseCode.PARAM_ERROR);
 
             Result<List<String>> result = Results.sequenceAll(r1, r2);
@@ -487,7 +487,7 @@ class ResultsTest2 {
         @Test
         @DisplayName("当成功Result包含null值时应返回null")
         void shouldReturnNullWhenSuccessContainsNull() {
-            Result<String> result = Result.ok(null);
+            Result<String> result = Result.success(null);
             assertThat(Results.getOrNull(result)).isNull();
         }
     }

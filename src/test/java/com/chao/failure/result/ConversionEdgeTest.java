@@ -15,7 +15,7 @@ class ConversionEdgeTest {
     @Test
     @DisplayName("getOrElseGet 成功时不应调用 errorHandler")
     void getOrElseGetShouldNotCallHandlerWhenSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         boolean[] called = {false};
 
         String value = result.getOrElseGet(e -> {
@@ -30,7 +30,7 @@ class ConversionEdgeTest {
     @Test
     @DisplayName("fold 返回 null 时应创建包含 null 的成功 Result")
     void foldShouldAllowNullReturn() {
-        Result<Integer> result = Result.ok(10);
+        Result<Integer> result = Result.success(10);
         Result<String> folded = result.fold(
                 i -> null,
                 e -> "error"
@@ -43,7 +43,7 @@ class ConversionEdgeTest {
     @Test
     @DisplayName("swap 成功时应转为失败")
     void swapShouldConvertSuccessToFailure() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> swapped = result.swap(TestResponseCode.SYSTEM_ERROR);
 
         assertThat(swapped.isFail()).isTrue();
@@ -64,7 +64,7 @@ class ConversionEdgeTest {
     @Test
     @DisplayName("swap 的 code 为 null 时应由 Result.fail 抛出异常")
     void swapShouldThrowExceptionWhenCodeIsNull() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
 
         // Result.fail 会校验 code 不能为空，抛出 IllegalArgumentException
         assertThatThrownBy(() -> result.swap(null))

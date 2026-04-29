@@ -10,7 +10,7 @@ import lombok.Getter;
  * Exception builder utility class - Enhanced thread-safe version.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class Ex {
     /**

@@ -12,7 +12,7 @@ import java.util.Locale;
  * This class contains two static methods for getting localized text based on response code and locale.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class LocalizedTexts {
 

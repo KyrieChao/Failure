@@ -4,7 +4,7 @@ package com.chao.failure.spi.filter;
  * Registry for package prefixes to skip when building exception stack traces.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public interface SkipPrefixRegistry {
 

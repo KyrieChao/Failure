@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
  * Uses singleton pattern to ensure only one observer instance globally
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Slf4j
 public class ValidationEventManager {

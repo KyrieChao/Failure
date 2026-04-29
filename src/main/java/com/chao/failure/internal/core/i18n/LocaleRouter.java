@@ -11,7 +11,7 @@ import java.util.Locale;
  * It provides functionality to resolve messages and details based on different locales and response codes
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class LocaleRouter {
 

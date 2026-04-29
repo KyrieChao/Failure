@@ -26,16 +26,106 @@ validation experience.
 
 ---
 
+## ⚡ Understand in 30 Seconds
+
+- You write: `Failure.begin().notBlank(...).email(...).fail();`
+- You get: a unified error JSON response (code/message/description/errors/timestamp), and it also handles Spring `@Valid`/`@Validated`
+- You avoid: repeating `if (...) throw ...` everywhere
+
+## 🚀 60-Second Integration (Minimal MVC Example)
+
+### 1) Add dependency
+
+```xml
+<dependency>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-spring-boot-starter</artifactId>
+    <version>latest</version>
+</dependency>
+```
+
+### 2) Minimal Controller
+
+```java
+import com.chao.failure.Failure;
+import com.chao.failure.internal.core.ResponseCode;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+    public interface UserCode {
+        ResponseCode USERNAME_REQUIRED = ResponseCode.of(40001, "USERNAME_REQUIRED", "Username is required");
+        ResponseCode EMAIL_INVALID = ResponseCode.of(40002, "EMAIL_INVALID", "Invalid email format");
+    }
+
+    public record CreateUserReq(
+            @NotBlank(message = "username required")
+            String username,
+            String email
+    ) {}
+
+    @PostMapping
+    public String create(@RequestBody @Valid CreateUserReq req) {
+        Failure.begin()
+                .notBlank(req.username(), UserCode.USERNAME_REQUIRED)
+                .email(req.email(), UserCode.EMAIL_INVALID)
+                .fail();
+        return "ok";
+    }
+}
+```
+
+#### Configure application.yml
+
+```yaml
+fail-fast:
+  shadow-trace: true
+```
+
+### 3) Example error response JSON
+
+```json
+{
+  "code": 40001,
+  "message": "USERNAME_REQUIRED",
+  "description": "Username is required",
+  "errors": [
+    {
+      "code": 40001,
+      "message": "USERNAME_REQUIRED",
+      "path": "UserController#create.username",
+      "detail": "Username is required",
+      "rejected": ""
+    }
+  ],
+  "timestamp": "2026-04-28 12:34:56"
+}
+```
+
+### Recommended Path (We choose defaults for you)
+
+- Want to replace if + throw: start with `Failure.begin()` (primary path)
+- Want to extract validation from business code: then use `@Validate` + `FastValidator`
+- Prefer functional style: then use `Result<T>`
+
 ## 🚀 Core Features
 
 - **Fluent Validation Chain**: Supports `Fail-Fast` (immediate fail) and `Fail-Strict` (collect all errors) modes.
 - **Rich Assertions**: Built-in 50+ validation methods for Objects, Strings, Numbers, Collections, Date/Time, Enums, Optionals, etc.
 - **Default Localization**: Provides out-of-the-box localized error messages (e.g., Chinese support) without manual configuration.
-- **Annotation-Driven & Type Dispatch**: Provides `@Validate` annotation and `FastValidator` interface for AOP validation; supports `TypedValidator` pattern for automatic type dispatch and decoupling.
+- **Annotation-Driven & Type Dispatch**: Provides `@Validate` annotation and `FastValidator` interface for AOP validation; supports `TypedValidator` pattern for automatic type dispatch, and `TemplateValidator` for template method pattern (execute common validation first, then specific validation) to reduce coupling and improve code reuse.
 - **Functional Results**: Provides `Result<T>` monad with `map`, `flatMap`, `recover` operations.
 - **Smart Debug Snapshot**: Optionally includes invalid values in exceptions (auto-masking & truncation) when `fail-fast.debug-snapshot=true` (default: false).
-- **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes, with `shadow-trace` for quick debugging.
+- **Smart Exception Handling**: Automatically maps business error codes to HTTP status codes; when context is missing, `4xxxx` codes fall back to `400` (avoids accidental `500`), with `shadow-trace` for quick debugging.
 - **Optional Starters**: Provides optional starters (Micrometer Observability / OpenAPI springdoc) without polluting core dependencies.
+- **Path & Recursive Validation**: Supports attaching `path` and invalid value snapshots via `at(path)`; includes object graph traversal with configurable recursion options.
+- **Event-driven & Cancellable Validation**: Provides validation events (start/end/failure/violation), progress callbacks, and a `CancelToken` for cancellation.
+- **Masking & Safety**: Enhanced structured masking with depth/collection/field limits; adds a validator whitelist registry to reduce reflection instantiation risks.
+- **Observability & WebFlux Context**: OpenTelemetry trace/span extraction and WebFlux Reactor Context-first support (`fail-fast.reactive.context-first`).
 
 ---
 
@@ -53,13 +143,13 @@ validation experience.
 
 ```java
 if(user ==null){
-    throw new BusinessException(Code.USER_NULL);
+    throw Business.of(Code.USER_NULL);
 }
 if(StringUtils.isBlank(user.getName())){
-    throw new BusinessException(Code.NAME_EMPTY);
+    throw Business.of(Code.NAME_EMPTY);
 }
 if(user.getAge() < 18){
-    throw new BusinessException(Code.TOO_YOUNG);
+    throw Business.of(Code.TOO_YOUNG);
 }
 ```
 
@@ -100,6 +190,11 @@ JMH microbenchmark results (vs Hibernate Validator):
 | [Configuration](#%EF%B8%8F-configuration) | application.yml configuration details                   |
 | [I18n Guide](./docs/I18N_GUIDE.md)        | Internationalization configuration and key reference    |
 | [Response Code Management](./docs/RESPONSE_CODE_MANAGEMENT.md) | Response code mapping and management scheme |
+| [Compatibility Matrix](docs/COMPATIBILITY_MATRIX.en.md) | Supported Java / Spring Boot versions |
+| [Migration Guide](docs/MIGRATION_GUIDE.en.md) | Upgrade notes & breaking changes |
+| [Production Checklist](other/mnk/PRODUCTION_CHECKLIST.en.md) | Production readiness checklist |
+| [FAQ](docs/FAQ.en.md) | Frequently asked questions |
+| [Security Policy](./SECURITY.md) | Vulnerability reporting |
 
 ---
 
@@ -119,13 +214,15 @@ This project is published on Maven Central. Add the dependency to your `pom.xml`
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.2.0</version> <!-- Make sure it's up to date. -->
+    <version>latest</version>
 </dependency>
 ```
 
 ### Optional Starters (Observability / OpenAPI)
 
 Failure uses a "core starter + optional ecosystem starters" structure. The core starter does not hard-depend on Micrometer/springdoc; optional modules are enabled when present on the classpath.
+
+Optional starters are released independently from the core starter. Keep versions consistent within each optional starter itself, and use the latest released version that matches your dependency strategy.
 
 #### 1) Observability (Micrometer)
 
@@ -137,7 +234,7 @@ Enabled automatically when `MeterRegistry` is present. Metrics:
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-observability-spring-boot-starter</artifactId>
-    <version>1.2.0</version>
+    <version>latest</version>
 </dependency>
 ```
 
@@ -151,7 +248,7 @@ Enabled automatically when springdoc `OpenAPI` type is present:
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-openapi-springdoc-starter</artifactId>
-    <version>1.2.0</version>
+    <version>latest</version>
 </dependency>
 ```
 
@@ -228,7 +325,7 @@ var causes = chain.getCauses();  // Get all errors
 @Validate(value = UserRegisterValidator.class, fast = false)  // fast=false collects all errors
 public Result<?> register(@RequestBody UserRegisterDTO dto) {
     userService.register(dto);
-    return Result.success("Registration successful");
+    return Result.ok("Registration successful");
 }
 
 // Validator
@@ -365,28 +462,67 @@ Note: `or()` only applies to the immediately adjacent conditions. The default lo
 
 ## ⚙️ Configuration
 
-Configure framework behavior in `application.yml`:
+Configure framework behavior in `application.yml` (full property list: [CONFIGURATION.en.md](docs/CONFIGURATION.en.md)):
 
 ```yaml
 fail-fast:
-  shadow-trace: true   # Include class name and line number of the validation point in exception stack trace
-  debug-snapshot: true # Enable debug snapshot to include invalid values (default: false)
-  verbose: true        # Include detailed errors list in multi-error response
+  shadow-trace: true
+  trim-stack-trace: true
+  verbose: true
+  debug-snapshot: true
+  method-validation-enabled: true
+
+  code-mapping:
+    constraint-mapping:
+      NotBlank: 40010
+      Email: 40020
+      Positive: 40030
+    constraint-path-mapping:
+      - constraint: NotBlank
+        path: user.username
+        code: 40040
+      - constraint: NotNull
+        path: user.username
+        code: 40045
+      - constraint: Email
+        path: user.email
+        code: 40050
+    constraint-bean-mapping:
+      - constraint: NotBlank
+        bean: com.chao.failuretest.model.dto.UserJSRDTO
+        code: 40060
+      - constraint: Email
+        bean: com.chao.failuretest.model.dto.UserDTO
+        code: 40070
+    http-status:
+      40010: 400
+    groups:
+      auth: ["40100..40199"]
+      business: ["40000..40099"]
+
   trace-id:
     enabled: true
     header-name: X-Trace-Id
-    generate-if-missing: true
-    response-header: true
     response-header-name: X-Trace-Id
+    response-header: true
+    generate-if-missing: true
+    mdc-key: traceId
+    mdc-enabled: true
+
   reactive:
-    context-first: true # WebFlux recommended: prefer Reactor Context over ThreadLocal (default: false)
-  code-mapping:
-    http-status:
-      40001: 400       # Error Code 40001 -> HTTP 400
-      40100: 401
-    groups:
-      auth: [ "40100..40199" ]      # Range mapping
-      business: [ "40000..40099" ]
+    context-first: true
+
+  i18n:
+    default-locale: zh_CN
+
+  logging:
+    banner: false
+
+  masking:
+    structured-enabled: true
+    max-depth: 4
+    max-collection-size: 20
+    max-fields: 30
 ```
 
 ### WebFlux Context-First (Recommended)
@@ -402,6 +538,7 @@ For advanced customization of default response code, default detail generation, 
 ## 📖 More Documentation
 
 - **[API_REFERENCE.en.md](docs/API_REFERENCE.en.md)** - Complete API Reference, Design Patterns
+- **[CONFIGURATION.en.md](docs/CONFIGURATION.en.md)** - Configuration Reference
 - **[Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)** - Live Demo Project
 
 ---
@@ -424,4 +561,5 @@ Issues and Pull Requests are welcome! Please:
 Apache License 2.0 - See [LICENSE](LICENSE) for details.
 
 ---
+**Author**: [KyrieChao](https://github.com/KyrieChao)
 **Author**: [KyrieChao](https://github.com/KyrieChao)

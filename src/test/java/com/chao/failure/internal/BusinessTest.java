@@ -2,15 +2,19 @@ package com.chao.failure.internal;
 
 import com.chao.failure.config.mapping.CodeMappingConfig;
 import com.chao.failure.config.properties.FailureProperties;
-import com.chao.failure.constant.Severity;
 import com.chao.failure.constant.FailureConst;
+import com.chao.failure.constant.Severity;
 import com.chao.failure.exception.Business;
 import com.chao.failure.internal.core.Ex;
 import com.chao.failure.internal.core.FailureContext;
-import com.chao.failure.internal.core.observability.OpenTelemetryBridge;
 import com.chao.failure.internal.core.ResponseCode;
+import com.chao.failure.internal.core.observability.OpenTelemetryBridge;
+import com.chao.failure.internal.core.security.MaskPickRegistry;
+import com.chao.failure.internal.core.security.ValueMaskerRegistry;
 import com.chao.failure.internal.policy.ErrorPolicy;
 import com.chao.failure.model.TestResponseCode;
+import com.chao.failure.spi.security.Mask;
+import com.chao.failure.spi.security.ValueMasker;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +36,7 @@ import static org.mockito.Mockito.*;
  * Business exception test class.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Slf4j
 @DisplayName("Business Exception Test")
@@ -853,7 +857,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "13800138000", null);
+            String result = (String) invokeMaskValue(business, "13800138000", null);
 
             // Then
             assertThat(result).isEqualTo("138****8000");
@@ -866,7 +870,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "test@example.com", null);
+            String result = (String) invokeMaskValue(business, "test@example.com", null);
 
             // Then
             assertThat(result).contains("****@example.com");
@@ -879,7 +883,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "1234567890123456", null);
+            String result = (String) invokeMaskValue(business, "1234567890123456", null);
 
             // Then
             assertThat(result).isEqualTo("1234****3456");
@@ -893,7 +897,7 @@ class BusinessTest {
             String longString = "a".repeat(60);
 
             // When
-            String result = invokeMaskValue(business, longString, null);
+            String result = (String) invokeMaskValue(business, longString, null);
 
             // Then
             assertThat(result).contains("...(60char)...");
@@ -906,7 +910,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "", null);
+            String result = (String) invokeMaskValue(business, "", null);
 
             // Then
             assertThat(result).isEmpty();
@@ -919,7 +923,7 @@ class BusinessTest {
             Business business = Business.of(testCode, "Invalid input");
 
             // When
-            String result = invokeMaskValue(business, "normal string", null);
+            String result = (String) invokeMaskValue(business, "normal string", null);
 
             // Then
             assertThat(result).isEqualTo("normal string");
@@ -928,9 +932,59 @@ class BusinessTest {
         @Test
         @DisplayName("maskValue() - should mask by sensitive field path")
         void testMaskValueWithSensitivePath() {
+            MaskPickRegistry.setDefault(fieldPath -> {
+                if (fieldPath != null && fieldPath.contains("accessToken")) {
+                    return (Mask) () -> "token";
+                }
+                return null;
+            });
+            try {
+                Business business = Business.of(testCode, "Invalid input");
+                String result = (String) invokeMaskValue(business, "plain-token-value", "headers.accessToken");
+                assertThat(result).isEqualTo("***[MASKED]***");
+            } finally {
+                MaskPickRegistry.setDefault(null);
+            }
+        }
+
+        @Test
+        @DisplayName("maskValue() - should return null when value is null")
+        void testMaskValueWithNull() {
             Business business = Business.of(testCode, "Invalid input");
-            String result = invokeMaskValue(business, "plain-token-value", "headers.accessToken");
-            assertThat(result).isEqualTo("***[MASKED]***");
+            Object result = invokeMaskValue(business, null, null);
+            assertThat(result).isNull();
+        }
+
+        @Test
+        @DisplayName("maskValue() - should use ValueMaskerRegistry result when not null")
+        void testMaskValueWithValueMaskerRegistry() {
+            ValueMasker customMasker = mock(ValueMasker.class);
+            when(customMasker.mask(any(), any())).thenReturn("custom-masked");
+            ValueMaskerRegistry.setDefault(customMasker);
+
+            try {
+                Business business = Business.of(testCode, "Invalid input");
+                String result = (String) invokeMaskValue(business, "test-value", "field.path");
+                assertThat(result).isEqualTo("custom-masked");
+            } finally {
+                ValueMaskerRegistry.setDefault(null);
+            }
+        }
+
+        @Test
+        @DisplayName("maskValue() - should fallback to DefaultValueMasker when ValueMaskerRegistry returns null")
+        void testMaskValueWithFallbackToDefaultMasker() {
+            ValueMasker customMasker = mock(ValueMasker.class);
+            when(customMasker.mask(any(), any())).thenReturn(null);
+            ValueMaskerRegistry.setDefault(customMasker);
+
+            try {
+                Business business = Business.of(testCode, "Invalid input");
+                String result = (String) invokeMaskValue(business, "13800138000", "mobile.field");
+                assertThat(result).isEqualTo("138****8000");
+            } finally {
+                ValueMaskerRegistry.setDefault(null);
+            }
         }
     }
 
@@ -1027,10 +1081,20 @@ class BusinessTest {
         @Test
         @DisplayName("Serialization - should not serialize raw invalidValue")
         void testSerializationWithTransientInvalidValue() throws Exception {
-            Business business = new Business(TestResponseCode.PARAM_ERROR, "Invalid input", "method", "location", org.springframework.http.HttpStatus.BAD_REQUEST, "my-secret-token", "headers.accessToken");
-            Business restored = roundTrip(business);
-            assertThat(restored.getInvalidValue()).isNull();
-            assertThat(restored.getMaskedValue()).isEqualTo("***[MASKED]***");
+            MaskPickRegistry.setDefault(fieldPath -> {
+                if (fieldPath != null && fieldPath.contains("accessToken")) {
+                    return (Mask) () -> "token";
+                }
+                return null;
+            });
+            try {
+                Business business = new Business(TestResponseCode.PARAM_ERROR, "Invalid input", "method", "location", org.springframework.http.HttpStatus.BAD_REQUEST, "my-secret-token", "headers.accessToken");
+                Business restored = roundTrip(business);
+                assertThat(restored.getInvalidValue()).isNull();
+                assertThat(restored.getMaskedValue()).isEqualTo("***[MASKED]***");
+            } finally {
+                MaskPickRegistry.setDefault(null);
+            }
         }
 
         @Test
@@ -1187,11 +1251,11 @@ class BusinessTest {
         }
     }
 
-    private String invokeMaskValue(Business business, Object value, String path) {
+    private Object invokeMaskValue(Business business, Object value, String path) {
         try {
             java.lang.reflect.Method method = Business.class.getDeclaredMethod("maskValue", Object.class, String.class);
             method.setAccessible(true);
-            return (String) method.invoke(business, value, path);
+            return method.invoke(business, value, path);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

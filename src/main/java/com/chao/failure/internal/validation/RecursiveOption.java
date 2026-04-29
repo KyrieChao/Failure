@@ -10,7 +10,7 @@ import java.util.List;
  * Automatically generates getter methods through Lombok's @Getter and annotations
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Getter
 @Builder

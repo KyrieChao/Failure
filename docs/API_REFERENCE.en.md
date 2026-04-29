@@ -351,7 +351,7 @@ End & strategy:
 - `merge()` ends current element scope
 - `stopItemOnFail()` stops validations for current element after its first error
 
-Full implementation: [Scope.java](file:///d:/Work/WorkIDEA/SpringBoot/mvn/fail-fast-improved/failure-spring-boot-starter/src/main/java/com/chao/failfast/internal/chain/pipeline/Scope.java)
+Full implementation: [Scope.java](file:///d:/Work/WorkIDEA/SpringBoot/mvn/fail-fast-improved/src/main/java/com/chao/failure/internal/chain/pipeline/Scope.java)
 
 ---
 
@@ -460,7 +460,7 @@ Use in Controller:
 public Result<?> register(@RequestBody @Valid UserRegisterDTO dto) {
     // AOP automatically executes validation
     userService.register(dto);
-    return Result.success("Registration successful");
+    return Result.ok("Registration successful");
 }
 ```
 

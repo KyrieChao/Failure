@@ -5,7 +5,7 @@ package com.chao.failure.internal.chain.pipeline;
  *
  * @param <T> Value type
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 
 public record PathEntry<T>(T value, String path) {

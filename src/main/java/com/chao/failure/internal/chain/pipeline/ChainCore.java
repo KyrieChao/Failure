@@ -32,7 +32,7 @@ import java.util.function.Supplier;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public abstract class ChainCore<S extends ChainCore<S>> {
     private static final int DEFAULT_STRICT_MAX_ERRORS = 50;
@@ -94,6 +94,8 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     protected final ValidationContext context;
     protected final List<Business> errors = new ArrayList<>();
     private final List<AsyncCheck> asyncChecks = new ArrayList<>();
+    private String currentPath;
+    private Supplier<Object> currentInvalidValueSupplier;
     @Setter
     private Consumer<Business> errorConsumer;
 
@@ -217,6 +219,24 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     @SuppressWarnings("unchecked")
     protected S self() {
         return (S) this;
+    }
+
+    public S at(String path) {
+        this.currentPath = path;
+        this.currentInvalidValueSupplier = null;
+        return self();
+    }
+
+    public S at(String path, Object invalidValue) {
+        this.currentPath = path;
+        this.currentInvalidValueSupplier = invalidValue != null ? () -> invalidValue : null;
+        return self();
+    }
+
+    public S at(String path, Supplier<Object> invalidValueSupplier) {
+        this.currentPath = path;
+        this.currentInvalidValueSupplier = invalidValueSupplier;
+        return self();
     }
 
     public S check(Supplier<Boolean> conditionSupplier, CheckSpec spec) {
@@ -350,21 +370,16 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         if (shouldSkip()) return self();
 
         if (orMode) {
-            // OR mode: calculate combined result
-            orMode = false;  // Consume or state
+            orMode = false;
             boolean finalSuccess = orHasSuccess || condition;
 
             if (!finalSuccess) {
-                // Both failed, report error
                 addError(code, detail, value, path, constraint, source);
                 if (failFast) alive = false;
             } else {
-                // One success, whole or passed, clear errors
                 alive = true;
-                // errors already cleared in or()
             }
         } else {
-            // Normal mode
             if (!condition) {
                 addError(code, detail, value, path, constraint, source);
                 if (failFast) alive = false;
@@ -407,19 +422,25 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     }
 
     protected void addError(ResponseCode code, String detail, Object value) {
-        addError(code, detail, value, null, null, "chain");
+        addError(code, detail, value, currentPath, null, "chain");
     }
 
     protected void addError(ResponseCode code, String detail, Object value, String path, String constraint) {
-        addError(code, detail, value, path, constraint, "chain");
+        addError(code, detail, value, path != null ? path : currentPath, constraint, "chain");
     }
 
     protected void addError(ResponseCode code, String detail, Object value, String path, String constraint, String source) {
+        if (path == null) {
+            path = currentPath;
+        }
+        if (value == null && currentInvalidValueSupplier != null) {
+            value = resolveInvalidValue(currentInvalidValueSupplier);
+        }
         if (hasReachedErrorLimit()) {
             markErrorLimitReached();
             return;
         }
-        Business business = buildBusiness(code, detail, value, path, constraint);
+        Business business = buildBusiness(code, detail, value, path);
         Consumer<Business> consumer = this.errorConsumer;
         if (consumer != null) {
             consumer.accept(business);
@@ -428,24 +449,20 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         if (context != null) {
             context.reportError(business);
             if (failFast) context.stop();
-            if (hasReachedErrorLimit()) {
-                markErrorLimitReached();
-            }
         } else {
             errors.add(business);
-            if (hasReachedErrorLimit()) {
-                markErrorLimitReached();
-            }
+        }
+        if (hasReachedErrorLimit()) {
+            markErrorLimitReached();
         }
 
-        // Notify observer of violation
         if (constraint != null) {
             ValidationEventManager.notifyViolation(source, constraint);
         }
     }
 
 
-    private Business buildBusiness(ResponseCode code, String detail, Object value, String path, String constraint) {
+    private Business buildBusiness(ResponseCode code, String detail, Object value, String path) {
         FailureContext ctx = Ex.getContext();
         ErrorPolicy policy = ctx != null ? Objects.requireNonNullElse(ctx.getErrorPolicy(), DefaultErrorPolicy.INSTANCE) : DefaultErrorPolicy.INSTANCE;
 
@@ -460,24 +477,6 @@ public abstract class ChainCore<S extends ChainCore<S>> {
             return fabricator.responseCode(code).detail(detail).materialize();
         }
         return fabricator.responseCode(Objects.requireNonNullElse(code, policy.defaultCode())).materialize();
-    }
-
-    private Business buildBusiness(ResponseCode code, String detail, Object value, String path) {
-        return buildBusiness(code, detail, value, path, null);
-    }
-
-    private String getSceneName() {
-        if (context == null) {
-            return Scenario.DEFAULT.name();
-        }
-        Scenario[] scenes = context.getScenes();
-        if (scenes == null || scenes.length == 0) {
-            return Scenario.DEFAULT.name();
-        }
-        if (scenes.length == 1) {
-            return scenes[0].name();
-        }
-        return "MULTI";
     }
 
     /**
@@ -520,6 +519,20 @@ public abstract class ChainCore<S extends ChainCore<S>> {
         FailureContext ctx = Ex.getContext();
         if (ctx == null) return DEFAULT_STRICT_MAX_ERRORS;
         return ctx.getStrictMaxErrors();
+    }
+
+    private String getSceneName() {
+        if (context == null) {
+            return Scenario.DEFAULT.name();
+        }
+        Scenario[] scenes = context.getScenes();
+        if (scenes == null || scenes.length == 0) {
+            return Scenario.DEFAULT.name();
+        }
+        if (scenes.length == 1) {
+            return scenes[0].name();
+        }
+        return "MULTI";
     }
 
     private void markErrorLimitReached() {

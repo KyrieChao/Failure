@@ -17,7 +17,7 @@ import java.util.Date;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public interface DateTerm<S extends ChainCore<S>> {
 

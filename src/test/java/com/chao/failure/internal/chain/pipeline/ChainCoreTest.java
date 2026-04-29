@@ -216,6 +216,163 @@ class ChainCoreTest {
     }
 
     @Test
+    void testAtWithNonNullPath() throws Exception {
+        TestChainCore chain = new TestChainCore(true, null);
+        TestChainCore result = chain.at("user.name");
+
+        assertSame(chain, result);
+        
+        java.lang.reflect.Field currentPathField = ChainCore.class.getDeclaredField("currentPath");
+        currentPathField.setAccessible(true);
+        assertEquals("user.name", currentPathField.get(chain));
+    }
+
+    @Test
+    void testAtWithNullPath() throws Exception {
+        TestChainCore chain = new TestChainCore(true, null);
+        TestChainCore result = chain.at(null);
+
+        assertSame(chain, result);
+        
+        java.lang.reflect.Field currentPathField = ChainCore.class.getDeclaredField("currentPath");
+        currentPathField.setAccessible(true);
+        assertNull(currentPathField.get(chain));
+    }
+
+    @Test
+    void testAtWithEmptyStringPath() throws Exception {
+        TestChainCore chain = new TestChainCore(true, null);
+        TestChainCore result = chain.at("");
+
+        assertSame(chain, result);
+        
+        java.lang.reflect.Field currentPathField = ChainCore.class.getDeclaredField("currentPath");
+        currentPathField.setAccessible(true);
+        assertEquals("", currentPathField.get(chain));
+    }
+
+    @Test
+    void testAtWithBlankStringPath() throws Exception {
+        TestChainCore chain = new TestChainCore(true, null);
+        TestChainCore result = chain.at("  ");
+
+        assertSame(chain, result);
+        
+        java.lang.reflect.Field currentPathField = ChainCore.class.getDeclaredField("currentPath");
+        currentPathField.setAccessible(true);
+        assertEquals("  ", currentPathField.get(chain));
+    }
+
+    @Test
+    void testAtPathUsedInErrorReporting() {
+        TestChainCore chain = new TestChainCore(false, null);
+        
+        chain.at("user.email").check(false, ResponseCode.VALIDATION_ERROR_400, "Invalid email");
+        
+        List<Business> causes = chain.getCauses();
+        assertEquals(1, causes.size());
+        assertEquals("user.email", causes.get(0).getPath());
+    }
+
+    @Test
+    void testAtWithPathClearsInvalidValue() throws Exception {
+        TestChainCore chain = new TestChainCore(false, null);
+        
+        java.lang.reflect.Field invalidValueField = ChainCore.class.getDeclaredField("currentInvalidValueSupplier");
+        invalidValueField.setAccessible(true);
+        
+        chain.at("user.name", "invalid-value");
+        assertNotNull(invalidValueField.get(chain));
+        
+        chain.at("user.email");
+        assertNull(invalidValueField.get(chain));
+    }
+
+    @Test
+    void testAtWithPathAndNonNullInvalidValue() throws Exception {
+        TestChainCore chain = new TestChainCore(false, null);
+        
+        java.lang.reflect.Field currentPathField = ChainCore.class.getDeclaredField("currentPath");
+        currentPathField.setAccessible(true);
+        java.lang.reflect.Field invalidValueField = ChainCore.class.getDeclaredField("currentInvalidValueSupplier");
+        invalidValueField.setAccessible(true);
+        
+        TestChainCore result = chain.at("user.name", "test-value");
+        
+        assertSame(chain, result);
+        assertEquals("user.name", currentPathField.get(chain));
+        assertNotNull(invalidValueField.get(chain));
+    }
+
+    @Test
+    void testAtWithPathAndNullInvalidValue() throws Exception {
+        TestChainCore chain = new TestChainCore(false, null);
+        
+        java.lang.reflect.Field currentPathField = ChainCore.class.getDeclaredField("currentPath");
+        currentPathField.setAccessible(true);
+        java.lang.reflect.Field invalidValueField = ChainCore.class.getDeclaredField("currentInvalidValueSupplier");
+        invalidValueField.setAccessible(true);
+        
+        chain.at("user.name", (Object) null);
+        
+        assertEquals("user.name", currentPathField.get(chain));
+        assertNull(invalidValueField.get(chain));
+    }
+
+    @Test
+    void testAtWithPathAndNonNullSupplier() throws Exception {
+        TestChainCore chain = new TestChainCore(false, null);
+        
+        java.lang.reflect.Field currentPathField = ChainCore.class.getDeclaredField("currentPath");
+        currentPathField.setAccessible(true);
+        java.lang.reflect.Field invalidValueField = ChainCore.class.getDeclaredField("currentInvalidValueSupplier");
+        invalidValueField.setAccessible(true);
+        
+        TestChainCore result = chain.at("user.name", () -> "supplied-value");
+        
+        assertSame(chain, result);
+        assertEquals("user.name", currentPathField.get(chain));
+        assertNotNull(invalidValueField.get(chain));
+    }
+
+    @Test
+    void testAtWithPathAndNullSupplier() throws Exception {
+        TestChainCore chain = new TestChainCore(false, null);
+        
+        java.lang.reflect.Field currentPathField = ChainCore.class.getDeclaredField("currentPath");
+        currentPathField.setAccessible(true);
+        java.lang.reflect.Field invalidValueField = ChainCore.class.getDeclaredField("currentInvalidValueSupplier");
+        invalidValueField.setAccessible(true);
+        
+        chain.at("user.name", (java.util.function.Supplier<Object>) null);
+        
+        assertEquals("user.name", currentPathField.get(chain));
+        assertNull(invalidValueField.get(chain));
+    }
+
+    @Test
+    void testAtWithInvalidValueUsedInErrorReporting() {
+        TestChainCore chain = new TestChainCore(false, null);
+        
+        chain.at("user.age", "18").check(false, ResponseCode.VALIDATION_ERROR_400, "Age must be greater than 18");
+        
+        List<Business> causes = chain.getCauses();
+        assertEquals(1, causes.size());
+        assertEquals("user.age", causes.get(0).getPath());
+    }
+
+    @Test
+    void testAtWithSupplierInvalidValueUsedInErrorReporting() {
+        TestChainCore chain = new TestChainCore(false, null);
+        
+        chain.at("user.age", () -> "18").check(false, ResponseCode.VALIDATION_ERROR_400, "Age must be greater than 18");
+        
+        List<Business> causes = chain.getCauses();
+        assertEquals(1, causes.size());
+        assertEquals("user.age", causes.get(0).getPath());
+    }
+
+    @Test
     void should_returnTrue_when_hasReachedErrorLimitHitsConfiguredCap() throws Exception {
         TestChainCore chain = new TestChainCore(false, null);
         FailureContext failureContext = Mockito.mock(FailureContext.class);

@@ -7,7 +7,7 @@ import java.lang.annotation.*;
  * Semantically equivalent to @RequestBody.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)

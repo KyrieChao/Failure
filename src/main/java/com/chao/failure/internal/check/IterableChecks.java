@@ -14,7 +14,7 @@ import java.util.function.Consumer;
  * Utility class for iterable validation.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class IterableChecks {
 

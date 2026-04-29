@@ -6,7 +6,7 @@ import com.chao.failure.validator.FastValidator;
  * Registry for global custom validators.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public interface ValidatorRegistry {
 

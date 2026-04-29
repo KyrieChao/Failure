@@ -9,7 +9,7 @@ import reactor.util.context.ContextView;
  * This class provides static methods to extract these information from FailureContext or ContextView.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class TraceInfoExtractor {
 

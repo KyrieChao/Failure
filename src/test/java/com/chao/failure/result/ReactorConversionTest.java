@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ReactorConversionTest {
     @Test
     void toMonoShouldEmitValueOnSuccess() {
-        String v = Result.ok("ok").toMono().block();
+        String v = Result.success("ok").toMono().block();
         assertEquals("ok", v);
     }
 
@@ -23,13 +23,13 @@ class ReactorConversionTest {
 
     @Test
     void toFluxShouldEmitCollectionElementsOnSuccess() {
-        List<Integer> out = Result.ok(List.of(1, 2)).<Integer>toFluxElements().collectList().block();
+        List<Integer> out = Result.success(List.of(1, 2)).<Integer>toFluxElements().collectList().block();
         assertEquals(List.of(1, 2), out);
     }
 
     @Test
     void toFluxShouldEmitSingleValueOnSuccess() {
-        List<String> out = Result.ok("x").toFlux().collectList().block();
+        List<String> out = Result.success("x").toFlux().collectList().block();
         assertEquals(List.of("x"), out);
     }
 

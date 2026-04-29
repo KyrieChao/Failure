@@ -9,7 +9,7 @@ import com.chao.failure.internal.core.ResponseCode;
  * This class provides default error handling policies, including default error code, default error details, and logic for capturing invalid values
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class DefaultErrorPolicy implements ErrorPolicy {
     // Singleton pattern instance

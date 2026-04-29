@@ -4,7 +4,7 @@ package com.chao.failure.constant;
  * Business scene enum for validation classification.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public enum Scenario {
     // --- 1. Basic single operations (4) ---

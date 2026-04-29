@@ -13,7 +13,7 @@ import java.util.function.Supplier;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public interface CustomTerm<S extends ChainCore<S>> {
 

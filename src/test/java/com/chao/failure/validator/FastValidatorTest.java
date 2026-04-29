@@ -82,7 +82,9 @@ class FastValidatorTest {
     static class BaseUserValidator<T extends BaseUserDTO> extends TemplateValidator<T> {
         @Override
         protected void validateCommon(T target, ValidationContext context) {
-            Failure.with(context).notNull(target.getId()).verify();
+            Failure.with(context)
+                    .notNull(target.getId())
+                    .verify();
         }
 
         @Override
@@ -162,7 +164,7 @@ class FastValidatorTest {
         @DisplayName("初始状态group")
         void shouldHaveDefaultGroups() {
 
-            interface Create{
+            interface Create {
 
             }
             FastValidator.ValidationContext ctx = new FastValidator.ValidationContext(false, Scenario.DEFAULT, new Class<?>[]{Create.class});
@@ -170,6 +172,7 @@ class FastValidatorTest {
             assertThat(ctx.getScenes()).containsExactly(Scenario.DEFAULT);
             assertThat(ctx.getGroups()).containsExactly(Create.class);
         }
+
         @Test
         @DisplayName("初始状态应为有效")
         void shouldBeValidInitially() {

@@ -5,7 +5,7 @@ package com.chao.failure.constant;
  * Used to define different sensitivity levels, including low, medium, and high levels
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public enum SensitivityLevel {
     LOW,    // Low sensitivity level

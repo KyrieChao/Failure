@@ -1,5 +1,6 @@
 package com.chao.failure.config.masking;
 
+import com.chao.failure.spi.security.Mask;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -9,96 +10,133 @@ class DefaultValueMaskerTest {
     private final DefaultValueMasker masker = new DefaultValueMasker();
 
     @Test
-    void should_return_null_when_value_is_null() {
-        assertNull(masker.mask(null, "anyPath"));
+    void maskWithNullValue() {
+        assertNull(masker.mask(null));
     }
 
     @Test
-    void should_return_masked_value_when_field_path_contains_sensitive_pattern() {
-        String result = (String) masker.mask("sensitiveValue", "user.password");
-        assertEquals("***[MASKED]***", result);
-
-        result = (String) masker.mask("tokenValue", "auth.token");
-        assertEquals("***[MASKED]***", result);
-
-        result = (String) masker.mask("secretValue", "config.secret");
-        assertEquals("***[MASKED]***", result);
+    void maskWithNullValueAndMask() {
+        assertNull(masker.mask(null, () -> "phone"));
     }
 
     @Test
-    void should_return_original_value_when_field_path_is_not_sensitive() {
-        Object result = masker.mask("normalValue", "user.name");
-        assertEquals("normalValue", result);
+    void mask2() {
+        assertEquals("", masker.mask("", () -> "phone"));
     }
 
     @Test
-    void should_return_false_when_field_path_is_null() {
-        // 测试isSensitive方法的fieldPath == null分支
-        // 通过反射调用私有方法
-        try {
-            java.lang.reflect.Method isSensitiveMethod = DefaultValueMasker.class.getDeclaredMethod("isSensitive", String.class);
-            isSensitiveMethod.setAccessible(true);
-            boolean result = (boolean) isSensitiveMethod.invoke(masker, (Object) null);
-            assertFalse(result);
-        } catch (Exception e) {
-            fail("反射调用失败: " + e.getMessage());
-        }
+    void maskWithNullMask() {
+        assertEquals("test", masker.mask("test", null));
     }
 
     @Test
-    void should_return_false_when_field_path_is_blank() {
-        // 测试isSensitive方法的fieldPath.isBlank()分支
-        // 通过反射调用私有方法
-        try {
-            java.lang.reflect.Method isSensitiveMethod = DefaultValueMasker.class.getDeclaredMethod("isSensitive", String.class);
-            isSensitiveMethod.setAccessible(true);
-            boolean result = (boolean) isSensitiveMethod.invoke(masker, "");
-            assertFalse(result);
-
-            result = (boolean) isSensitiveMethod.invoke(masker, "   ");
-            assertFalse(result);
-        } catch (Exception e) {
-            fail("反射调用失败: " + e.getMessage());
-        }
+    void maskWithBlankMaskType() {
+        Mask blankMask = () -> "  ";
+        assertEquals("test", masker.mask("test", blankMask));
     }
 
     @Test
-    void should_mask_mobile_number() {
-        String result = (String) masker.mask("13812345678", "user.phone");
-        assertEquals("138****5678", result);
+    void maskWithEmptyString() {
+        assertEquals("", masker.mask(""));
     }
 
     @Test
-    void should_mask_bank_card() {
-        // 使用不包含敏感模式的字段路径
-        String result = (String) masker.mask("6222021234567890123", "user.cardNumber");
-        assertEquals("6222****0123", result);
+    void maskPhone() {
+        Mask phoneMask = () -> "phone";
+        assertEquals("138****5678", masker.mask("13812345678", phoneMask));
     }
 
     @Test
-    void should_mask_email() {
-        String result = (String) masker.mask("test@example.com", "user.email");
-        assertEquals("t****@example.com", result);
+    void maskPhoneWithInvalidFormat() {
+        Mask phoneMask = () -> "phone";
+        assertEquals("***[MASKED]***", masker.mask("12345678", phoneMask));
     }
 
     @Test
-    void should_truncate_long_string() {
-        String longString = "a".repeat(60);
-        String result = (String) masker.mask(longString, "user.description");
+    void maskEmail() {
+        Mask emailMask = () -> "email";
+        assertEquals("a****@example.com", masker.mask("admin@example.com", emailMask));
+    }
+
+    @Test
+    void maskEmailWithInvalidFormat() {
+        Mask emailMask = () -> "email";
+        assertEquals("***[MASKED]***", masker.mask("invalid-email", emailMask));
+    }
+
+    @Test
+    void maskBankCard() {
+        Mask cardMask = () -> "bankcard";
+        assertEquals("6222****1234", masker.mask("622202123456781234", cardMask));
+    }
+
+    @Test
+    void maskCreditCard() {
+        Mask cardMask = () -> "creditcard";
+        assertEquals("6222****1234", masker.mask("622202123456781234", cardMask));
+    }
+
+    @Test
+    void maskCard() {
+        Mask cardMask = () -> "card";
+        assertEquals("6222****1234", masker.mask("622202123456781234", cardMask));
+    }
+
+    @Test
+    void maskCardWithInvalidFormat() {
+        Mask cardMask = () -> "card";
+        assertEquals("***[MASKED]***", masker.mask("123456", cardMask));
+    }
+
+    @Test
+    void maskUnknownType() {
+        Mask unknownMask = () -> "unknown";
+        assertEquals("***[MASKED]***", masker.mask("test", unknownMask));
+    }
+
+    @Test
+    void truncateAndFormatMobile() {
+        assertEquals("138****5678", masker.mask("13812345678"));
+    }
+
+    @Test
+    void truncateAndFormatEmail() {
+        assertEquals("a****@example.com", masker.mask("admin@example.com"));
+    }
+
+    @Test
+    void truncateAndFormatCard() {
+        assertEquals("6222****1234", masker.mask("622202123456781234"));
+    }
+
+    @Test
+    void truncateAndFormatLongString() {
+        String longStr = "a".repeat(60);
+        String result = (String) masker.mask(longStr);
         assertTrue(result.contains("...(60char)..."));
+        assertTrue(result.startsWith("aaaaa"));
+        assertTrue(result.endsWith("aaaaa"));
     }
 
     @Test
-    void should_return_empty_string_when_value_is_empty() {
-        String result = (String) masker.mask("", "user.name");
-        assertEquals("", result);
+    void truncateAndFormatNormalString() {
+        assertEquals("hello", masker.mask("hello"));
     }
 
     @Test
-    void should_return_original_string_when_length_is_less_than_50() {
-        String normalString = "This is a normal string";
-        String result = (String) masker.mask(normalString, "user.name");
-        assertEquals(normalString, result);
+    void truncateAndFormatEmptyString() {
+        assertEquals("", masker.mask(""));
     }
 
+    @Test
+    void maskWithUpperCaseType() {
+        Mask phoneMask = () -> "PHONE";
+        assertEquals("138****5678", masker.mask("13812345678", phoneMask));
+    }
+
+    @Test
+    void maskWithMixedCaseType() {
+        Mask phoneMask = () -> "Phone";
+        assertEquals("138****5678", masker.mask("13812345678", phoneMask));
+    }
 }

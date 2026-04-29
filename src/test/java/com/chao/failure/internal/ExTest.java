@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
  * Exception builder utility test class.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @DisplayName("Exception Builder Utility Test")
 @Tag("exception")

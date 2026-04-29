@@ -11,7 +11,7 @@ import java.util.Map;
  *
  * @param <T> Target type to validate
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public abstract class TemplateValidator<T> implements FastValidator<T> {
 

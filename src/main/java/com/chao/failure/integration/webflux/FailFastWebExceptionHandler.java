@@ -4,7 +4,7 @@ package com.chao.failure.integration.webflux;
  * FailFast web exception handler for reactive applications.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 
 import com.chao.failure.config.properties.FailureProperties;

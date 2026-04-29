@@ -12,7 +12,7 @@ import java.util.function.BiConsumer;
  * TypedValidator - Abstract generic validator class.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Slf4j
 public abstract class TypedValidator implements FastValidator<Object> {

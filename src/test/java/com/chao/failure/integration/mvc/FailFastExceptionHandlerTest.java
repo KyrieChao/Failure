@@ -114,11 +114,10 @@ class FailFastExceptionHandlerTest {
         );
 
         Map<String, Object> body = body(response);
-        List<Map<String, Object>> errors = errors(body);
 
         assertEquals(HttpStatus.GONE, response.getStatusCode());
-        assertEquals(1, errors.size());
-        assertEquals(410, errors.get(0).get(FailureConst.FIELD_CODE));
+        assertEquals(410, body.get(FailureConst.FIELD_CODE));
+        assertFalse(body.containsKey(FailureConst.FIELD_ERRORS));
     }
 
     @Test

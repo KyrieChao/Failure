@@ -2,6 +2,7 @@ package com.chao.failure.config.masking;
 
 import com.chao.failure.annotation.Sensitive;
 import com.chao.failure.config.properties.FailureProperties;
+import com.chao.failure.spi.security.Mask;
 import com.chao.failure.spi.security.ValueMasker;
 
 import java.lang.reflect.Array;
@@ -21,12 +22,10 @@ import java.util.Set;
  * used for recursive value masking of complex objects.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public class StructuredValueMasker implements ValueMasker {
-    // Fallback masker for handling primitive types
     private final ValueMasker fallback;
-    // Masking configuration properties
     private final FailureProperties.Masking masking;
 
     /**
@@ -42,15 +41,12 @@ public class StructuredValueMasker implements ValueMasker {
     /**
      * Mask the value
      * @param value Value to mask
-     * @param fieldPath Field path
      * @return Masked value
      */
     @Override
-    public Object mask(Object value, String fieldPath) {
+    public Object mask(Object value) {
         if (value == null) return null;
-        // First try to use fallback masker
-        Object direct = fallback.mask(value, fieldPath);
-        // If value is not a string or not a masked value, and not a complex object, and not Map, Iterable, or array, return direct result
+        Object direct = fallback.mask(value);
         if (!(direct instanceof String directText) || !"***[MASKED]***".equals(directText)) {
             if (!isComplexObject(value) && !(value instanceof Map) && !(value instanceof Iterable) && !value.getClass().isArray()) {
                 return direct;
@@ -58,8 +54,15 @@ public class StructuredValueMasker implements ValueMasker {
         } else {
             return direct;
         }
-        // Recursively mask complex objects
         return maskObject(value, 0, Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    @Override
+    public Object mask(Object value, Mask mask) {
+        if (mask == null) {
+            return mask(value);
+        }
+        return fallback.mask(value, mask);
     }
 
     /**
@@ -71,40 +74,29 @@ public class StructuredValueMasker implements ValueMasker {
      */
     private Object maskObject(Object value, int depth, Set<Object> visited) {
         if (value == null) return null;
-        // Check if maximum recursion depth is reached
         if (depth >= Math.max(1, masking.getMaxDepth())) return "[MAX_DEPTH]";
-        // Check for circular references
         if (visited.contains(value)) return "[CYCLE]";
-
-        // Handle primitive types
         if (value instanceof CharSequence || value.getClass().isEnum() || value instanceof Number || value instanceof Boolean) {
-            return fallback.mask(value, null);
+            return fallback.mask(value);
         }
-        // Handle Map types
         if (value instanceof Map<?, ?> map) {
             return maskMap(map, depth, visited);
         }
-        // Handle Iterable types
         if (value instanceof Iterable<?> iterable) {
             return maskIterable(iterable, depth, visited);
         }
-        // Handle array types
         if (value.getClass().isArray()) {
             return maskArray(value, depth, visited);
         }
-        // Handle non-complex objects
         if (!isComplexObject(value)) {
-            return fallback.mask(value, null);
+            return fallback.mask(value);
         }
 
-        // Handle complex objects
         visited.add(value);
         try {
             Map<String, Object> result = new LinkedHashMap<>();
             int count = 0;
-            // Collect and process all fields
             for (Field field : collectFields(value.getClass())) {
-                // Check if maximum field count limit is exceeded
                 if (count >= Math.max(1, masking.getMaxFields())) {
                     result.put("_truncated", true);
                     break;
@@ -116,7 +108,6 @@ public class StructuredValueMasker implements ValueMasker {
                 } catch (IllegalAccessException e) {
                     fieldValue = "[INACCESSIBLE]";
                 }
-                // Check if field has Sensitive annotation
                 Sensitive sensitive = field.getAnnotation(Sensitive.class);
                 if (sensitive != null) {
                     result.put(field.getName(), sensitive.maskedValue());
@@ -142,7 +133,6 @@ public class StructuredValueMasker implements ValueMasker {
         Map<String, Object> result = new LinkedHashMap<>();
         int count = 0;
         for (Map.Entry<?, ?> entry : map.entrySet()) {
-            // Check if maximum collection size limit is exceeded
             if (count >= Math.max(1, masking.getMaxCollectionSize())) {
                 result.put("_truncated", true);
                 break;
@@ -165,7 +155,6 @@ public class StructuredValueMasker implements ValueMasker {
         List<Object> result = new ArrayList<>();
         int count = 0;
         for (Object item : iterable) {
-            // Check if maximum collection size limit is exceeded
             if (count >= Math.max(1, masking.getMaxCollectionSize())) {
                 result.add("[TRUNCATED]");
                 break;
@@ -189,7 +178,6 @@ public class StructuredValueMasker implements ValueMasker {
         for (int i = 0; i < len; i++) {
             result.add(maskObject(Array.get(value, i), depth + 1, visited));
         }
-        // If array length exceeds limit, add truncation marker
         if (Array.getLength(value) > len) {
             result.add("[TRUNCATED]");
         }
@@ -205,7 +193,6 @@ public class StructuredValueMasker implements ValueMasker {
         Package pkg = value.getClass().getPackage();
         if (pkg == null) return true;
         String pkgName = pkg.getName();
-        // Check if it's a class from Java standard library or Jakarta standard library
         return !pkgName.startsWith("java.") && !pkgName.startsWith("javax.") && !pkgName.startsWith("jakarta.");
     }
 
@@ -217,10 +204,8 @@ public class StructuredValueMasker implements ValueMasker {
     private List<Field> collectFields(Class<?> type) {
         List<Field> fields = new ArrayList<>();
         Class<?> current = type;
-        // Traverse all fields of the class and its parent classes
         while (current != null && current != Object.class) {
             for (Field field : current.getDeclaredFields()) {
-                // Skip static fields and synthetic fields
                 if (Modifier.isStatic(field.getModifiers())) continue;
                 if (field.isSynthetic()) continue;
                 fields.add(field);

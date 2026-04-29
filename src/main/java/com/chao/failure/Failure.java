@@ -7,7 +7,7 @@ import com.chao.failure.validator.FastValidator.ValidationContext;
  * Failure static entry class - Chain validation API.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class Failure {
 

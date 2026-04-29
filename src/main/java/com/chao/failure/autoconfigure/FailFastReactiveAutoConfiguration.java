@@ -4,6 +4,7 @@ import com.chao.failure.config.masking.DefaultValueMasker;
 import com.chao.failure.config.masking.StructuredValueMasker;
 import com.chao.failure.config.registry.DefaultValidatorWhitelistRegistry;
 import com.chao.failure.config.i18n.LocaleResponseResolver;
+import com.chao.failure.config.mapping.CodeLocator;
 import com.chao.failure.config.mapping.CodeMappingConfig;
 import com.chao.failure.config.properties.FailureProperties;
 import com.chao.failure.internal.core.FailureContext;
@@ -12,9 +13,12 @@ import com.chao.failure.integration.webflux.ReactiveTrace;
 import com.chao.failure.internal.core.Chain;
 import com.chao.failure.internal.core.Ex;
 import com.chao.failure.internal.core.i18n.LocaleRouter;
+import com.chao.failure.internal.core.security.CompositeMaskPick;
+import com.chao.failure.internal.core.security.MaskPickRegistry;
 import com.chao.failure.internal.core.security.ValueMaskerRegistry;
 import com.chao.failure.spi.config.FailFastConfigurer;
 import com.chao.failure.spi.i18n.LocalizedResponseResolver;
+import com.chao.failure.spi.security.MaskPick;
 import com.chao.failure.spi.security.ValueMasker;
 import com.chao.failure.spi.validation.ValidatorWhitelistRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,10 +52,18 @@ public class FailFastReactiveAutoConfiguration {
 
     @ConditionalOnMissingBean
     @Bean
-    public FailureContext failureContext(FailureProperties properties, CodeMappingConfig codeMappingConfig, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver) {
+    public CodeLocator codeGroups(FailureProperties properties) {
+        FailureProperties.CodeMapping codeMapping = properties != null ? properties.getCodeMapping() : null;
+        return CodeLocator.from(codeMapping != null ? codeMapping.getGroups() : null);
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public FailureContext failureContext(FailureProperties properties, CodeMappingConfig codeMappingConfig, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver, ObjectProvider<MaskPick> maskResolvers) {
         FailureContext context = new FailureContext(properties, codeMappingConfig, null);
         Ex.setContext(context);
         ValueMaskerRegistry.setDefault(valueMasker);
+        MaskPickRegistry.setDefault(new CompositeMaskPick(maskResolvers.orderedStream().toList()));
         LocaleRouter.setDefault(localizedResponseResolver);
         Chain.setFailureProperties(properties);
         return context;

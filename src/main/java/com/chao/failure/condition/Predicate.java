@@ -7,7 +7,7 @@ import java.util.function.Consumer;
  * It supports combining multiple boolean values through AND and OR operations, and provides a chained way to build complex boolean expressions.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class Predicate {
 

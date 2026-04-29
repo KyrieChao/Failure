@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  * <p>Contains shared constants for validation, configuration, response, etc.</p>
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  * @since 1.3.1
  */
 public final class FailureConst {

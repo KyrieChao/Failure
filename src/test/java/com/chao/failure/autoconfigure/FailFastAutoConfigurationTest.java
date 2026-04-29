@@ -2,10 +2,14 @@ package com.chao.failure.autoconfigure;
 
 import com.chao.failure.config.masking.DefaultValueMasker;
 import com.chao.failure.config.masking.StructuredValueMasker;
+import com.chao.failure.config.mapping.CodeLocator;
 import com.chao.failure.config.properties.FailureProperties;
 import com.chao.failure.spi.security.ValueMasker;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.MessageSource;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -102,6 +106,120 @@ class FailFastAutoConfigurationTest {
         Object result = config.frameworkDefaultConfigurer();
 
         assertNotNull(result);
+    }
+
+    @Test
+    void testCodeGroups() {
+        FailureProperties properties = mock(FailureProperties.class);
+        FailureProperties.CodeMapping codeMapping = mock(FailureProperties.CodeMapping.class);
+        when(properties.getCodeMapping()).thenReturn(codeMapping);
+        when(codeMapping.getGroups()).thenReturn(Map.of("client", List.of("40000-40001", 40010)));
+
+        MessageSource messageSource = mock(MessageSource.class);
+        FailFastAutoConfiguration config = new FailFastAutoConfiguration(properties, messageSource);
+
+        CodeLocator groups = config.codeGroups();
+        assertNotNull(groups);
+        assertTrue(groups.isInGroup(40001, "client"));
+        assertEquals("client", groups.getGroupForCode(40010));
+        assertEquals(List.of(40010), groups.getExactCodes("client"));
+    }
+
+    @Test
+    void testCodeGroupsWithNullCodeMapping() {
+        FailureProperties properties = mock(FailureProperties.class);
+        when(properties.getCodeMapping()).thenReturn(null);
+
+        MessageSource messageSource = mock(MessageSource.class);
+        FailFastAutoConfiguration config = new FailFastAutoConfiguration(properties, messageSource);
+
+        CodeLocator groups = config.codeGroups();
+        assertNotNull(groups);
+    }
+    @Test
+    void testCodeGroups2() {
+        FailureProperties properties = null;
+        MessageSource messageSource = mock(MessageSource.class);
+        FailFastAutoConfiguration config = new FailFastAutoConfiguration(properties, messageSource);
+        CodeLocator groups = config.codeGroups();
+        assertNotNull(groups);
+    }
+
+    @Test
+    void testInitWithBannerDisabled() {
+        FailureProperties properties = mock(FailureProperties.class);
+        FailureProperties.Logging logging = mock(FailureProperties.Logging.class);
+        when(logging.isBanner()).thenReturn(false);
+        when(properties.getLogging()).thenReturn(logging);
+
+        MessageSource messageSource = mock(MessageSource.class);
+        FailFastAutoConfiguration config = new FailFastAutoConfiguration(properties, messageSource);
+
+        config.init();
+    }
+    @Test
+    void testInit() {
+        MessageSource messageSource = mock(MessageSource.class);
+        FailFastAutoConfiguration config = new FailFastAutoConfiguration(null, messageSource);
+        config.init();
+        // 验证不打印 Banner
+    }
+
+    @Test
+    void testInitWithNullLogging() {
+        FailureProperties properties = mock(FailureProperties.class);
+        when(properties.getLogging()).thenReturn(null);
+        when(properties.getI18n()).thenReturn(mock(FailureProperties.I18n.class));
+        when(properties.isShadowTrace()).thenReturn(false);
+        when(properties.isDebugSnapshot()).thenReturn(false);
+        when(properties.isMethodValidationEnabled()).thenReturn(false);
+
+        MessageSource messageSource = mock(MessageSource.class);
+        FailFastAutoConfiguration config = new FailFastAutoConfiguration(properties, messageSource);
+
+        config.init();
+        // 验证打印 Banner
+    }
+
+    @Test
+    void testInitWithBannerEnabled() {
+        FailureProperties properties = mock(FailureProperties.class);
+        FailureProperties.Logging logging = mock(FailureProperties.Logging.class);
+        when(logging.isBanner()).thenReturn(true);
+        when(properties.getLogging()).thenReturn(logging);
+        when(properties.getI18n()).thenReturn(mock(FailureProperties.I18n.class));
+        when(properties.isShadowTrace()).thenReturn(false);
+        when(properties.isDebugSnapshot()).thenReturn(false);
+        when(properties.isMethodValidationEnabled()).thenReturn(false);
+
+        MessageSource messageSource = mock(MessageSource.class);
+        FailFastAutoConfiguration config = new FailFastAutoConfiguration(properties, messageSource);
+
+        config.init();
+        // 验证打印 Banner
+    }
+
+    @Test
+    void testGetMessageWithI18nEnabled() {
+        FailureProperties properties = mock(FailureProperties.class);
+        FailureProperties.I18n i18n = mock(FailureProperties.I18n.class);
+        when(i18n.isEnabled()).thenReturn(true);
+        when(i18n.getDefaultLocale()).thenReturn("zh-CN");
+        when(properties.getI18n()).thenReturn(i18n);
+
+        MessageSource messageSource = mock(MessageSource.class);
+        when(messageSource.getMessage(anyString(), any(), anyString(), any())).thenReturn("Test Message");
+
+        FailFastAutoConfiguration config = new FailFastAutoConfiguration(properties, messageSource);
+
+        try {
+            java.lang.reflect.Method getMessageMethod = FailFastAutoConfiguration.class.getDeclaredMethod("getMessage");
+            getMessageMethod.setAccessible(true);
+            String result = (String) getMessageMethod.invoke(config);
+            assertEquals("Test Message", result);
+        } catch (Exception e) {
+            fail("反射调用失败: " + e.getMessage());
+        }
     }
 
     @Test

@@ -17,7 +17,7 @@ import java.util.Locale;
  * Internationalization configuration class.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Configuration
 public class I18nConfig {

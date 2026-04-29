@@ -16,7 +16,7 @@ import org.springframework.web.server.ServerWebExchange;
  * Internal default configurer for framework baseline.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class FrameworkDefaultConfigurer implements FailFastConfigurer {
@@ -24,18 +24,18 @@ public class FrameworkDefaultConfigurer implements FailFastConfigurer {
     @Override
     public void addExceptionSkipPrefixes(SkipPrefixRegistry registry) {
         registry.add(
-                "com.chao.failfast.annotation",   // Annotation classes
-                "com.chao.failfast.aspect",       // Aspect classes
-                "com.chao.failfast.autoconfigure",// Auto-configuration classes
-                "com.chao.failfast.config",       // Configuration classes
-                "com.chao.failfast.constant",     // Constant classes
-                "com.chao.failfast.exception",    // Exception classes
-                "com.chao.failfast.integration",  // Integration classes
-                "com.chao.failfast.internal",     // Internal classes
-                "com.chao.failfast.result",       // Result classes
-                "com.chao.failfast.spi",          // SPI interfaces
-                "com.chao.failfast.util",         // Utility classes
-                "com.chao.failfast.Failure",      // Entry point
+                "com.chao.failure.annotation",   // Annotation classes
+                "com.chao.failure.aspect",       // Aspect classes
+                "com.chao.failure.autoconfigure",// Auto-configuration classes
+                "com.chao.failure.config",       // Configuration classes
+                "com.chao.failure.constant",     // Constant classes
+                "com.chao.failure.exception",    // Exception classes
+                "com.chao.failure.integration",  // Integration classes
+                "com.chao.failure.internal",     // Internal classes
+                "com.chao.failure.result",       // Result classes
+                "com.chao.failure.spi",          // SPI interfaces
+                "com.chao.failure.util",         // Utility classes
+                "com.chao.failure.Failure",      // Entry point
                 "org.springframework",            // Spring framework
                 "org.apache",                     // Apache components
                 "jakarta",                        // Jakarta EE spec

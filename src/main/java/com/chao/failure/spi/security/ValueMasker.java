@@ -4,16 +4,20 @@ package com.chao.failure.spi.security;
  * Mask sensitive values before exposing to logs/serialization.
  *
  * @author Kyrie Chao
- * @version 1.2.2
+ * @version 1.3.1
  */
 public interface ValueMasker {
 
     /**
-     * Mask value by field path.
-     *
      * @param value Original value
-     * @param fieldPath Field path (nullable)
      * @return Masked/safe value for output and serialization
      */
-    Object mask(Object value, String fieldPath);
+    Object mask(Object value);
+
+    /**
+     * @param value Original value
+     * @param mask Masking configuration
+     * @return Masked/safe value for output and serialization
+     */
+    Object mask(Object value, Mask mask);
 }

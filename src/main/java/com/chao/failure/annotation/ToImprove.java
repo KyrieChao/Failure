@@ -6,7 +6,7 @@ import java.lang.annotation.*;
  * Indicates that this method/class/field needs refactoring or optimization.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Documented
 @Retention(RetentionPolicy.SOURCE)

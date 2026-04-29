@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
  * This class provides static methods to get current trace ID and span ID, interacting with OpenTelemetry API through reflection
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class OpenTelemetryBridge {
 

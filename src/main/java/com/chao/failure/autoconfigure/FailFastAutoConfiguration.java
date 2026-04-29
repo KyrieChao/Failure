@@ -1,8 +1,9 @@
 package com.chao.failure.autoconfigure;
 
 import com.chao.failure.aspect.ValidationAspect;
-import com.chao.failure.config.i18n.LocaleResponseResolver;
 import com.chao.failure.config.i18n.I18nConfig;
+import com.chao.failure.config.i18n.LocaleResponseResolver;
+import com.chao.failure.config.mapping.CodeLocator;
 import com.chao.failure.config.mapping.CodeMappingConfig;
 import com.chao.failure.config.masking.DefaultValueMasker;
 import com.chao.failure.config.masking.StructuredValueMasker;
@@ -15,6 +16,8 @@ import com.chao.failure.internal.core.Chain;
 import com.chao.failure.internal.core.Ex;
 import com.chao.failure.internal.core.FailureContext;
 import com.chao.failure.internal.core.i18n.LocaleRouter;
+import com.chao.failure.internal.core.security.CompositeMaskPick;
+import com.chao.failure.internal.core.security.MaskPickRegistry;
 import com.chao.failure.internal.core.security.ValueMaskerRegistry;
 import com.chao.failure.internal.policy.DefaultErrorPolicy;
 import com.chao.failure.internal.policy.ErrorPolicy;
@@ -22,6 +25,7 @@ import com.chao.failure.spi.config.FailFastConfigurer;
 import com.chao.failure.spi.filter.SkipPrefixRegistry;
 import com.chao.failure.spi.filter.SkipTypeRegistry;
 import com.chao.failure.spi.i18n.LocalizedResponseResolver;
+import com.chao.failure.spi.security.MaskPick;
 import com.chao.failure.spi.security.ValueMasker;
 import com.chao.failure.spi.validation.ValidatorRegistry;
 import com.chao.failure.spi.validation.ValidatorWhitelistRegistry;
@@ -61,7 +65,7 @@ import java.util.UUID;
  * Failure auto-configuration class - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Slf4j
 @AutoConfiguration
@@ -89,7 +93,7 @@ public class FailFastAutoConfiguration {
     @PostConstruct
     public void init() {
         FailureProperties.Logging logging = properties != null ? properties.getLogging() : null;
-        if (logging != null && !logging.isBanner()) {
+        if (logging == null || !logging.isBanner()) {
             return;
         }
         log.info("====================================================================");
@@ -129,6 +133,13 @@ public class FailFastAutoConfiguration {
     @ConditionalOnMissingBean
     public CodeMappingConfig codeMappingConfig() {
         return new CodeMappingConfig(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CodeLocator codeGroups() {
+        FailureProperties.CodeMapping codeMapping = properties != null ? properties.getCodeMapping() : null;
+        return CodeLocator.from(codeMapping != null ? codeMapping.getGroups() : null);
     }
 
     @Bean
@@ -251,8 +262,8 @@ public class FailFastAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(name = "exInitializer")
-    public ExInitializer exInitializer(FailureContext context, ObjectProvider<Validator> validatorProvider, SkipPrefixRegistry skipPrefixRegistry, SkipTypeRegistry skipTypeRegistry, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver) {
-        return new ExInitializer(context, validatorProvider.getIfAvailable(), skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver);
+    public ExInitializer exInitializer(FailureContext context, ObjectProvider<Validator> validatorProvider, SkipPrefixRegistry skipPrefixRegistry, SkipTypeRegistry skipTypeRegistry, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver, ObjectProvider<MaskPick> maskResolvers) {
+        return new ExInitializer(context, validatorProvider.getIfAvailable(), skipPrefixRegistry, skipTypeRegistry, valueMasker, localizedResponseResolver, maskResolvers);
     }
 
     /**
@@ -266,11 +277,12 @@ public class FailFastAutoConfiguration {
          * @param validator Validator instance (optional)
          * @param skipPrefixRegistry Registry for skip prefixes
          */
-        public ExInitializer(FailureContext context, Validator validator, SkipPrefixRegistry skipPrefixRegistry, SkipTypeRegistry skipTypeRegistry, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver) {
+        public ExInitializer(FailureContext context, Validator validator, SkipPrefixRegistry skipPrefixRegistry, SkipTypeRegistry skipTypeRegistry, ValueMasker valueMasker, LocalizedResponseResolver localizedResponseResolver, ObjectProvider<MaskPick> maskResolvers) {
             Ex.setContext(context);
             Ex.setSkipPrefixRegistry(skipPrefixRegistry);
             Ex.setSkipTypeRegistry(skipTypeRegistry);
             ValueMaskerRegistry.setDefault(valueMasker);
+            MaskPickRegistry.setDefault(new CompositeMaskPick(maskResolvers.orderedStream().toList()));
             LocaleRouter.setDefault(localizedResponseResolver);
             if (validator != null) {
                 Chain.setValidator(validator);

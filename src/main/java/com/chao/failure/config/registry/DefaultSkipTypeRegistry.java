@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Default implementation of SkipTypeRegistry.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public class DefaultSkipTypeRegistry implements SkipTypeRegistry {
 

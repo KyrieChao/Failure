@@ -16,9 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class ResultTest {
 
     @Test
-    void testOk() {
+    void testSuccess() {
         String value = "test";
-        Result<String> result = Result.ok(value);
+        Result<String> result = Result.success(value);
         assertTrue(result.isSuccess());
         assertFalse(result.isFail());
         assertEquals(value, result.get());
@@ -94,7 +94,7 @@ class ResultTest {
     @Test
     void testGetOnSuccess() {
         String value = "test";
-        Result<String> result = Result.ok(value);
+        Result<String> result = Result.success(value);
         assertEquals(value, result.get());
     }
 
@@ -107,7 +107,7 @@ class ResultTest {
     @Test
     void testGetOrNullOnSuccess() {
         String value = "test";
-        Result<String> result = Result.ok(value);
+        Result<String> result = Result.success(value);
         assertEquals(value, result.getOrNull());
     }
 
@@ -133,13 +133,13 @@ class ResultTest {
 
     @Test
     void testGetErrorOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertThrows(IllegalStateException.class, result::getError);
     }
 
     @Test
     void testMapOnSuccess() {
-        Result<Integer> result = Result.ok(5);
+        Result<Integer> result = Result.success(5);
         Result<String> mapped = result.map(i -> String.valueOf(i));
         assertTrue(mapped.isSuccess());
         assertEquals("5", mapped.get());
@@ -155,7 +155,7 @@ class ResultTest {
 
     @Test
     void testMapWithBusinessException() {
-        Result<Integer> result = Result.ok(5);
+        Result<Integer> result = Result.success(5);
         Business business = Business.of(ResponseCode.VALIDATION_ERROR_400, "Error");
         Result<String> mapped = result.map(i -> {
             throw business;
@@ -166,7 +166,7 @@ class ResultTest {
 
     @Test
     void testMapWithRuntimeException() {
-        Result<Integer> result = Result.ok(5);
+        Result<Integer> result = Result.success(5);
         assertThrows(RuntimeException.class, () -> result.map(i -> {
             throw new RuntimeException("Runtime error");
         }));
@@ -174,8 +174,8 @@ class ResultTest {
 
     @Test
     void testFlatMapOnSuccess() {
-        Result<Integer> result = Result.ok(5);
-        Result<String> flatMapped = result.flatMap(i -> Result.ok(String.valueOf(i)));
+        Result<Integer> result = Result.success(5);
+        Result<String> flatMapped = result.flatMap(i -> Result.success(String.valueOf(i)));
         assertTrue(flatMapped.isSuccess());
         assertEquals("5", flatMapped.get());
     }
@@ -183,7 +183,7 @@ class ResultTest {
     @Test
     void testFlatMapOnFailure() {
         Result<Integer> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> flatMapped = result.flatMap(i -> Result.ok(String.valueOf(i)));
+        Result<String> flatMapped = result.flatMap(i -> Result.success(String.valueOf(i)));
         assertFalse(flatMapped.isSuccess());
         assertTrue(flatMapped.isFail());
     }
@@ -191,7 +191,7 @@ class ResultTest {
     @Test
     void testPeekOnSuccess() {
         StringBuilder sb = new StringBuilder();
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> peeked = result.peek(sb::append);
         assertEquals("test", sb.toString());
         assertSame(result, peeked);
@@ -219,7 +219,7 @@ class ResultTest {
     @Test
     void testPeekErrorOnSuccess() {
         StringBuilder sb = new StringBuilder();
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> peeked = result.peekError(e -> sb.append(e.getDetail()));
         assertEquals("", sb.toString());
         assertSame(result, peeked);
@@ -227,7 +227,7 @@ class ResultTest {
 
     @Test
     void testFilterOnSuccessWithPassingPredicate() {
-        Result<Integer> result = Result.ok(5);
+        Result<Integer> result = Result.success(5);
         Result<Integer> filtered = result.filter(i -> i > 0, ResponseCode.VALIDATION_ERROR_400);
         assertTrue(filtered.isSuccess());
         assertEquals(5, filtered.get());
@@ -235,7 +235,7 @@ class ResultTest {
 
     @Test
     void testFilterOnSuccessWithFailingPredicate() {
-        Result<Integer> result = Result.ok(5);
+        Result<Integer> result = Result.success(5);
         Result<Integer> filtered = result.filter(i -> i < 0, ResponseCode.VALIDATION_ERROR_400);
         assertFalse(filtered.isSuccess());
         assertTrue(filtered.isFail());
@@ -251,7 +251,7 @@ class ResultTest {
 
     @Test
     void testFilterWithDetailOnSuccessWithPassingPredicate() {
-        Result<Integer> result = Result.ok(5);
+        Result<Integer> result = Result.success(5);
         Result<Integer> filtered = result.filter(i -> i > 0, ResponseCode.VALIDATION_ERROR_400, "Invalid value");
         assertTrue(filtered.isSuccess());
         assertEquals(5, filtered.get());
@@ -259,7 +259,7 @@ class ResultTest {
 
     @Test
     void testFilterWithDetailOnSuccessWithFailingPredicate() {
-        Result<Integer> result = Result.ok(5);
+        Result<Integer> result = Result.success(5);
         Result<Integer> filtered = result.filter(i -> i < 0, ResponseCode.VALIDATION_ERROR_400, "Invalid value");
         assertFalse(filtered.isSuccess());
         assertTrue(filtered.isFail());
@@ -283,7 +283,7 @@ class ResultTest {
 
     @Test
     void testRecoverOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> recovered = result.recover(e -> "recovered");
         assertTrue(recovered.isSuccess());
         assertEquals("test", recovered.get());
@@ -292,22 +292,22 @@ class ResultTest {
     @Test
     void testRecoverWithOnFailure() {
         Result<String> result = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> recovered = result.recoverWith(e -> Result.ok("recovered"));
+        Result<String> recovered = result.recoverWith(e -> Result.success("recovered"));
         assertTrue(recovered.isSuccess());
         assertEquals("recovered", recovered.get());
     }
 
     @Test
     void testRecoverWithOnSuccess() {
-        Result<String> result = Result.ok("test");
-        Result<String> recovered = result.recoverWith(e -> Result.ok("recovered"));
+        Result<String> result = Result.success("test");
+        Result<String> recovered = result.recoverWith(e -> Result.success("recovered"));
         assertTrue(recovered.isSuccess());
         assertEquals("test", recovered.get());
     }
 
     @Test
     void testOnFailGetOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         String value = result.onFailGet(() -> "default");
         assertEquals("test", value);
     }
@@ -321,7 +321,7 @@ class ResultTest {
 
     @Test
     void testFailNowOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         String value = result.failNow();
         assertEquals("test", value);
     }
@@ -335,7 +335,7 @@ class ResultTest {
 
     @Test
     void testFailNowWithDefaultOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         String value = result.failNow("default");
         assertEquals("test", value);
     }
@@ -349,7 +349,7 @@ class ResultTest {
 
     @Test
     void testFailNowWithExceptionProviderOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         String value = result.failNow(e -> new RuntimeException("Error"));
         assertEquals("test", value);
     }
@@ -362,8 +362,8 @@ class ResultTest {
 
     @Test
     void testCombineBothSuccess() {
-        Result<Integer> result1 = Result.ok(5);
-        Result<Integer> result2 = Result.ok(10);
+        Result<Integer> result1 = Result.success(5);
+        Result<Integer> result2 = Result.success(10);
         Result<Integer> combined = result1.combine(result2, Integer::sum);
         assertTrue(combined.isSuccess());
         assertEquals(15, combined.get());
@@ -372,7 +372,7 @@ class ResultTest {
     @Test
     void testCombineFirstFailure() {
         Result<Integer> result1 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<Integer> result2 = Result.ok(10);
+        Result<Integer> result2 = Result.success(10);
         Result<Integer> combined = result1.combine(result2, Integer::sum);
         assertFalse(combined.isSuccess());
         assertTrue(combined.isFail());
@@ -380,7 +380,7 @@ class ResultTest {
 
     @Test
     void testCombineSecondFailure() {
-        Result<Integer> result1 = Result.ok(5);
+        Result<Integer> result1 = Result.success(5);
         Result<Integer> result2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
         Result<Integer> combined = result1.combine(result2, Integer::sum);
         assertFalse(combined.isSuccess());
@@ -389,7 +389,7 @@ class ResultTest {
 
     @Test
     void testToOptionalOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Optional<String> optional = result.toOptional();
         assertTrue(optional.isPresent());
         assertEquals("test", optional.get());
@@ -404,7 +404,7 @@ class ResultTest {
 
     @Test
     void testStreamOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         String value = result.stream().collect(Collectors.joining());
         assertEquals("test", value);
     }
@@ -418,7 +418,7 @@ class ResultTest {
 
     @Test
     void testGetOrElseOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         String value = result.getOrElse("default");
         assertEquals("test", value);
     }
@@ -432,7 +432,7 @@ class ResultTest {
 
     @Test
     void testGetOrElseGetOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         String value = result.getOrElseGet(e -> "default");
         assertEquals("test", value);
     }
@@ -446,7 +446,7 @@ class ResultTest {
 
     @Test
     void testFoldOnSuccess() {
-        Result<Integer> result = Result.ok(5);
+        Result<Integer> result = Result.success(5);
         Result<String> folded = result.fold(i -> String.valueOf(i), e -> "error");
         assertTrue(folded.isSuccess());
         assertEquals("5", folded.get());
@@ -462,7 +462,7 @@ class ResultTest {
 
     @Test
     void testSwapOnSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> swapped = result.swap(ResponseCode.VALIDATION_ERROR_400);
         assertFalse(swapped.isSuccess());
         assertTrue(swapped.isFail());
@@ -478,13 +478,13 @@ class ResultTest {
 
     @Test
     void testContainsOnSuccessWithMatchingValue() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertTrue(result.contains("test"));
     }
 
     @Test
     void testContainsOnSuccessWithNonMatchingValue() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertFalse(result.contains("other"));
     }
 
@@ -496,13 +496,13 @@ class ResultTest {
 
     @Test
     void testExistsOnSuccessWithNonNullValue() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertTrue(result.exists());
     }
 
     @Test
     void testExistsOnSuccessWithNullValue() {
-        Result<String> result = Result.ok(null);
+        Result<String> result = Result.success(null);
         assertFalse(result.exists());
     }
 
@@ -593,7 +593,7 @@ class ResultTest {
 
     @Test
     void testGetErrorOnSuccessBranch() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         try {
             result.getError();
             fail("Expected IllegalStateException");

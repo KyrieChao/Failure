@@ -12,7 +12,7 @@ import java.util.Map;
  * Failure configuration properties - Enhanced version.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Data
 @ConfigurationProperties(prefix = "fail-fast")
@@ -20,7 +20,7 @@ public class FailureProperties {
     /**
      * Whether to print method name (for debugging).
      */
-    private boolean shadowTrace;
+    private boolean shadowTrace = false;
 
     private boolean trimStackTrace = true;
 
@@ -50,7 +50,6 @@ public class FailureProperties {
     private I18n i18n = new I18n();
 
     private TraceId traceId = new TraceId();
-
     private Reactive reactive = new Reactive();
     private Logging logging = new Logging();
     private Masking masking = new Masking();
@@ -121,34 +120,98 @@ public class FailureProperties {
          */
         private List<ConstraintBeanMapping> constraintBeanMapping = new ArrayList<>();
 
+        /**
+         * Constraint + path to response code mapping configuration.
+         */
         @Data
         public static class ConstraintPathMapping {
+            /**
+             * Constraint name.
+             */
             private String constraint;
+
+            /**
+             * Field path.
+             */
             private String path;
+
+            /**
+             * Response code.
+             */
             private Integer code;
         }
 
+        /**
+         * Constraint + bean class to response code mapping configuration.
+         */
         @Data
         public static class ConstraintBeanMapping {
+            /**
+             * Constraint name.
+             */
             private String constraint;
+
+            /**
+             * Bean class name.
+             */
             private String bean;
+
+            /**
+             * Response code.
+             */
             private Integer code;
         }
     }
 
+    /**
+     * Trace ID configuration.
+     */
     @Data
     public static class TraceId {
+        /**
+         * Whether to enable trace ID support.
+         */
         private boolean enabled = false;
+
+        /**
+         * Request header name for trace ID.
+         */
         private String headerName = "X-Trace-Id";
+
+        /**
+         * Whether to generate trace ID if missing.
+         */
         private boolean generateIfMissing = false;
+
+        /**
+         * Whether to include trace ID in response header.
+         */
         private boolean responseHeader = false;
+
+        /**
+         * Response header name for trace ID.
+         */
         private String responseHeaderName = "X-Trace-Id";
+
+        /**
+         * Whether to enable MDC (Mapped Diagnostic Context) support.
+         */
         private boolean mdcEnabled = false;
+
+        /**
+         * MDC key for trace ID.
+         */
         private String mdcKey = "traceId";
     }
 
+    /**
+     * Reactive programming configuration.
+     */
     @Data
     public static class Reactive {
+        /**
+         * Whether to prioritize context-first processing mode.
+         */
         private boolean contextFirst = false;
     }
 

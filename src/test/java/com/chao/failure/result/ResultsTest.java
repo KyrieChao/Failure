@@ -144,7 +144,7 @@ class ResultsTest {
     @Test
     @DisplayName("when方法 - 条件为true")
     void testWhenTrue() {
-        Result<String> result = Results.when(true, () -> Result.ok("test"));
+        Result<String> result = Results.when(true, () -> Result.success("test"));
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).isEqualTo("test");
     }
@@ -152,7 +152,7 @@ class ResultsTest {
     @Test
     @DisplayName("when方法 - 条件为false")
     void testWhenFalse() {
-        Result<String> result = Results.when(false, () -> Result.ok("test"));
+        Result<String> result = Results.when(false, () -> Result.success("test"));
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).isNull();
     }
@@ -237,8 +237,8 @@ class ResultsTest {
     @Test
     @DisplayName("sequence方法 - 全部成功")
     void testSequenceAllSuccess() {
-        Result<String> r1 = Result.ok("test1");
-        Result<String> r2 = Result.ok("test2");
+        Result<String> r1 = Result.success("test1");
+        Result<String> r2 = Result.success("test2");
         Result<List<String>> result = Results.sequence(r1, r2);
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).contains("test1", "test2");
@@ -247,7 +247,7 @@ class ResultsTest {
     @Test
     @DisplayName("sequence方法 - 有失败")
     void testSequenceWithFail() {
-        Result<String> r1 = Result.ok("test1");
+        Result<String> r1 = Result.success("test1");
         Result<String> r2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
         Result<List<String>> result = Results.sequence(r1, r2);
         assertThat(result.isFail()).isTrue();
@@ -256,8 +256,8 @@ class ResultsTest {
     @Test
     @DisplayName("sequenceAll方法 - 全部成功")
     void testSequenceAllAllSuccess() {
-        Result<String> r1 = Result.ok("test1");
-        Result<String> r2 = Result.ok("test2");
+        Result<String> r1 = Result.success("test1");
+        Result<String> r2 = Result.success("test2");
         Result<List<String>> result = Results.sequenceAll(r1, r2);
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).contains("test1", "test2");
@@ -266,7 +266,7 @@ class ResultsTest {
     @Test
     @DisplayName("sequenceAll方法 - 有失败")
     void testSequenceAllWithFail() {
-        Result<String> r1 = Result.ok("test1");
+        Result<String> r1 = Result.success("test1");
         Result<String> r2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
         Result<List<String>> result = Results.sequenceAll(r1, r2);
         assertThat(result.isFail()).isTrue();
@@ -276,9 +276,9 @@ class ResultsTest {
     @Test
     @DisplayName("partition方法")
     void testPartition() {
-        Result<String> r1 = Result.ok("test1");
+        Result<String> r1 = Result.success("test1");
         Result<String> r2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> r3 = Result.ok("test3");
+        Result<String> r3 = Result.success("test3");
 
         Results.Partition<String> partition = Results.partition(List.of(r1, r2, r3));
         assertThat(partition.successes()).contains("test1", "test3");
@@ -292,9 +292,9 @@ class ResultsTest {
     @Test
     @DisplayName("successes方法")
     void testSuccesses() {
-        Result<String> r1 = Result.ok("test1");
+        Result<String> r1 = Result.success("test1");
         Result<String> r2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> r3 = Result.ok("test3");
+        Result<String> r3 = Result.success("test3");
 
         List<String> successes = Results.successes(List.of(r1, r2, r3));
         assertThat(successes).contains("test1", "test3");
@@ -303,9 +303,9 @@ class ResultsTest {
     @Test
     @DisplayName("failures方法")
     void testFailures() {
-        Result<String> r1 = Result.ok("test1");
+        Result<String> r1 = Result.success("test1");
         Result<String> r2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> r3 = Result.ok("test3");
+        Result<String> r3 = Result.success("test3");
 
         List<Business> failures = Results.failures(List.of(r1, r2, r3));
         assertThat(failures).hasSize(1);
@@ -314,9 +314,9 @@ class ResultsTest {
     @Test
     @DisplayName("fold方法")
     void testFold() {
-        Result<Integer> r1 = Result.ok(1);
-        Result<Integer> r2 = Result.ok(2);
-        Result<Integer> r3 = Result.ok(3);
+        Result<Integer> r1 = Result.success(1);
+        Result<Integer> r2 = Result.success(2);
+        Result<Integer> r3 = Result.success(3);
 
         Result<Integer> result = Results.fold(List.of(r1, r2, r3), 0, Integer::sum);
         assertThat(result.isSuccess()).isTrue();
@@ -326,9 +326,9 @@ class ResultsTest {
     @Test
     @DisplayName("reduce方法 - 非空列表")
     void testReduceNonEmpty() {
-        Result<Integer> r1 = Result.ok(1);
-        Result<Integer> r2 = Result.ok(2);
-        Result<Integer> r3 = Result.ok(3);
+        Result<Integer> r1 = Result.success(1);
+        Result<Integer> r2 = Result.success(2);
+        Result<Integer> r3 = Result.success(3);
 
         Result<Integer> result = Results.reduce(List.of(r1, r2, r3), Integer::sum);
         assertThat(result.isSuccess()).isTrue();
@@ -346,7 +346,7 @@ class ResultsTest {
     @DisplayName("traverse方法 - 全部成功")
     void testTraverseAllSuccess() {
         List<String> list = List.of("1", "2", "3");
-        Result<List<Integer>> result = Results.traverse(list, s -> Result.ok(Integer.parseInt(s)));
+        Result<List<Integer>> result = Results.traverse(list, s -> Result.success(Integer.parseInt(s)));
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).contains(1, 2, 3);
     }
@@ -357,7 +357,7 @@ class ResultsTest {
         List<String> list = List.of("1", "abc", "3");
         Result<List<Integer>> result = Results.traverse(list, s -> {
             try {
-                return Result.ok(Integer.parseInt(s));
+                return Result.success(Integer.parseInt(s));
             } catch (NumberFormatException e) {
                 return Result.fail(ResponseCode.VALIDATION_ERROR_400);
             }
@@ -369,7 +369,7 @@ class ResultsTest {
     @DisplayName("traverseAll方法 - 全部成功")
     void testTraverseAllAllSuccess() {
         List<String> list = List.of("1", "2", "3");
-        Result<List<Integer>> result = Results.traverseAll(list, s -> Result.ok(Integer.parseInt(s)));
+        Result<List<Integer>> result = Results.traverseAll(list, s -> Result.success(Integer.parseInt(s)));
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).contains(1, 2, 3);
     }
@@ -380,7 +380,7 @@ class ResultsTest {
         List<String> list = List.of("1", "abc", "3");
         Result<List<Integer>> result = Results.traverseAll(list, s -> {
             try {
-                return Result.ok(Integer.parseInt(s));
+                return Result.success(Integer.parseInt(s));
             } catch (NumberFormatException e) {
                 return Result.fail(ResponseCode.VALIDATION_ERROR_400);
             }
@@ -392,7 +392,7 @@ class ResultsTest {
     @DisplayName("traverseIndexed方法")
     void testTraverseIndexed() {
         List<String> list = List.of("1", "2", "3");
-        Result<List<String>> result = Results.traverseIndexed(list, (index, s) -> Result.ok(index + ":" + s));
+        Result<List<String>> result = Results.traverseIndexed(list, (index, s) -> Result.success(index + ":" + s));
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).contains("0:1", "1:2", "2:3");
     }
@@ -404,7 +404,7 @@ class ResultsTest {
         Result<List<String>> result = Results.traverseAllIndexed(list, (index, s) -> {
             try {
                 Integer.parseInt(s);
-                return Result.ok(index + ":" + s);
+                return Result.success(index + ":" + s);
             } catch (NumberFormatException e) {
                 return Result.fail(ResponseCode.VALIDATION_ERROR_400);
             }
@@ -415,8 +415,8 @@ class ResultsTest {
     @Test
     @DisplayName("zip方法 - 两个结果")
     void testZipTwo() {
-        Result<String> r1 = Result.ok("Hello");
-        Result<String> r2 = Result.ok("World");
+        Result<String> r1 = Result.success("Hello");
+        Result<String> r2 = Result.success("World");
         Result<String> result = Results.zip(r1, r2, (s1, s2) -> s1 + " " + s2);
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).isEqualTo("Hello World");
@@ -425,9 +425,9 @@ class ResultsTest {
     @Test
     @DisplayName("zip方法 - 三个结果")
     void testZipThree() {
-        Result<String> r1 = Result.ok("Hello");
-        Result<String> r2 = Result.ok(" ");
-        Result<String> r3 = Result.ok("World");
+        Result<String> r1 = Result.success("Hello");
+        Result<String> r2 = Result.success(" ");
+        Result<String> r3 = Result.success("World");
         Result<String> result = Results.zip(r1, r2, r3, (s1, s2, s3) -> s1 + s2 + s3);
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).isEqualTo("Hello World");
@@ -436,10 +436,10 @@ class ResultsTest {
     @Test
     @DisplayName("zip方法 - 四个结果")
     void testZipFour() {
-        Result<String> r1 = Result.ok("Hello");
-        Result<String> r2 = Result.ok(" ");
-        Result<String> r3 = Result.ok("Beautiful");
-        Result<String> r4 = Result.ok(" World");
+        Result<String> r1 = Result.success("Hello");
+        Result<String> r2 = Result.success(" ");
+        Result<String> r3 = Result.success("Beautiful");
+        Result<String> r4 = Result.success(" World");
         Result<String> result = Results.zip(r1, r2, r3, r4, (s1, s2, s3, s4) -> s1 + s2 + s3 + s4);
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).isEqualTo("Hello Beautiful World");
@@ -448,7 +448,7 @@ class ResultsTest {
     @Test
     @DisplayName("tap方法")
     void testTap() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         AtomicInteger counter = new AtomicInteger(0);
         Result<String> tapped = Results.tap(result, r -> counter.incrementAndGet());
         assertThat(tapped).isSameAs(result);
@@ -458,7 +458,7 @@ class ResultsTest {
     @Test
     @DisplayName("tapSuccess方法")
     void testTapSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         AtomicInteger counter = new AtomicInteger(0);
         Result<String> tapped = Results.tapSuccess(result, s -> counter.incrementAndGet());
         assertThat(tapped).isSameAs(result);
@@ -478,7 +478,7 @@ class ResultsTest {
     @Test
     @DisplayName("tapAsync方法")
     void testTapAsync() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> tapped = Results.tapAsync(result, r -> {
         });
         assertThat(tapped).isSameAs(result);
@@ -489,7 +489,7 @@ class ResultsTest {
     void testTapAsyncWithExecutor() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            Result<String> result = Result.ok("test");
+            Result<String> result = Result.success("test");
             Result<String> tapped = Results.tapAsync(result, r -> {
             }, executor);
             assertThat(tapped).isSameAs(result);
@@ -504,7 +504,7 @@ class ResultsTest {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             CountDownLatch latch = new CountDownLatch(1);
-            Result<String> result = Result.ok("test");
+            Result<String> result = Result.success("test");
             Results.tapAsyncStage(result, r -> latch.countDown(), executor);
             assertThat(latch.await(1, TimeUnit.SECONDS)).isTrue();
         } finally {
@@ -515,7 +515,7 @@ class ResultsTest {
     @Test
     @DisplayName("tapAsyncStage方法 - null Executor")
     void testTapAsyncStageWithNullExecutor() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
 
         assertThatThrownBy(() -> Results.tapAsyncStage(result, r -> {
         }, null))
@@ -528,7 +528,7 @@ class ResultsTest {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             CountDownLatch latch = new CountDownLatch(1);
-            Result<String> result = Result.ok("test");
+            Result<String> result = Result.success("test");
             CompletionStage<Void> stage = Results.tapAsyncStage(result, r -> latch.countDown(), executor);
             assertThat(latch.await(1, TimeUnit.SECONDS)).isTrue();
             log.info("stage completed {}", stage);
@@ -546,7 +546,7 @@ class ResultsTest {
             AtomicInteger counter = new AtomicInteger(0);
             var stage = Results.retryAsync(3, () -> {
                 counter.incrementAndGet();
-                return Result.ok("test");
+                return Result.success("test");
             }, executor, scheduler);
             Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
             assertThat(result.isSuccess()).isTrue();
@@ -583,7 +583,7 @@ class ResultsTest {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         try {
-            var stage = Results.retryAsync(0, () -> Result.ok("test"), executor, scheduler);
+            var stage = Results.retryAsync(0, () -> Result.success("test"), executor, scheduler);
             Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
             assertThat(result).isNull();
         } finally {
@@ -611,7 +611,7 @@ class ResultsTest {
     void testRetryAsyncNullExecutor() {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         try {
-            assertThatThrownBy(() -> Results.retryAsync(3, () -> Result.ok("test"), null, scheduler))
+            assertThatThrownBy(() -> Results.retryAsync(3, () -> Result.success("test"), null, scheduler))
                     .isInstanceOf(NullPointerException.class);
         } finally {
             scheduler.shutdownNow();
@@ -623,7 +623,7 @@ class ResultsTest {
     void testRetryAsyncNullScheduler() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            assertThatThrownBy(() -> Results.retryAsync(3, () -> Result.ok("test"), executor, null))
+            assertThatThrownBy(() -> Results.retryAsync(3, () -> Result.success("test"), executor, null))
                     .isInstanceOf(NullPointerException.class);
         } finally {
             executor.shutdownNow();
@@ -642,7 +642,7 @@ class ResultsTest {
                 if (count < 3) {
                     return Result.fail(ResponseCode.VALIDATION_ERROR_400);
                 }
-                return Result.ok("test");
+                return Result.success("test");
             }, executor, scheduler);
             Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
             assertThat(result.isSuccess()).isTrue();
@@ -665,7 +665,7 @@ class ResultsTest {
                 if (count < 3) {
                     return Result.fail(ResponseCode.VALIDATION_ERROR_400);
                 }
-                return Result.ok("test");
+                return Result.success("test");
             }, executor, scheduler);
             Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
             assertThat(result.isSuccess()).isTrue();
@@ -688,7 +688,7 @@ class ResultsTest {
                 if (count < 3) {
                     return Result.fail(ResponseCode.VALIDATION_ERROR_400);
                 }
-                return Result.ok("test");
+                return Result.success("test");
             }, executor, scheduler);
             Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
             assertThat(result.isSuccess()).isTrue();
@@ -752,7 +752,7 @@ class ResultsTest {
                 if (count < 2) {
                     return Result.fail(ResponseCode.VALIDATION_ERROR_400);
                 }
-                return Result.ok("test");
+                return Result.success("test");
             }, executor, scheduler);
             Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
             assertThat(result.isSuccess()).isTrue();
@@ -794,7 +794,7 @@ class ResultsTest {
             // 创建一个立即成功的供应商，这样 promise 会很快完成
             var stage = Results.retryAsync(3, () -> {
                 int count = counter.incrementAndGet();
-                return Result.ok("test");
+                return Result.success("test");
             }, executor, scheduler);
             // 等待 promise 完成
             Result<String> result = stage.toCompletableFuture().get(1, TimeUnit.SECONDS);
@@ -813,7 +813,7 @@ class ResultsTest {
     @Test
     @DisplayName("ensure方法 - 成功且条件满足")
     void testEnsureSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> ensured = Results.ensure(result, s -> !s.isEmpty(), ResponseCode.VALIDATION_ERROR_400);
         assertThat(ensured.isSuccess()).isTrue();
     }
@@ -821,7 +821,7 @@ class ResultsTest {
     @Test
     @DisplayName("ensure方法 - 成功但条件不满足")
     void testEnsureFail() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> ensured = Results.ensure(result, s -> s.length() > 10, ResponseCode.VALIDATION_ERROR_400);
         assertThat(ensured.isFail()).isTrue();
     }
@@ -837,7 +837,7 @@ class ResultsTest {
     @Test
     @DisplayName("getOrNull方法 - 成功状态")
     void testGetOrNullSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         String value = Results.getOrNull(result);
         assertThat(value).isEqualTo("test");
     }
@@ -854,7 +854,7 @@ class ResultsTest {
     @DisplayName("race方法 - 第一个成功")
     void testRaceFirstSuccess() {
         Result<String> result = Results.race(
-                () -> Result.ok("first"),
+                () -> Result.success("first"),
                 () -> Result.fail(ResponseCode.VALIDATION_ERROR_400)
         );
         assertThat(result.isSuccess()).isTrue();
@@ -885,7 +885,7 @@ class ResultsTest {
         AtomicInteger counter = new AtomicInteger(0);
         Result<String> result = Results.retry(3, () -> {
             counter.incrementAndGet();
-            return Result.ok("test");
+            return Result.success("test");
         });
         assertThat(result.isSuccess()).isTrue();
         assertThat(counter.get()).isEqualTo(1);
@@ -900,7 +900,7 @@ class ResultsTest {
             if (count < 3) {
                 return Result.fail(ResponseCode.VALIDATION_ERROR_400);
             }
-            return Result.ok("test");
+            return Result.success("test");
         });
         assertThat(result.isSuccess()).isTrue();
         assertThat(counter.get()).isEqualTo(3);
@@ -930,7 +930,7 @@ class ResultsTest {
                 if (count < 3) {
                     return Result.fail(ResponseCode.VALIDATION_ERROR_400);
                 }
-                return Result.ok("test");
+                return Result.success("test");
             }, executor, scheduler);
             Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
             assertThat(result.isSuccess()).isTrue();
@@ -977,7 +977,7 @@ class ResultsTest {
             // 第一次就成功，但带一点延迟让 schedule 有机会把残留任务塞进去
             var stage = Results.retryAsync(3, Duration.ofMillis(5), () -> {
                 counter.incrementAndGet();
-                return Result.ok("success");
+                return Result.success("success");
             }, executor, scheduler);
 
             Result<String> result = stage.toCompletableFuture().get(2, TimeUnit.SECONDS);
@@ -1059,9 +1059,9 @@ class ResultsTest {
     @DisplayName("pipe方法 - 全部成功")
     void testPipeAllSuccess() {
         Result<String> result = Results.pipe(
-                Result.ok("test"),
-                s -> Result.ok(s.toUpperCase()),
-                s -> Result.ok(s + "!")
+                Result.success("test"),
+                s -> Result.success(s.toUpperCase()),
+                s -> Result.success(s + "!")
         );
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).isEqualTo("TEST!");
@@ -1071,9 +1071,9 @@ class ResultsTest {
     @DisplayName("pipe方法 - 中间失败")
     void testPipeWithFail() {
         Result<String> result = Results.pipe(
-                Result.ok("test"),
+                Result.success("test"),
                 s -> Result.fail(ResponseCode.VALIDATION_ERROR_400),
-                s -> Result.ok(s + "!")
+                s -> Result.success(s + "!")
         );
         assertThat(result.isFail()).isTrue();
     }
@@ -1084,7 +1084,7 @@ class ResultsTest {
         AtomicInteger counter = new AtomicInteger(0);
         var supplier = Results.defer(() -> {
             counter.incrementAndGet();
-            return Result.ok("test");
+            return Result.success("test");
         });
 
         // 第一次调用
@@ -1112,7 +1112,7 @@ class ResultsTest {
             } catch (InterruptedException e) {
             }
             counter.incrementAndGet();
-            return Result.ok("test");
+            return Result.success("test");
         });
 
         final Result<?>[] resultA = new Result[1];
@@ -1175,7 +1175,7 @@ class ResultsTest {
         AtomicInteger counter = new AtomicInteger(0);
         var supplier = Results.lazy(() -> {
             counter.incrementAndGet();
-            return Result.ok("test");
+            return Result.success("test");
         });
 
         Result<String> result = supplier.get();
@@ -1189,7 +1189,7 @@ class ResultsTest {
         AtomicInteger counter = new AtomicInteger(0);
         var supplier = Results.memoize(() -> {
             counter.incrementAndGet();
-            return Result.ok("test");
+            return Result.success("test");
         });
 
         // 第一次调用
@@ -1210,7 +1210,7 @@ class ResultsTest {
         Result<List<String>> result = Results.traverseIndexed(list, (index, s) -> {
             try {
                 Integer.parseInt(s);
-                return Result.ok(index + ":" + s);
+                return Result.success(index + ":" + s);
             } catch (NumberFormatException e) {
                 return Result.fail(ResponseCode.VALIDATION_ERROR_400);
             }
@@ -1222,7 +1222,7 @@ class ResultsTest {
     @DisplayName("traverseAllIndexed方法 - 全部成功")
     void testTraverseAllIndexedAllSuccess() {
         List<String> list = List.of("1", "2", "3");
-        Result<List<String>> result = Results.traverseAllIndexed(list, (index, s) -> Result.ok(index + ":" + s));
+        Result<List<String>> result = Results.traverseAllIndexed(list, (index, s) -> Result.success(index + ":" + s));
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.get()).contains("0:1", "1:2", "2:3");
     }
@@ -1230,7 +1230,7 @@ class ResultsTest {
     @Test
     @DisplayName("zip方法 - 两个结果有失败")
     void testZipTwoWithFail() {
-        Result<String> r1 = Result.ok("Hello");
+        Result<String> r1 = Result.success("Hello");
         Result<String> r2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
         Result<String> result = Results.zip(r1, r2, (s1, s2) -> s1 + " " + s2);
         assertThat(result.isFail()).isTrue();
@@ -1239,9 +1239,9 @@ class ResultsTest {
     @Test
     @DisplayName("zip方法 - 三个结果有失败")
     void testZipThreeWithFail() {
-        Result<String> r1 = Result.ok("Hello");
+        Result<String> r1 = Result.success("Hello");
         Result<String> r2 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> r3 = Result.ok("World");
+        Result<String> r3 = Result.success("World");
         Result<String> result = Results.zip(r1, r2, r3, (s1, s2, s3) -> s1 + s2 + s3);
         assertThat(result.isFail()).isTrue();
     }
@@ -1249,10 +1249,10 @@ class ResultsTest {
     @Test
     @DisplayName("zip方法 - 四个结果有失败")
     void testZipFourWithFail() {
-        Result<String> r1 = Result.ok("Hello");
-        Result<String> r2 = Result.ok(" ");
+        Result<String> r1 = Result.success("Hello");
+        Result<String> r2 = Result.success(" ");
         Result<String> r3 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> r4 = Result.ok("World");
+        Result<String> r4 = Result.success("World");
         Result<String> result = Results.zip(r1, r2, r3, r4, (s1, s2, s3, s4) -> s1 + s2 + s3 + s4);
         assertThat(result.isFail()).isTrue();
     }
@@ -1260,10 +1260,10 @@ class ResultsTest {
     @Test
     @DisplayName("zip方法(4参) - r2 失败 (覆盖第3行)")
     void testZipFour_R2_Fail() {
-        Result<String> r1 = Result.ok("Hello");
+        Result<String> r1 = Result.success("Hello");
         Result<String> r2 = Result.fail(ResponseCode.VALIDATION_ERROR_400); // r2 失败
-        Result<String> r3 = Result.ok("World");
-        Result<String> r4 = Result.ok("!");
+        Result<String> r3 = Result.success("World");
+        Result<String> r4 = Result.success("!");
 
         Result<String> result = Results.zip(r1, r2, r3, r4, (s1, s2, s3, s4) -> s1 + s2 + s3 + s4);
 
@@ -1275,9 +1275,9 @@ class ResultsTest {
     @Test
     @DisplayName("zip方法(4参) - r4 失败 (覆盖第5行)")
     void testZipFour_R4_Fail() {
-        Result<String> r1 = Result.ok("Hello");
-        Result<String> r2 = Result.ok(" ");
-        Result<String> r3 = Result.ok("Beautiful");
+        Result<String> r1 = Result.success("Hello");
+        Result<String> r2 = Result.success(" ");
+        Result<String> r3 = Result.success("Beautiful");
         Result<String> r4 = Result.fail(ResponseCode.VALIDATION_ERROR_400); // r4 失败
 
         Result<String> result = Results.zip(r1, r2, r3, r4, (s1, s2, s3, s4) -> s1 + s2 + s3 + s4);
@@ -1292,9 +1292,9 @@ class ResultsTest {
     void testZipFour_R1_Fail() {
         // 关键点：第一个参数直接失败
         Result<String> r1 = Result.fail(ResponseCode.VALIDATION_ERROR_400);
-        Result<String> r2 = Result.ok("World");
-        Result<String> r3 = Result.ok("!");
-        Result<String> r4 = Result.ok("!");
+        Result<String> r2 = Result.success("World");
+        Result<String> r3 = Result.success("!");
+        Result<String> r4 = Result.success("!");
 
         Result<String> result = Results.zip(r1, r2, r3, r4, (s1, s2, s3, s4) -> s1 + s2 + s3 + s4);
 
@@ -1318,7 +1318,7 @@ class ResultsTest {
     @Test
     @DisplayName("tapFailure方法 - 成功状态")
     void testTapFailureWithSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         AtomicInteger counter = new AtomicInteger(0);
         Result<String> tapped = Results.tapFailure(result, e -> counter.incrementAndGet());
         assertThat(tapped).isSameAs(result);
@@ -1334,7 +1334,7 @@ class ResultsTest {
             if (count < 2) {
                 return Result.fail(ResponseCode.VALIDATION_ERROR_400);
             }
-            return Result.ok("test");
+            return Result.success("test");
         });
         assertThat(result.isSuccess()).isTrue();
         assertThat(counter.get()).isEqualTo(2);
@@ -1379,7 +1379,7 @@ class ResultsTest {
         CompletionStage<Result<String>> stage = Results.retryAsync(
                 2, Duration.ZERO, () -> {
                     supplierCalls.incrementAndGet();
-                    return Result.ok("ok");
+                    return Result.success("ok");
                 }, Runnable::run, scheduler);
 
         captured.get().run();
@@ -1417,8 +1417,8 @@ class ResultsTest {
     @Test
     @DisplayName("Partition方法 - 全部成功")
     void testPartitionAllSuccess() {
-        Result<String> r1 = Result.ok("test1");
-        Result<String> r2 = Result.ok("test2");
+        Result<String> r1 = Result.success("test1");
+        Result<String> r2 = Result.success("test2");
 
         Results.Partition<String> partition = Results.partition(List.of(r1, r2));
         assertThat(partition.successes()).contains("test1", "test2");

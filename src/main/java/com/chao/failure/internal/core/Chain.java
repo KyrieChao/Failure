@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
  * Validation Chain - Facade class.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class Chain extends ChainCore<Chain> implements
         ArrayTerm<Chain>,

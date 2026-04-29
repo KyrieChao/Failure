@@ -16,7 +16,7 @@ import java.util.function.*;
  *
  * @param <T> Element type
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @ToImprove(value = "Scope might become bloated", version = "1.3.0", tag = "1.8.0")
 public class Scope<T> {

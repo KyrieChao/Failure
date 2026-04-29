@@ -17,7 +17,7 @@ import java.util.function.*;
  * Result utility class - Provide batch operations and convenient methods.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @SuppressWarnings("unchecked")
 public final class Results {
@@ -36,7 +36,7 @@ public final class Results {
 
     public static <T> Result<T> tryOf(Supplier<T> supplier, ResponseCode errorCode, String detail) {
         try {
-            return Result.ok(supplier.get());
+            return Result.success(supplier.get());
         } catch (Exception e) {
             String des = getBusinessMessage(errorCode, detail);
             return Result.fail(errorCode, des);
@@ -53,7 +53,7 @@ public final class Results {
         }
         try {
             runnable.run();
-            return Result.ok(null);
+            return Result.success(null);
         } catch (Exception e) {
             String des = getBusinessMessage(errorCode, detail);
             return Result.fail(errorCode, des);
@@ -69,11 +69,11 @@ public final class Results {
         if (optional == null) {
             return Result.fail(errorCode, detail != null ? detail : "Optional is null");
         }
-        return optional.map(Result::ok).orElseGet(() -> Result.fail(errorCode, detail));
+        return optional.map(Result::success).orElseGet(() -> Result.fail(errorCode, detail));
     }
 
     public static <T> Result<T> fromOptionalOrElse(Optional<T> optional, T defaultValue) {
-        return Result.ok(optional != null ? optional.orElse(defaultValue) : defaultValue);
+        return Result.success(optional != null ? optional.orElse(defaultValue) : defaultValue);
     }
 
     // ==================== Conditional Execution ====================
@@ -88,7 +88,7 @@ public final class Results {
             }
             return supplier.get();
         }
-        return Result.ok(null);
+        return Result.success(null);
     }
 
     /**
@@ -99,7 +99,7 @@ public final class Results {
     }
 
     public static <T> Result<T> whenOrFail(boolean condition, T successValue, ResponseCode failCode, String detail) {
-        return condition ? Result.ok(successValue) : Result.fail(failCode, detail);
+        return condition ? Result.success(successValue) : Result.fail(failCode, detail);
     }
 
     /**
@@ -114,7 +114,7 @@ public final class Results {
             return Result.fail(errorCode, detail);
         }
         try {
-            return Result.ok(supplier.get());
+            return Result.success(supplier.get());
         } catch (Exception e) {
             String des = getBusinessMessage(errorCode, detail);
             return Result.fail(errorCode, des);
@@ -136,7 +136,7 @@ public final class Results {
             }
             successes.add(result.get());
         }
-        return Result.ok(successes);
+        return Result.success(successes);
     }
 
     @SafeVarargs
@@ -151,7 +151,7 @@ public final class Results {
         if (!split.failures.isEmpty()) {
             return Result.fail(new MultiBusiness(split.failures));
         }
-        return Result.ok(split.successes);
+        return Result.success(split.successes);
     }
 
     /**
@@ -201,7 +201,7 @@ public final class Results {
      * Fold: merge List<Result<T>> into single Result using combiner function.
      */
     public static <T> Result<T> fold(List<Result<T>> results, T identity, BiFunction<T, T, T> combiner) {
-        Result<T> acc = Result.ok(identity);
+        Result<T> acc = Result.success(identity);
         for (Result<T> result : results) {
             acc = acc.flatMap(a -> result.map(r -> combiner.apply(a, r)));
         }
@@ -235,7 +235,7 @@ public final class Results {
             }
             results.add(result.get());
         }
-        return Result.ok(results);
+        return Result.success(results);
     }
 
     public static <T, R> Result<List<R>> traverseAll(List<T> list, Function<T, Result<R>> mapper) {
@@ -254,7 +254,7 @@ public final class Results {
         if (!failures.isEmpty()) {
             return Result.fail(new MultiBusiness(failures));
         }
-        return Result.ok(successes);
+        return Result.success(successes);
     }
 
     /**
@@ -269,7 +269,7 @@ public final class Results {
             }
             results.add(result.get());
         }
-        return Result.ok(results);
+        return Result.success(results);
     }
 
     /**
@@ -291,7 +291,7 @@ public final class Results {
         if (!failures.isEmpty()) {
             return Result.fail(new MultiBusiness(failures));
         }
-        return Result.ok(successes);
+        return Result.success(successes);
     }
 
     // ==================== Combination Operations ====================
@@ -300,14 +300,14 @@ public final class Results {
         Result<R> fail = firstFailure(r1, r2);
         if (fail != null) return fail;
 
-        return Result.ok(combiner.apply(r1.get(), r2.get()));
+        return Result.success(combiner.apply(r1.get(), r2.get()));
     }
 
     public static <T1, T2, T3, R> Result<R> zip(Result<T1> r1, Result<T2> r2, Result<T3> r3, Function3<T1, T2, T3, R> combiner) {
         Result<R> fail = firstFailure(r1, r2, r3);
         if (fail != null) return fail;
 
-        return Result.ok(combiner.apply(r1.get(), r2.get(), r3.get()));
+        return Result.success(combiner.apply(r1.get(), r2.get(), r3.get()));
     }
 
     private static <T> Result<T> firstFailure(Result<?>... results) {
@@ -334,7 +334,7 @@ public final class Results {
         if (r3.isFail()) return castFail(r3);
         if (r4.isFail()) return castFail(r4);
 
-        return Result.ok(combiner.apply(r1.get(), r2.get(), r3.get(), r4.get()));
+        return Result.success(combiner.apply(r1.get(), r2.get(), r3.get(), r4.get()));
     }
 
     @SuppressWarnings("unchecked")
@@ -422,7 +422,7 @@ public final class Results {
                 return lastResult;
             }
         }
-        return lastResult != null ? lastResult : Result.ok(null);
+        return lastResult != null ? lastResult : Result.success(null);
     }
 
     /**

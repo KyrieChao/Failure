@@ -14,7 +14,7 @@ import java.util.function.Consumer;
  * Strict processor for reactive validation streams.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public class StrictProcessor {
 

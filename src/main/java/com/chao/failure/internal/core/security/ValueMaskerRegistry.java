@@ -9,7 +9,7 @@ import com.chao.failure.spi.security.ValueMasker;
  * This class is designed with singleton pattern to ensure only one instance globally, and provides thread-safe access and setting methods.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class ValueMaskerRegistry {
 

@@ -27,7 +27,6 @@ class ValueMaskerRegistryTest {
     @Test
     void testSetDefaultWithCustomMasker() {
         ValueMasker customMasker = mock(ValueMasker.class);
-        when(customMasker.mask(any(), any())).thenReturn("masked");
 
         ValueMaskerRegistry.setDefault(customMasker);
 
@@ -38,7 +37,6 @@ class ValueMaskerRegistryTest {
     @Test
     void testSetDefaultWithNull() {
         ValueMasker customMasker = mock(ValueMasker.class);
-        when(customMasker.mask(any(), any())).thenReturn("masked");
 
         ValueMaskerRegistry.setDefault(customMasker);
         ValueMaskerRegistry.setDefault(null);
@@ -51,10 +49,8 @@ class ValueMaskerRegistryTest {
     @Test
     void testSetDefaultMultipleTimes() {
         ValueMasker masker1 = mock(ValueMasker.class);
-        when(masker1.mask(any(), any())).thenReturn("masker1");
 
         ValueMasker masker2 = mock(ValueMasker.class);
-        when(masker2.mask(any(), any())).thenReturn("masker2");
 
         ValueMaskerRegistry.setDefault(masker1);
         assertEquals(masker1, ValueMaskerRegistry.getDefault());
@@ -81,11 +77,11 @@ class ValueMaskerRegistryTest {
     @Test
     void testCustomMaskerIsUsed() {
         ValueMasker customMasker = mock(ValueMasker.class);
-        when(customMasker.mask("test", "path")).thenReturn("***MASKED***");
+        when(customMasker.mask("test")).thenReturn("***MASKED***");
 
         ValueMaskerRegistry.setDefault(customMasker);
 
-        Object result = customMasker.mask("test", "path");
+        Object result = customMasker.mask("test");
         assertEquals("***MASKED***", result);
     }
 
@@ -96,7 +92,7 @@ class ValueMaskerRegistryTest {
         ValueMasker result = ValueMaskerRegistry.getDefault();
         assertNotNull(result);
 
-        Object maskedValue = result.mask("sensitive", "password");
+        Object maskedValue = result.mask("sensitive", () -> "password");
         assertEquals("***[MASKED]***", maskedValue);
     }
 }

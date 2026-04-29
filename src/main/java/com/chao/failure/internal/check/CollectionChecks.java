@@ -9,7 +9,7 @@ import java.util.function.Predicate;
  * Utility class for collection validation.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class CollectionChecks {
 

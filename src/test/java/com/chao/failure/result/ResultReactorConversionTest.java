@@ -25,14 +25,14 @@ class ResultReactorConversionTest {
 
     @Test
     void toFluxElementsOnNullValueIsEmpty() {
-        Result<List<String>> r = Result.ok(null);
+        Result<List<String>> r = Result.success(null);
         List<String> out = r.<String>toFluxElements().collectList().block();
         assertThat(out).isEmpty();
     }
 
     @Test
     void toFluxElementsOnNonCollectionValueEmitsError() {
-        Result<Object> r = Result.ok(new Object());
+        Result<Object> r = Result.success(new Object());
         Flux<Object> flux = r.toFluxElements();
         assertThrows(IllegalStateException.class, () -> flux.collectList().block());
     }

@@ -23,17 +23,94 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 
 ---
 
+## ⚡ 快速了解
+
+- 你写：`Failure.begin().notBlank(...).email(...).fail();`
+- 你得到：统一的错误响应 JSON（含 code/message/description/errors/timestamp），并自动兼容 Spring 的 `@Valid`/`@Validated`
+- 你不需要：在每个方法里重复 `if (...) ...` 校验 
+
+## 🚀 快速接入（MVC 最小例子）
+
+### 1) 引入依赖
+
+```xml
+<dependency>
+    <groupId>io.github.kyriechao</groupId>
+    <artifactId>failure-spring-boot-starter</artifactId>
+    <version>latest</version> <!-- 请使用最新版本 -->
+</dependency>
+```
+
+### 2) 写一个最小 Controller
+
+```java
+import com.chao.failure.Failure;
+import com.chao.failure.internal.core.ResponseCode;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+    public interface UserCode {
+        ResponseCode USERNAME_REQUIRED = ResponseCode.of(40001, "USERNAME_REQUIRED", "用户名不能为空");
+        ResponseCode EMAIL_INVALID = ResponseCode.of(40002, "EMAIL_INVALID", "邮箱格式不正确");
+    }
+
+    public record CreateUserReq(@NotBlank(message = "username required")String username,String email) {}
+
+    @PostMapping
+    public String create(@RequestBody @Valid CreateUserReq req) {
+        Failure.begin()
+                .notBlank(req.username(), UserCode.USERNAME_REQUIRED)
+                .email(req.email(), UserCode.EMAIL_INVALID)
+                .fail();
+        return "ok";
+    }
+}
+```
+#### 配置 application.yml
+```yaml
+fail-fast:
+  shadow-trace: true
+```
+
+### 3) 看看出错时返回长什么样
+
+```json
+{
+  "code": 400,
+  "description": "username required",
+  "message": "参数校验失败",
+  "timestamp": "2026-04-28 20:00:14"
+}
+```
+```json
+{
+  "code": 40002,
+  "description": "邮箱格式不正确",
+  "message": "EMAIL_INVALID",
+  "timestamp": "2026-04-28 20:00:44"
+}
+```
+![image](./docs/images/img.png)
+
 ## 🚀 核心特性
 
-- **流式校验链**: 支持 `Fail-Fast` (快速失败) 与 `Fail-Strict` (全量收集) 双模式
-- **丰富的断言库**: 内置对象、字符串、数值、集合、日期时间、枚举、Optional 等 50+ 种校验方法
-- **默认本地化**: 提供开箱即用的中文错误提示（如 "当前值 不能为空"），无需手动配置
-- **注解驱动与类型分发**: 提供 `@Validate` 注解与 `FastValidator` 接口实现 AOP 切面校验；内置 `TypedValidator` 模式支持多类型参数的自动分发与业务解耦
-- **函数式结果**: 提供 `Result<T>` 单子类型，支持 `map`, `flatMap`, `recover` 等函数式操作
-- **智能调试快照**: 当 `fail-fast.debug-snapshot=true`（默认 false）时，异常信息可包含失败参数值（自动脱敏与截断），让报错即线索
-- **智能异常处理**: 自动映射业务错误码到 HTTP 状态码，支持影子追踪 (`shadow-trace`) 快速定位问题
-- **可选生态模块**: 提供可选 starter（Micrometer Observability / OpenAPI springdoc），引入即生效且不污染核心依赖
-
+- **流式校验链**：支持 `Fail-Fast`（快速失败）与 `Fail-Strict`（全量收集）双模式；链式 API 可组合校验并支持终结操作（抛首个 / 聚合抛出 / 仅验证不抛出）
+- **丰富的断言库**：内置对象、字符串、数值、集合、日期时间、枚举、Optional 等 50+ 种校验方法
+- **默认本地化**：提供开箱即用的中文错误提示（如“当前值不能为空”），默认 `zh_CN`，可扩展自定义 i18n 文案
+- **注解驱动与类型分发**：提供 @Validate + AOP 执行自定义 **FastValidator** ；支持两种分发方式： **TypedValidator** 用注册表对多类型参数按运行时类型路由； **TemplateValidator<T>** 通过解析泛型实参自动确定支持类型，便于多层继承复用校验逻辑并减少样板代码
+- **函数式结果**：提供 `Result<T>` 单子类型，支持 `map` / `flatMap` / `recover` 等函数式组合
+- **智能调试快照**：当 `fail-fast.debug-snapshot=true`（默认 false）时，异常信息可包含失败参数值（自动脱敏与截断），让报错即线索
+- **异常映射与响应**：自动映射业务错误码到 HTTP 状态码；提供统一错误响应结构（含 traceId/spanId），并在 `fail-fast.verbose=true` 时附带 `errors` 明细（默认不返回）；当上下文缺失时，`4xxxx` 错误码稳定回退为 `400`（避免误回 `500`）
+- **影子追踪**：当 `fail-fast.shadow-trace=true` 时，异常会携带调用方法/位置等定位信息，便于快速排查
+- **路径与递归校验增强**：支持通过 `at(path)` 绑定失败路径与失败值快照；提供对象图递归遍历与可配置的递归选项（深度/集合限制/循环引用处理）
+- **事件驱动与可取消校验**：提供校验事件监听（start/end/failure/violation）与可取消令牌（CancelToken），并支持进度监听（ProgressListener）
+- **脱敏与安全增强**：结构化递归脱敏能力与层级/集合/字段限制；新增校验器白名单注册表（ValidatorWhitelistRegistry）以收敛反射实例化风险
+- **可观测性与 WebFlux 上下文**：OpenTelemetry trace/span 提取与 WebFlux Reactor Context 优先读取（`fail-fast.reactive.context-first`）
 ---
 
 ## ⚡ 快速对比
@@ -42,7 +119,7 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 
 <table>
 <tr>
-<th width="50%">传统 "if-throw" 地狱</th>
+<th width="50%">传统 "if-throw"</th>
 <th width="50%">Failure "Fluent" 风格</th>
 </tr>
 <tr>
@@ -50,13 +127,13 @@ Failure 是一个专为 Spring Boot 3.x 设计的轻量级、高性能参数校�
 
 ```java
 if (user == null) {
-    throw new BusinessException(Code.USER_NULL);
+    throw Business.of(Code.USER_NULL);
 }
 if (StringUtils.isBlank(user.getName())) {
-    throw new BusinessException(Code.NAME_EMPTY);
+    throw Business.of(Code.NAME_EMPTY);
 }
 if (user.getAge() < 18) {
-    throw new BusinessException(Code.TOO_YOUNG);
+    throw Business.of(Code.TOO_YOUNG);
 }
 ```
 
@@ -76,15 +153,6 @@ Failure.begin()
 </table>
 
 ---
-## ⚡ 性能参考
-
-在 JMH 微基准测试中表现如下（对比 Hibernate Validator）：
-
-![性能测试](docs/images/failure_benchmark_visualization.png)
-
-*详细测试环境及可复现代码：[Benchmark 仓库](https://github.com/KyrieChao/Benchmark)*
-
----
 
 ## 📚 文档导航
 
@@ -95,6 +163,10 @@ Failure.begin()
 | [配置说明](#%EF%B8%8F-配置说明)    | application.yml 配置项详解  |
 | [国际化指南](./docs/I18N_GUIDE.md) | 国际化配置及键值参考 |
 | [响应码管理](./docs/RESPONSE_CODE_MANAGEMENT.md) | 响应码对应关系及管理方案 |
+| [兼容性矩阵](docs/COMPATIBILITY_MATRIX.md) | 支持的 Java / Spring Boot 版本 |
+| [迁移指南](docs/MIGRATION_GUIDE.md) | 升级建议与 breaking change |
+| [生产检查清单](docs/PRODUCTION_CHECKLIST.md) | 上生产前建议项 |
+| [FAQ](docs/FAQ.md) | 常见问题（含与 @Valid 关系） |
 ---
 
 ## 🛠️ 快速开始
@@ -109,11 +181,11 @@ Failure.begin()
 本项目已发布至 Maven Central，请在 `pom.xml` 中直接添加依赖：
 
 ```xml
-<!-- Maven Central (推荐生产环境使用) -->
+<!-- Maven Central -->
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.2.0</version> <!-- 确保这里是最新版 -->
+    <version>latest</version> <!-- 请使用最新版本 -->
 </dependency>
 ```
 本项目已发布至 JitPack：
@@ -121,7 +193,7 @@ Failure.begin()
 <dependency>
     <groupId>com.github.KyrieChao</groupId>
     <artifactId>failure-spring-boot-starter</artifactId>
-    <version>1.2.0</version> <!-- 确保这里是最新版 -->
+    <version>latest</version> <!-- 请使用最新版本 -->
 </dependency>
 ```
 
@@ -135,6 +207,11 @@ Failure.begin()
 
 Failure 采用“核心 starter + 可选生态 starter”的结构：核心 starter 不强依赖 Micrometer/springdoc，可选模块按需引入。
 
+**Observability / OpenAPI 模块独立迭代说明**
+- `Observability` 与 `OpenAPI` 模块已改为独立迭代，发版节奏不再与核心 Failure 模块绑定。
+- 这两个模块将按自身功能需求和修复进度独立发布版本，无需与核心模块保持版本同步。
+- 如有功能需求或问题，欢迎在 **GitHub Issues** 提出。
+
 #### 1) Observability（Micrometer）
 
 当应用中存在 `MeterRegistry` 时自动生效，产生指标：
@@ -145,7 +222,7 @@ Failure 采用“核心 starter + 可选生态 starter”的结构：核心 star
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-observability-spring-boot-starter</artifactId>
-    <version>1.2.0</version>
+    <version>latest</version>
 </dependency>
 ```
 
@@ -159,7 +236,7 @@ Failure 采用“核心 starter + 可选生态 starter”的结构：核心 star
 <dependency>
     <groupId>io.github.kyriechao</groupId>
     <artifactId>failure-openapi-springdoc-starter</artifactId>
-    <version>1.2.0</version>
+    <version>latest</version>
 </dependency>
 ```
 
@@ -245,7 +322,7 @@ if (!chain.isValid()) {
 @Validate(value = UserRegisterValidator.class, fast = false)  // fast=false 全量收集
 public Result<?> register(@RequestBody @Valid UserRegisterDTO dto) {
     userService.register(dto);
-    return Result.success("注册成功");
+    return Result.ok("注册成功");
 }
 
 // Validator
@@ -339,8 +416,15 @@ Failure.begin()
 
 ```java
 Failure.begin()
-    .check(user != null, UserCode.USER_NOT_FOUND, "用户不能为空", () -> user)
-    .fail();
+      .check(user != null, UserCode.USER_NOT_FOUND, "用户不能为空", () -> user)
+      .fail();
+```
+或者
+```java
+Failure.begin()
+      .at(Masker.Password.type(),user::getPassword)
+      .equals(user.getPassword(), "123456", UserCode.INVALID)
+      .fail();
 ```
 
 ### 失败截断 (stopOnFail)
@@ -376,28 +460,59 @@ Failure.begin()
 
 ## ⚙️ 配置说明
 
-在 `application.yml` 中配置：
+在 `application.yml` 中配置（完整配置项列表见 [CONFIGURATION.md](docs/CONFIGURATION.md)）：
 
 ```yaml
 fail-fast:
-  shadow-trace: true   # 异常中包含校验点的类名与行号（调试推荐开启）
-  debug-snapshot: true # 开启调试快照，异常包含失败值（默认 false）
-  verbose: true        # 多错误响应是否包含详细的 errors 列表
+  shadow-trace: true
+  trim-stack-trace: true
+  verbose: true
+  debug-snapshot: true
+  method-validation-enabled: true
   trace-id:
     enabled: true
     header-name: X-Trace-Id
-    generate-if-missing: true
-    response-header: true
     response-header-name: X-Trace-Id
-  reactive:
-    context-first: true # WebFlux 推荐：优先从 Reactor Context 读取上下文（默认 false，兼容优先）
+    response-header: true
+    generate-if-missing: true
+    mdc-key: traceId
+    mdc-enabled: true
   code-mapping:
+    constraint-mapping:
+      NotBlank: 40010
+      Email: 40020
+      Positive: 40030
+    constraint-path-mapping:
+      - constraint: NotBlank
+        path: user.username
+        code: 40040
+      - constraint: NotNull
+        path: user.username
+        code: 40045
+      - constraint: Email
+        path: user.email
+        code: 40050
+    constraint-bean-mapping:
+      - constraint: NotBlank
+        bean: com.chao.failuretest.model.dto.UserJSRDTO
+        code: 40060
+      - constraint: Email
+        bean: com.chao.failuretest.model.dto.UserDTO
+        code: 40070
     http-status:
-      40001: 400       # 错误码 40001 -> HTTP 400
-      40100: 401
+      40010: 400
     groups:
-      auth: ["40100..40199"]      # 范围映射
+      auth: ["40100..40199"]
       business: ["40000..40099"]
+  i18n:
+    default-locale: zh_CN
+  logging:
+    banner: false
+  masking:
+    structured-enabled: true
+    max-depth: 4
+    max-collection-size: 20
+    max-fields: 30
 ```
 
 ### WebFlux Context-First（推荐）
@@ -409,6 +524,7 @@ fail-fast:
 ## 📖 更多文档
 
 - **[API_REFERENCE.md](docs/API_REFERENCE.md)** - 完整的 API 参考、所有校验方法列表、设计模式详解
+- **[CONFIGURATION.md](docs/CONFIGURATION.md)** - 配置项说明
 - **[Failure-in-Action](https://github.com/KyrieChao/Failure-in-Action)** - 实战示例项目
 
 ---

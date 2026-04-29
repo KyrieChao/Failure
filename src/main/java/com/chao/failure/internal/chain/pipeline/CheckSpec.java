@@ -7,7 +7,7 @@ import com.chao.failure.internal.core.ResponseCode;
  * Contains three properties: response code, detailed information, and invalid value
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public record CheckSpec(ResponseCode code, String detail, Object invalidValue) {
     /**

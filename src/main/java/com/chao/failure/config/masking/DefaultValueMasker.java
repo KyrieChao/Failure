@@ -1,10 +1,10 @@
 package com.chao.failure.config.masking;
 
 import com.chao.failure.constant.FailureConst;
+import com.chao.failure.spi.security.Mask;
 import com.chao.failure.spi.security.ValueMasker;
 
 import java.util.Locale;
-import java.util.Set;
 import java.util.regex.Matcher;
 
 
@@ -13,49 +13,54 @@ import java.util.regex.Matcher;
  * This class can determine if a field is sensitive based on its path, and perform appropriate masking or truncation formatting for different types of data
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public class DefaultValueMasker implements ValueMasker {
 
-    // Define a set of sensitive data patterns used to determine if a field contains sensitive information
-    private static final Set<String> SENSITIVE_PATTERNS = Set.of(
-            "password", "token", "secret", "idcard", "ssn",
-            "creditcard", "bankcard", "apikey"
-    );
-
-    /**
-     * Main method for masking input values
-     * @param value Original value to process
-     * @param fieldPath Field path used to determine if it's a sensitive field
-     * @return Processed value, returns masked string for sensitive fields, otherwise returns truncated and formatted value
-     */
     @Override
-    public Object mask(Object value, String fieldPath) {
-        if (value == null) {  // If value is null, return null directly
+    public Object mask(Object value) {
+        if (value == null) {
             return null;
         }
-        if (isSensitive(fieldPath)) {  // Check if field path contains sensitive patterns
-            return "***[MASKED]***";  // If it's a sensitive field, return masking marker
-        }
-        return truncateAndFormat(value);  // Otherwise, perform truncation and formatting on the value
+        return truncateAndFormat(value);
     }
 
-    /**
-     * Determine if field path contains sensitive patterns
-     * @param fieldPath Field path to check
-     * @return true if field path contains any sensitive pattern, false otherwise
-     */
-    private boolean isSensitive(String fieldPath) {
-        if (fieldPath == null || fieldPath.isBlank()) {
-            return false;
+    @Override
+    public Object mask(Object value, Mask mask) {
+        if (value == null) return null;
+        if (mask == null) return truncateAndFormat(value);
+
+        String code = mask.type();
+        if (code == null || code.isBlank()) {
+            return truncateAndFormat(value);
         }
-        String path = fieldPath.toLowerCase(Locale.ROOT);
-        for (String pattern : SENSITIVE_PATTERNS) {
-            if (path.contains(pattern)) {
-                return true;
+        String type = code.toLowerCase(Locale.ROOT);
+        String str = value.toString();
+        if (str.isEmpty()) {
+            return str;
+        }
+        switch (type) {
+            case "phone" -> {
+                if (FailureConst.Mobile.matcher(str).matches()) {
+                    return str.substring(0, 3) + "****" + str.substring(7);
+                }
+                return "***[MASKED]***";
+            }
+            case "email" -> {
+                Matcher emailMatcher = FailureConst.Email.matcher(str);
+                if (emailMatcher.matches()) {
+                    return emailMatcher.group(1) + "****" + emailMatcher.group(3);
+                }
+                return "***[MASKED]***";
+            }
+            case "bankcard", "creditcard", "card" -> {
+                if (FailureConst.Card.matcher(str).matches()) {
+                    return str.substring(0, 4) + "****" + str.substring(str.length() - 4);
+                }
+                return "***[MASKED]***";
             }
         }
-        return false;
+        return "***[MASKED]***";
     }
 
     /**
@@ -75,24 +80,17 @@ public class DefaultValueMasker implements ValueMasker {
         if (str.isEmpty()) {
             return str;
         }
-
-        // Detect and mask phone numbers
         if (FailureConst.Mobile.matcher(str).matches()) {
             return str.substring(0, 3) + "****" + str.substring(7);
         }
 
-        // Detect and mask email addresses
         Matcher emailMatcher = FailureConst.Email.matcher(str);
         if (emailMatcher.matches()) {
             return emailMatcher.group(1) + "****" + emailMatcher.group(3);
         }
-
-        // Detect and mask bank card numbers
         if (FailureConst.Card.matcher(str).matches()) {
             return str.substring(0, 4) + "****" + str.substring(str.length() - 4);
         }
-
-        // Truncate long strings to avoid excessive log length
         if (str.length() > 50) {
             return str.substring(0, 5) + "...(" + str.length() + "char)..." + str.substring(str.length() - 5);
         }

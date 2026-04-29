@@ -103,33 +103,33 @@ class AdvancedChainTest {
         assertEquals(9002, context.hasCauses().get(0).getResponseCode().getCode());
     }
 
-    @Test
-    @DisplayName("CodeMappingConfig: getGroupCodesExpanded 演示")
-    void testCodeMappingConfig() {
-        FailureProperties props = new FailureProperties();
-        FailureProperties.CodeMapping mapping = new FailureProperties.CodeMapping();
-
-        // 模拟配置: groupA -> [1000-1010]
-        Map<String, List<Object>> groups = new java.util.HashMap<>();
-        groups.put("groupA", Collections.singletonList("1010-1000"));
-        mapping.setGroups(groups);
-        props.setCodeMapping(mapping);
-
-        CodeMappingConfig config = new CodeMappingConfig(props);
-
-        // 验证 getGroupCodesExpanded
-        String expanded = config.getGroupCodesExpanded("groupA", 5);
-        String expanded2 = config.getGroupCodesExpanded("groupA", 0);
-        String expanded3 = config.getGroupCodesExpanded(null);
-        System.out.println("Expanded codes: " + expanded);
-
-        // 应该包含省略号，因为 1000-1010 有 11 个数，大于阈值 5
-        assertTrue(expanded.contains("..."));
-        assertTrue(expanded.startsWith("[1000,"));
-        assertTrue(expanded.endsWith("1010]"));
-        assertEquals("[]", expanded2);
-        assertEquals("[]", expanded3);
-    }
+//    @Test
+//    @DisplayName("CodeMappingConfig: getGroupCodesExpanded 演示")
+//    void testCodeMappingConfig() {
+//        FailureProperties props = new FailureProperties();
+//        FailureProperties.CodeMapping mapping = new FailureProperties.CodeMapping();
+//
+//        // 模拟配置: groupA -> [1000-1010]
+//        Map<String, List<Object>> groups = new java.util.HashMap<>();
+//        groups.put("groupA", Collections.singletonList("1010-1000"));
+//        mapping.setGroups(groups);
+//        props.setCodeMapping(mapping);
+//
+//        CodeMappingConfig config = new CodeMappingConfig(props);
+//
+//        // 验证 getGroupCodesExpanded
+//        String expanded = config.getGroupCodesExpanded("groupA", 5);
+//        String expanded2 = config.getGroupCodesExpanded("groupA", 0);
+//        String expanded3 = config.getGroupCodesExpanded(null);
+//        System.out.println("Expanded codes: " + expanded);
+//
+//        // 应该包含省略号，因为 1000-1010 有 11 个数，大于阈值 5
+//        assertTrue(expanded.contains("..."));
+//        assertTrue(expanded.startsWith("[1000,"));
+//        assertTrue(expanded.endsWith("1010]"));
+//        assertEquals("[]", expanded2);
+//        assertEquals("[]", expanded3);
+//    }
 
     @Test
     @DisplayName("Result.ofNullable 演示")

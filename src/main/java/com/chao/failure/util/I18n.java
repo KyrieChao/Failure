@@ -13,7 +13,7 @@ import java.util.Locale;
  * Internationalization message utility class.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Component
 public class I18n {

@@ -6,6 +6,8 @@ import java.util.Locale;
 
 /**
  * Resolve localized text by response code and locale.
+ * @author Kyrie Chao
+ * @version 1.3.1
  */
 public interface LocalizedResponseResolver {
 

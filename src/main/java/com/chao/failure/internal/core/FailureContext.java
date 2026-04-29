@@ -20,7 +20,7 @@ import java.util.function.Supplier;
  * FailFast Context - Thread-safe configuration management.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Component
 public class FailureContext {

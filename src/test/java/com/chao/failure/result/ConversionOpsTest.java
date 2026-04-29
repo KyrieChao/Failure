@@ -18,7 +18,7 @@ class ConversionOpsTest {
     @Test
     @DisplayName("toOptional 成功时应返回包含值的 Optional")
     void toOptionalShouldReturnPresentOptionalWhenSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Optional<String> optional = result.toOptional();
 
         assertThat(optional).isPresent();
@@ -28,7 +28,7 @@ class ConversionOpsTest {
     @Test
     @DisplayName("toOptional 成功且值为 null 时应返回 empty Optional")
     void toOptionalShouldReturnEmptyOptionalWhenSuccessWithNull() {
-        Result<String> result = Result.ok(null);
+        Result<String> result = Result.success(null);
         Optional<String> optional = result.toOptional();
 
         assertThat(optional).isEmpty();
@@ -46,7 +46,7 @@ class ConversionOpsTest {
     @Test
     @DisplayName("stream 成功时应返回单元素流")
     void streamShouldReturnSingleElementStreamWhenSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         List<String> list = result.stream().toList();
 
         assertThat(list).containsExactly("test");
@@ -55,7 +55,7 @@ class ConversionOpsTest {
     @Test
     @DisplayName("stream 成功且值为 null 时应返回空流")
     void streamShouldReturnEmptyStreamWhenSuccessWithNull() {
-        Result<String> result = Result.ok(null);
+        Result<String> result = Result.success(null);
         List<String> list = result.stream().toList();
 
         assertThat(list).isEmpty();
@@ -73,7 +73,7 @@ class ConversionOpsTest {
     @Test
     @DisplayName("getOrElse 成功时应返回值")
     void getOrElseShouldReturnValueWhenSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertThat(result.getOrElse("default")).isEqualTo("test");
     }
 
@@ -87,14 +87,14 @@ class ConversionOpsTest {
     @Test
     @DisplayName("getOrElse 成功且值为 null 时应返回 null")
     void getOrElseShouldReturnNullWhenSuccessWithNull() {
-        Result<String> result = Result.ok(null);
+        Result<String> result = Result.success(null);
         assertThat(result.getOrElse("default")).isNull();
     }
 
     @Test
     @DisplayName("getOrElseGet 成功时应返回值")
     void getOrElseGetShouldReturnValueWhenSuccess() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertThat(result.getOrElseGet(e -> "default")).isEqualTo("test");
     }
 
@@ -118,7 +118,7 @@ class ConversionOpsTest {
     @Test
     @DisplayName("fold 成功时应应用 successFn")
     void foldShouldApplySuccessFnWhenSuccess() {
-        Result<Integer> result = Result.ok(10);
+        Result<Integer> result = Result.success(10);
         Result<String> folded = result.fold(
                 i -> "success: " + i,
                 e -> "error: " + e.getMessage()
@@ -144,7 +144,7 @@ class ConversionOpsTest {
     @Test
     @DisplayName("fold 中 successFn 抛出异常应继续抛出")
     void foldShouldRethrowExceptionFromSuccessFn() {
-        Result<Integer> result = Result.ok(10);
+        Result<Integer> result = Result.success(10);
 
         assertThatThrownBy(() -> result.fold(
                 i -> {
@@ -170,7 +170,7 @@ class ConversionOpsTest {
     @Test
     @DisplayName("swap 成功时应转为失败")
     void swapShouldConvertSuccessToFailure() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         Result<String> swapped = result.swap(TestResponseCode.SYSTEM_ERROR);
 
         assertThat(swapped.isFail()).isTrue();
@@ -191,21 +191,21 @@ class ConversionOpsTest {
     @Test
     @DisplayName("contains 成功且值相等时应返回 true")
     void containsShouldReturnTrueWhenSuccessAndValueEquals() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertThat(result.contains("test")).isTrue();
     }
 
     @Test
     @DisplayName("contains 成功但值不等时应返回 false")
     void containsShouldReturnFalseWhenSuccessButValueNotEquals() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertThat(result.contains("other")).isFalse();
     }
 
     @Test
     @DisplayName("contains 成功且值为 null 时应返回 false")
     void containsShouldReturnFalseWhenSuccessWithNull() {
-        Result<String> result = Result.ok(null);
+        Result<String> result = Result.success(null);
         assertThat(result.contains("test")).isFalse();
         assertThat(result.contains(null)).isTrue();
     }
@@ -220,14 +220,14 @@ class ConversionOpsTest {
     @Test
     @DisplayName("exists 成功且有值时应返回 true")
     void existsShouldReturnTrueWhenSuccessWithValue() {
-        Result<String> result = Result.ok("test");
+        Result<String> result = Result.success("test");
         assertThat(result.exists()).isTrue();
     }
 
     @Test
     @DisplayName("exists 成功但值为 null 时应返回 false")
     void existsShouldReturnFalseWhenSuccessWithNull() {
-        Result<String> result = Result.ok(null);
+        Result<String> result = Result.success(null);
         assertThat(result.exists()).isFalse();
     }
 

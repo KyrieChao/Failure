@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Locale response resolver for localized message handling.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class LocaleResponseResolver implements LocalizedResponseResolver {
     private final Map<Key, String> messages = new ConcurrentHashMap<>();

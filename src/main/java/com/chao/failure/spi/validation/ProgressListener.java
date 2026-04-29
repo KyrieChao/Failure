@@ -4,7 +4,7 @@ package com.chao.failure.spi.validation;
  * Progress listener interface for validation operations.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 
 import com.chao.failure.exception.Business;

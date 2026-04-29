@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Utility class for caching reflection metadata to improve validation performance.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public final class ReflectionCache {
 

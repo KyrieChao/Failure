@@ -232,6 +232,12 @@ class ChainCoreEdgeCoverageTest {
         chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d", "v", "p", "c");
         assertThat(chain.isValid()).isFalse();
     }
+    @Test
+    void addErrorOverloadWithConstraintCovered2() {
+        TestChainCore chain = new TestChainCore(true, null);
+        chain.callAddError(ResponseCode.VALIDATION_ERROR_400, "d", "v", null, "c");
+        assertThat(chain.isValid()).isFalse();
+    }
 
     @Test
     void addErrorShouldReturnEarlyWhenStrictErrorLimitAlreadyReached() {

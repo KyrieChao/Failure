@@ -10,7 +10,7 @@ import com.chao.failure.internal.core.ResponseCode;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public interface ArrayTerm<S extends ChainCore<S>> {
 
@@ -128,5 +128,4 @@ public interface ArrayTerm<S extends ChainCore<S>> {
     default <T> S anyMatch(T[] array, java.util.function.Predicate<T> predicate, ResponseCode code, String detail) {
         return core().check(ArrayChecks.anyMatch(array, predicate), code, detail);
     }
-
 }

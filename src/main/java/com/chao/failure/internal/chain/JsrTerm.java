@@ -7,7 +7,7 @@ import com.chao.failure.internal.chain.pipeline.ChainCore;
  *
  * @param <S> Subclass type of ChainCore
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 public interface JsrTerm<S extends ChainCore<S>> {
 

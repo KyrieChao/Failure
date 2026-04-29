@@ -12,7 +12,7 @@ import java.util.List;
  * Batch business exception - Collects all errors in non-FailFast mode.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Getter
 public class MultiBusiness extends Business {

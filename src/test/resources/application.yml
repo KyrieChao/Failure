@@ -1,14 +1,15 @@
 fail-fast:
   shadow-trace: true
+  trim-stack-trace: true
+  verbose: true
   debug-snapshot: true
   method-validation-enabled: true
-  trace-id:
-    enabled: true
-    header-name: X-Trace-Id
-    mdc-enabled: true
-    mdc-key: traceId
-    response-header: true
   code-mapping:
+    http-status:
+      40010: 400
+    groups:
+      auth: [ "40100..40199" ]
+      business: [ "40000..40099" ]
     constraint-mapping:
       NotBlank: 40010
       Email: 40020
@@ -30,7 +31,30 @@ fail-fast:
       - constraint: Email
         bean: com.chao.failuretest.model.dto.UserDTO
         code: 40070
+  trace-id:
+    enabled: true
+    header-name: X-Trace-Id
+    response-header-name: X-Trace-Id
+    response-header: true
+    generate-if-missing: true
+    mdc-key: traceId
+    mdc-enabled: true
   i18n:
+    enabled: true
     default-locale: zh_CN
+    base-name: classpath:i18n/messages
+    encoding: UTF-8
+    cache-seconds: 3600
   logging:
-    banner: true
+    default-severity: ERROR
+    banner: false
+    severity-mapping:
+      40010: WARN
+      40020: INFO
+  masking:
+    structured-enabled: true
+    max-depth: 4
+    max-collection-size: 20
+    max-fields: 30
+  chain:
+    max-errors: 50

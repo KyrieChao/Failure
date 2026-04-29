@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * FailFast enhanced functionality test.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @SpringBootTest
 @ActiveProfiles("test")

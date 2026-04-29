@@ -33,7 +33,7 @@ import java.util.UUID;
  * Abstract exception handler - Extensible base class.
  *
  * @author Kyrie Chao
- * @version 1.3.0
+ * @version 1.3.1
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -140,7 +140,6 @@ public abstract class FailFastExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException e) {
-        // Start method validation metrics
         String scene = getScene();
         notifyValidationStart(scene);
         long startTime = System.nanoTime();
@@ -148,15 +147,11 @@ public abstract class FailFastExceptionHandler {
 
         try {
             List<Business> errors = new ArrayList<>();
-            // Iterate through all constraint violations and convert to Business exceptions
             for (ConstraintViolation<?> violation : e.getConstraintViolations()) {
                 String location = formatValidationLocation(violation.getRootBeanClass(), violation.getPropertyPath().toString());
-
-                // Try to get method name
                 String methodName = "Validation";
                 if (violation.getRootBeanClass() != null) {
                     String className = violation.getRootBeanClass().getSimpleName();
-                    // Try to get method name from propertyPath (usually the first node)
                     String path = violation.getPropertyPath().toString();
                     String methodPart = path.split("\\.")[0];
                     methodName = className + "#" + methodPart;
@@ -167,7 +162,6 @@ public abstract class FailFastExceptionHandler {
             errors.sort(Comparator.comparingInt(b -> b.getResponseCode().getCode()));
             return handleMultiErrors(errors);
         } finally {
-            // End method validation metrics
             long duration = System.nanoTime() - startTime;
             notifyValidationEnd(duration, success);
             notifyValidationFailure(String.valueOf(com.chao.failure.internal.core.ResponseCode.VALIDATION_ERROR_400.getCode()));
@@ -261,7 +255,7 @@ public abstract class FailFastExceptionHandler {
         if (trace == null || trace.isBlank()) {
             return e.toString();
         }
-        return e.toString() + " [traceId=" + trace + "]";
+        return e + " [traceId=" + trace + "]";
     }
 
     private Severity resolveMultiSeverity(MultiBusiness multi) {
@@ -425,10 +419,12 @@ public abstract class FailFastExceptionHandler {
         if (!scene.isBlank() && !FailureConst.DEFAULT_SCENE.equals(scene)) {
             body.put(FailureConst.FIELD_SCENE, scene);
         }
-        List<Map<String, Object>> errorList = new ArrayList<>();
-        Map<String, Object> errorItem = buildMapDetail(e);
-        errorList.add(errorItem);
-        body.put(FailureConst.FIELD_ERRORS, errorList);
+        if (isVerbose()) {
+            List<Map<String, Object>> errorList = new ArrayList<>();
+            Map<String, Object> errorItem = buildMapDetail(e);
+            errorList.add(errorItem);
+            body.put(FailureConst.FIELD_ERRORS, errorList);
+        }
 
         String format = ZonedDateTime.now(FailureConst.CST).format(FailureConst.DEFAULT_DATETIME_FORMATTER);
         body.put(FailureConst.FIELD_TIMESTAMP, format);
