@@ -30,6 +30,7 @@ jobs:
           mvn clean test jacoco:report -B --no-transfer-progress | tail -n 50
 
       - name: SonarCloud Analysis
+        if: github.event_name == 'push'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -38,7 +39,16 @@ jobs:
             -Dsonar.organization=chao \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
-            -B --no-transfer-progress
+            -Dsonar.java.binaries=target/classes \
+            -B --no-transfer-progress > sonar.log 2>&1
+          EXIT_CODE=$?
+          grep -E "(BUILD SUCCESS|BUILD FAILURE|Quality Gate)" sonar.log || true
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ Sonar analysis failed"
+            tail -n 100 sonar.log
+            exit $EXIT_CODE
+          fi
+          echo "✅ Sonar analysis passed"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
