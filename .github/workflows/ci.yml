@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Sonar 需要完整 git 历史做 blame 分析
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -25,13 +25,24 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and Test
+      - name: Build, Test and SonarCloud Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn clean test jacoco:report -B --no-transfer-progress
-        # 去掉 > build.log 重定向，Sonar 需要正常输出
-
-      - name: Verify compiled classes
-        run: ls -la target/classes
+          mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=KyrieChao_Failure \
+            -Dsonar.organization=chao \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+            -B --no-transfer-progress > build.log 2>&1
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ Build failed"
+            tail -n 200 build.log
+            exit $EXIT_CODE
+          fi
+          echo "✅ Build successful"
+          grep -E "(Tests run:|BUILD SUCCESS|BUILD FAILURE)" build.log || true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -41,15 +52,3 @@ jobs:
           slug: KyrieChao/Failure
           files: target/site/jacoco/jacoco.xml
           fail_ci_if_error: false
-
-      - name: SonarCloud Scan
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=KyrieChao_Failure
-            -Dsonar.organization=chao
-            -Dsonar.java.binaries=target/classes
-            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
