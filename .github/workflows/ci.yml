@@ -50,5 +50,5 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=KyrieChao_Failure
-            -Dsonar.organization=chao
+            -Dsonar.organization=Chao
             -Dsonar.java.binaries=target/classes
