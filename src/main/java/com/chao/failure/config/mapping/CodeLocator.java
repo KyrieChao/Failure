@@ -16,9 +16,9 @@ import java.util.stream.Collectors;
 public final class CodeLocator {
 
     private final Map<String, List<CodeRange>> groupRanges;
-    private final Map<String, List<Integer>> groupExactCodes;
+    private final Map<String, int[]> groupExactCodes;
 
-    private CodeLocator(Map<String, List<CodeRange>> groupRanges, Map<String, List<Integer>> groupExactCodes) {
+    private CodeLocator(Map<String, List<CodeRange>> groupRanges, Map<String, int[]> groupExactCodes) {
         this.groupRanges = groupRanges;
         this.groupExactCodes = groupExactCodes;
     }
@@ -35,7 +35,7 @@ public final class CodeLocator {
         }
 
         LinkedHashMap<String, List<CodeRange>> rangesMap = new LinkedHashMap<>();
-        LinkedHashMap<String, List<Integer>> exactMap = new LinkedHashMap<>();
+        LinkedHashMap<String, int[]> exactMap = new LinkedHashMap<>();
 
         for (Map.Entry<String, List<Object>> entry : groups.entrySet()) {
             String groupName = entry.getKey();
@@ -44,14 +44,13 @@ public final class CodeLocator {
                 continue;
             }
 
-            ArrayList<CodeRange> ranges = new ArrayList<>();
-            ArrayList<Integer> exact = new ArrayList<>();
+            ArrayList<CodeRange> inputRanges = new ArrayList<>();
+            IntCollector exact = new IntCollector();
 
             for (Object raw : rawList) {
                 if (raw instanceof Number num) {
                     int code = num.intValue();
                     exact.add(code);
-                    ranges.add(new CodeRange(code, code));
                     continue;
                 }
                 if (raw instanceof String str) {
@@ -61,22 +60,23 @@ public final class CodeLocator {
                     }
                     CodeRange r = parseRange(s);
                     if (r != null) {
-                        ranges.add(r);
+                        inputRanges.add(r);
                         continue;
                     }
                     Integer v = parseIntOrNull(s);
                     if (v != null) {
                         exact.add(v);
-                        ranges.add(new CodeRange(v, v));
                     }
                 }
             }
 
-            if (!ranges.isEmpty()) {
-                rangesMap.put(groupName, List.copyOf(ranges));
+            int[] exactCodes = exact.toSortedUniqueArray();
+            List<CodeRange> merged = mergeRangesAndExact(inputRanges, exactCodes);
+            if (!merged.isEmpty()) {
+                rangesMap.put(groupName, merged);
             }
-            if (!exact.isEmpty()) {
-                exactMap.put(groupName, List.copyOf(exact));
+            if (exactCodes.length > 0) {
+                exactMap.put(groupName, exactCodes);
             }
         }
 
@@ -107,12 +107,7 @@ public final class CodeLocator {
         if (ranges == null || ranges.isEmpty()) {
             return false;
         }
-        for (CodeRange r : ranges) {
-            if (code >= r.start && code <= r.end) {
-                return true;
-            }
-        }
-        return false;
+        return isInRanges(code, ranges);
     }
 
     /**
@@ -130,10 +125,8 @@ public final class CodeLocator {
             if (ranges == null || ranges.isEmpty()) {
                 continue;
             }
-            for (CodeRange r : ranges) {
-                if (code >= r.start && code <= r.end) {
-                    return entry.getKey();
-                }
+            if (isInRanges(code, ranges)) {
+                return entry.getKey();
             }
         }
         return "default";
@@ -149,7 +142,11 @@ public final class CodeLocator {
         if (groupName == null || groupName.isBlank()) {
             return List.of();
         }
-        return groupExactCodes.getOrDefault(groupName, List.of());
+        int[] exact = groupExactCodes.get(groupName);
+        if (exact == null || exact.length == 0) {
+            return List.of();
+        }
+        return new IntArrayListView(exact);
     }
 
     /**
@@ -159,11 +156,14 @@ public final class CodeLocator {
      * @return A sorted list of all codes in the group (expanded from ranges), or an empty list if the group doesn't exist
      */
     public List<Integer> getExpandedCodes(String groupName) {
-        SortedSet<Integer> expanded = expandToSortedSet(groupName);
-        if (expanded.isEmpty()) {
+        if (groupName == null || groupName.isBlank()) {
             return List.of();
         }
-        return List.copyOf(expanded);
+        List<CodeRange> ranges = groupRanges.get(groupName);
+        if (ranges == null || ranges.isEmpty()) {
+            return List.of();
+        }
+        return new ExpandedCodeList(ranges);
     }
 
     /**
@@ -187,54 +187,26 @@ public final class CodeLocator {
         if (n <= 0) {
             return "[]";
         }
-        NavigableSet<Integer> expanded = expandToSortedSet(groupName);
-        if (expanded.isEmpty()) {
-            return "[]";
-        }
-        Integer first = expanded.first();
-        Integer last = expanded.last();
-
-        ArrayList<Integer> mids = new ArrayList<>(3);
-        for (Integer v : expanded.tailSet(first, false)) {
-            if (Objects.equals(v, last)) {
-                break;
-            }
-            mids.add(v);
-            if (mids.size() >= 3) {
-                break;
-            }
-        }
-        if (expanded.size() <= n) {
-            return expanded.toString();
-        }
-        if (mids.isEmpty()) {
-            return String.format("[%s, ..., %s]", first, last);
-        }
-        String middle = mids.stream().map(String::valueOf).collect(Collectors.joining(", "));
-        return String.format("[%s, %s, ..., %s]", first, middle, last);
-    }
-
-    /**
-     * Expands all code ranges for a group into a sorted set of individual codes.
-     *
-     * @param groupName The name of the group
-     * @return A sorted set containing all individual codes from the group's ranges
-     */
-    private NavigableSet<Integer> expandToSortedSet(String groupName) {
         if (groupName == null || groupName.isBlank()) {
-            return new TreeSet<>();
+            return "[]";
         }
         List<CodeRange> ranges = groupRanges.get(groupName);
         if (ranges == null || ranges.isEmpty()) {
-            return new TreeSet<>();
+            return "[]";
         }
-        TreeSet<Integer> expanded = new TreeSet<>();
-        for (CodeRange r : ranges) {
-            for (int i = r.start; i <= r.end; i++) {
-                expanded.add(i);
-            }
+        int first = ranges.get(0).start;
+        int last = ranges.get(ranges.size() - 1).end;
+
+        long total = totalSize(ranges);
+        if (total <= n) {
+            return buildAllCodesString(ranges);
         }
-        return expanded;
+        int[] mids = firstMids(ranges, first, last, 3);
+        if (mids.length == 0) {
+            return String.format("[%s, ..., %s]", first, last);
+        }
+        String middle = Arrays.stream(mids).mapToObj(String::valueOf).collect(Collectors.joining(", "));
+        return String.format("[%s, %s, ..., %s]", first, middle, last);
     }
 
     /**
@@ -274,6 +246,202 @@ public final class CodeLocator {
      * @param end The ending code value (inclusive)
      */
     private record CodeRange(int start, int end) {
+    }
+
+    private static boolean isInRanges(int code, List<CodeRange> ranges) {
+        int lo = 0;
+        int hi = ranges.size() - 1;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            CodeRange r = ranges.get(mid);
+            if (code < r.start) {
+                hi = mid - 1;
+            } else if (code > r.end) {
+                lo = mid + 1;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<CodeRange> mergeRangesAndExact(List<CodeRange> ranges, int[] exactCodes) {
+        if ((ranges == null || ranges.isEmpty()) && (exactCodes == null || exactCodes.length == 0)) {
+            return List.of();
+        }
+
+        ArrayList<CodeRange> all = new ArrayList<>((ranges != null ? ranges.size() : 0) + (exactCodes != null ? exactCodes.length : 0));
+        if (ranges != null && !ranges.isEmpty()) {
+            all.addAll(ranges);
+        }
+        if (exactCodes != null && exactCodes.length > 0) {
+            for (int v : exactCodes) {
+                all.add(new CodeRange(v, v));
+            }
+        }
+
+        all.sort(Comparator.comparingInt(CodeRange::start).thenComparingInt(CodeRange::end));
+        ArrayList<CodeRange> merged = new ArrayList<>(all.size());
+        CodeRange cur = all.get(0);
+        int start = cur.start;
+        int end = cur.end;
+        for (int i = 1; i < all.size(); i++) {
+            CodeRange r = all.get(i);
+            if (r.start <= end + 1) {
+                end = Math.max(end, r.end);
+                continue;
+            }
+            merged.add(new CodeRange(start, end));
+            start = r.start;
+            end = r.end;
+        }
+        merged.add(new CodeRange(start, end));
+        return List.copyOf(merged);
+    }
+
+    private static long totalSize(List<CodeRange> ranges) {
+        long total = 0;
+        for (CodeRange r : ranges) {
+            total += (long) r.end - (long) r.start + 1L;
+        }
+        return total;
+    }
+
+    private static String buildAllCodesString(List<CodeRange> ranges) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        boolean first = true;
+        for (CodeRange r : ranges) {
+            for (int i = r.start; i <= r.end; i++) {
+                if (!first) {
+                    sb.append(", ");
+                }
+                sb.append(i);
+                first = false;
+            }
+        }
+        sb.append(']');
+        return sb.toString();
+    }
+
+    private static int[] firstMids(List<CodeRange> ranges, int first, int last, int limit) {
+        if (limit <= 0) {
+            return new int[0];
+        }
+        int[] out = new int[Math.min(3, limit)];
+        int count = 0;
+        boolean skippedFirst = false;
+        for (CodeRange r : ranges) {
+            for (int i = r.start; i <= r.end; i++) {
+                if (!skippedFirst) {
+                    if (i == first) {
+                        skippedFirst = true;
+                    }
+                    continue;
+                }
+                if (i == last) {
+                    return Arrays.copyOf(out, count);
+                }
+                out[count++] = i;
+                if (count >= out.length) {
+                    return out;
+                }
+            }
+        }
+        return Arrays.copyOf(out, count);
+    }
+
+    private static final class IntCollector {
+        private int[] a;
+        private int size;
+
+        private void add(int v) {
+            if (a == null) {
+                a = new int[8];
+            } else if (size >= a.length) {
+                a = Arrays.copyOf(a, a.length * 2);
+            }
+            a[size++] = v;
+        }
+
+        private int[] toSortedUniqueArray() {
+            if (size <= 0) {
+                return new int[0];
+            }
+            int[] out = Arrays.copyOf(a, size);
+            Arrays.sort(out);
+            int w = 1;
+            for (int i = 1; i < out.length; i++) {
+                if (out[i] != out[w - 1]) {
+                    out[w++] = out[i];
+                }
+            }
+            return w == out.length ? out : Arrays.copyOf(out, w);
+        }
+    }
+
+    private static final class IntArrayListView extends AbstractList<Integer> implements RandomAccess {
+        private final int[] a;
+
+        private IntArrayListView(int[] a) {
+            this.a = a;
+        }
+
+        @Override
+        public Integer get(int index) {
+            return a[index];
+        }
+
+        @Override
+        public int size() {
+            return a.length;
+        }
+    }
+
+    private static final class ExpandedCodeList extends AbstractList<Integer> implements RandomAccess {
+        private final int[] starts;
+        private final int[] ends;
+        private final int[] prefix;
+        private final int size;
+
+        private ExpandedCodeList(List<CodeRange> ranges) {
+            int m = ranges.size();
+            this.starts = new int[m];
+            this.ends = new int[m];
+            this.prefix = new int[m + 1];
+            long total = 0;
+            for (int i = 0; i < m; i++) {
+                CodeRange r = ranges.get(i);
+                starts[i] = r.start;
+                ends[i] = r.end;
+                long len = (long) r.end - (long) r.start + 1L;
+                total += len;
+                if (total > Integer.MAX_VALUE) {
+                    throw new IllegalStateException("Expanded codes exceed List limit: " + total);
+                }
+                prefix[i + 1] = (int) total;
+            }
+            this.size = (int) total;
+        }
+
+        @Override
+        public Integer get(int index) {
+            Objects.checkIndex(index, size);
+            int target = index + 1;
+            int seg = Arrays.binarySearch(prefix, target);
+            if (seg < 0) {
+                seg = -seg - 2;
+            } else {
+                seg = Math.max(0, seg - 1);
+            }
+            int offset = index - prefix[seg];
+            return starts[seg] + offset;
+        }
+
+        @Override
+        public int size() {
+            return size;
+        }
     }
 }
 
