@@ -64,6 +64,8 @@
 - 使用 JUnit 5 和 AssertJ 进行测试编写。
 - 集成测试应涵盖主要的业务场景。
 
+All contributions must follow the project's coding style (e.g., standard Java conventions) and pass the CI checks.
+
 ## 许可证 (License)
 
 通过提交 Pull Request，您同意您的代码将根据本项目的 [Apache License 2.0](LICENSE) 进行授权。

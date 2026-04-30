@@ -5,14 +5,18 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
+
 permissions:
   contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -23,16 +27,28 @@ jobs:
 
       - name: Build and Test
         run: |
-          mvn clean test jacoco:report -B --no-transfer-progress > build.log 2>&1 || EXIT_CODE=$?
-          if [ -n "$EXIT_CODE" ]; then
-            echo "❌ Build failed"
-            tail -n 100 build.log
+          mvn clean test jacoco:report -B --no-transfer-progress | tail -n 50
+
+      - name: SonarCloud Analysis
+        if: github.event_name == 'push'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn sonar:sonar \
+            -Dsonar.projectKey=KyrieChao_Failure \
+            -Dsonar.organization=chao \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+            -Dsonar.java.binaries=target/classes \
+            -B --no-transfer-progress > sonar.log 2>&1
+          EXIT_CODE=$?
+          grep -E "(BUILD SUCCESS|BUILD FAILURE|Quality Gate)" sonar.log || true
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ Sonar analysis failed"
+            tail -n 100 sonar.log
             exit $EXIT_CODE
           fi
-          echo "✅ Build successful"
-
-      - name: Verify coverage file
-        run: ls -la target/site/jacoco/jacoco.xml
+          echo "✅ Sonar analysis passed"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
