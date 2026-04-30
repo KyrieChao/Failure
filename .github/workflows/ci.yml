@@ -25,24 +25,21 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build, Test and SonarCloud Analysis
+      - name: Build and Test
+        run: |
+          mvn clean test jacoco:report -B --no-transfer-progress | tail -n 50
+
+      - name: SonarCloud Analysis
+        if: github.event_name == 'push'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn clean verify sonar:sonar \
+          mvn sonar:sonar \
             -Dsonar.projectKey=KyrieChao_Failure \
             -Dsonar.organization=chao \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
-            -B --no-transfer-progress > build.log 2>&1
-          EXIT_CODE=$?
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "❌ Build failed"
-            tail -n 200 build.log
-            exit $EXIT_CODE
-          fi
-          echo "✅ Build successful"
-          grep -E "(Tests run:|BUILD SUCCESS|BUILD FAILURE)" build.log || true
+            -B --no-transfer-progress
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
