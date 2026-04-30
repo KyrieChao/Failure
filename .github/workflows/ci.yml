@@ -34,6 +34,7 @@ jobs:
 #        env:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 #        run: |
+
 #          mvn sonar:sonar \
 #            -Dsonar.projectKey=KyrieChao_Failure \
 #            -Dsonar.organization=chao \
