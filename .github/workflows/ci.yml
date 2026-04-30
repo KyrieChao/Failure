@@ -49,6 +49,6 @@ jobs:
           SONAR_HOST_URL: https://sonarcloud.io
         with:
           args: >
-            -Dsonar.projectKey=KyrieChao_Failure
-            -Dsonar.organization=Chao
+            -Dsonar.projectKey=kyriechao
+            -Dsonar.organization=chao
             -Dsonar.java.binaries=target/classes
