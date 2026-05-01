@@ -6,7 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -458,6 +462,37 @@ public class ValidationEventManagerTest {
 
         // 验证没有抛出异常
         assertTrue(true);
+    }
+
+    @Test
+    @DisplayName("测试 getObserver 方法 - 覆盖 current != null 分支")
+    void testGetObserverWithCustomObserver() {
+        TestEventListener testObserver = new TestEventListener();
+        ValidationEventManager.setObserver(testObserver);
+
+        ValidationEventListener result = ValidationEventManager.getObserver();
+        assertSame(testObserver, result);
+    }
+
+    @Test
+    @DisplayName("测试 getObserver 方法 - 覆盖 current == null 分支")
+    void testGetObserverWithNullObserver() throws Exception {
+        // 使用反射将 OBSERVER 设置为 null
+        Field observerField = ValidationEventManager.class.getDeclaredField("OBSERVER");
+        observerField.setAccessible(true);
+        java.util.concurrent.atomic.AtomicReference<ValidationEventListener> observerRef =
+            (java.util.concurrent.atomic.AtomicReference<ValidationEventListener>) observerField.get(null);
+        observerRef.set(null);
+
+        try {
+            // 调用 getObserver 应该返回 NO_OP
+            ValidationEventListener result = ValidationEventManager.getObserver();
+            assertNotNull(result);
+            assertSame(ValidationEventListener.NO_OP, result);
+        } finally {
+            // 恢复原始值
+            observerRef.set(ValidationEventListener.NO_OP);
+        }
     }
 
     @Test
