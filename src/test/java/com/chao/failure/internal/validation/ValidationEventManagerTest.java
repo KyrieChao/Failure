@@ -495,10 +495,9 @@ public class ValidationEventManagerTest {
         }
     }
 
-    @Test
-    @DisplayName("ValidationObservers")
-    void ValidationObservers() {
-        ValidationEventManager observers = new ValidationEventManager();
-
-    }
+//    @Test
+//    @DisplayName("ValidationObservers")
+//    void ValidationObservers() {
+//        ValidationEventManager observers = new ValidationEventManager();
+//    }
 }

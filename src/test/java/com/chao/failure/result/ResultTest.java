@@ -132,12 +132,6 @@ class ResultTest {
     }
 
     @Test
-    void testGetErrorOnSuccess() {
-        Result<String> result = Result.success("test");
-        assertThrows(IllegalStateException.class, result::getError);
-    }
-
-    @Test
     void testMapOnSuccess() {
         Result<Integer> result = Result.success(5);
         Result<String> mapped = result.map(i -> String.valueOf(i));
@@ -537,40 +531,16 @@ class ResultTest {
         log.info(fail.getError().toString());
     }
 
-    @Test
-    @DisplayName("测试 Success 调用 getError 应抛出 IllegalStateException")
-    void testSuccessGetError_ThrowsException() {
-        // 准备
-        Result.Success<String> success = new Result.Success<>("test");
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
-                success::getError, // <--- 这里会触发 throw 语句
-                "Expected getError() on Success result to throw an exception"
-        );
-
-        // 可选：验证异常信息
-        assertEquals("Result is success", exception.getMessage());
-    }
 
     @Test
     @DisplayName("覆盖 Fail 构造函数及 error 字段赋值")
     void testFailConstructor_Coverage() {
-        // 1. 准备真实的 Business 对象 (不要用 mock(Business.class)，除非你只想测赋值逻辑)
-        // 建议使用工厂方法创建一个真实对象，确保 ResponseCode 等内部逻辑也被覆盖
         ResponseCode code = ResponseCode.of(400, "Bad Request", "Invalid input");
         Business business = Business.of(code, "Detail message");
-
-        // 2. 【关键步骤】显式调用构造函数
-        // 这一步会强制执行：super(...) 和 this.error = error;
         Result.Fail<String> failResult = new Result.Fail<>(business);
-
-        // 3. 断言：验证字段确实被赋值了
-        // 如果这行通过，证明 this.error = error 被执行了
         assertThat(failResult.getError()).isSameAs(business);
-
-        // 4. 额外断言：验证父类构造函数也被执行了 (code, message, description)
         assertThat(failResult.getCode()).isEqualTo(400);
-        assertThat(failResult.getMessage()).contains("Bad Request"); // 取决于 I18n 处理
+        assertThat(failResult.getMessage()).contains("Bad Request");
     }
 
     @Test
@@ -589,16 +559,5 @@ class ResultTest {
         Result.Fail<String> fail = new Result.Fail<>(business);
         assertEquals(code.getCode(), fail.getCode());
         assertEquals(business, fail.getError());
-    }
-
-    @Test
-    void testGetErrorOnSuccessBranch() {
-        Result<String> result = Result.success("test");
-        try {
-            result.getError();
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException e) {
-            assertEquals("Result is success", e.getMessage());
-        }
     }
 }

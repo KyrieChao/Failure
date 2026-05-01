@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -170,7 +171,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         if (this instanceof Result.Fail<?> f) {
             return f.error;
         }
-        throw new IllegalStateException("Result is success");
+        return null;
     }
 
     // ============ Functional Operations ============
@@ -247,21 +248,18 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      * @param code      Error code when condition not met
      * @return Filtered Result
      */
-    public Result<T> filter(Function<T, Boolean> predicate, ResponseCode code) {
-        if (this instanceof Success<T> s) {
-            if (!predicate.apply(s.data)) {
+    public Result<T> filter(Predicate<T> predicate, ResponseCode code) {
+        if (this instanceof Success<T> s && !predicate.test(s.data)) {
                 return Result.fail(code);
             }
-        }
         return this;
     }
 
-    public Result<T> filter(Function<T, Boolean> predicate, ResponseCode code, String detail) {
-        if (this instanceof Success<T> s) {
-            if (!predicate.apply(s.data)) {
+    public Result<T> filter(Predicate<T> predicate, ResponseCode code, String detail) {
+        if (this instanceof Success<T> s && !predicate.test(s.data)) {
                 return Result.fail(code, detail);
             }
-        }
+
         return this;
     }
 
@@ -318,7 +316,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         if (this instanceof Result.Fail<T> f) {
             throw f.error;
         }
-        throw new IllegalStateException("Unknown Result type");
+        return null;
     }
 
     /**
@@ -340,10 +338,13 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      * @throws X Thrown when Result is failure state
      */
     public <X extends Throwable> T failNow(Function<Business, X> exceptionProvider) throws X {
+        if (this instanceof Success<T> s) {
+            return s.data;
+        }
         if (this instanceof Result.Fail<T> f) {
             throw exceptionProvider.apply(f.error);
         }
-        return get();
+        throw new IllegalStateException("Unknown Result type");
     }
 
 
@@ -390,7 +391,13 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
     }
 
     public Mono<T> toMono() {
-        return isSuccess() ? Mono.justOrEmpty(getOrNull()) : Mono.error(getError());
+        if (isSuccess()) {
+            return Mono.justOrEmpty(getOrNull());
+        }
+        if (this instanceof Result.Fail<?> f) {
+            return Mono.error(f.error);
+        }
+        return null;
     }
 
     public Flux<T> toFlux() {

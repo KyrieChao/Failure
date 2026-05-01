@@ -14,6 +14,9 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Slf4j
 public class ValidationEventManager {
+    private ValidationEventManager() {
+        /* This utility class should not be instantiated */
+    }
 
     private static final AtomicReference<ValidationEventListener> OBSERVER = new AtomicReference<>(ValidationEventListener.NO_OP);
 
