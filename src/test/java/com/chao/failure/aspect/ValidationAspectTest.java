@@ -769,7 +769,7 @@ class ValidationAspectTest {
     }
 
     @Test
-    void testNewValidatorInstanceWithException() {
+    void testNewValidatorInstanceWithException() throws Exception {
         // 测试创建验证器实例失败的情况
         class InvalidValidator extends TypedValidator {
             // 私有构造函数，无法实例�?
@@ -786,15 +786,10 @@ class ValidationAspectTest {
             }
         }
 
-        Method method = null;
-        try {
-            method = ValidationAspect.class.getDeclaredMethod("newValidatorInstance", Class.class);
-            method.setAccessible(true);
-            method.invoke(aspect, InvalidValidator.class);
-            fail("应该抛出异常");
-        } catch (Exception e) {
-            assertTrue(e.getCause() instanceof RuntimeException);
-        }
+        Method method = ValidationAspect.class.getDeclaredMethod("newValidatorInstance", Class.class);
+        method.setAccessible(true);
+        Exception e = assertThrows(Exception.class, () -> method.invoke(aspect, InvalidValidator.class));
+        assertTrue(e.getCause() instanceof RuntimeException);
     }
 
     @Test

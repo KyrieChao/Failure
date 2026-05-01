@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -132,15 +133,18 @@ class LocaleRouterTest {
 
     @Test
     void testGetDefaultWithNullResolverViaReflection() throws Exception {
-        Field resolverField = LocaleRouter.class.getDeclaredField("resolver");
+        Field resolverField = LocaleRouter.class.getDeclaredField("RESOLVER");
         resolverField.setAccessible(true);
-        resolverField.set(null, null);
+        @SuppressWarnings("unchecked")
+        AtomicReference<LocalizedResponseResolver> ref = (AtomicReference<LocalizedResponseResolver>) resolverField.get(null);
+        LocalizedResponseResolver previous = ref.get();
+        ref.set(null);
 
         try {
             String result = LocaleRouter.resolveMessage(ResponseCode.VALIDATION_ERROR, Locale.CHINA);
             assertNull(result);
         } finally {
-            resolverField.set(null, new LocalizedResponseResolver() {});
+            ref.set(previous);
         }
     }
 }

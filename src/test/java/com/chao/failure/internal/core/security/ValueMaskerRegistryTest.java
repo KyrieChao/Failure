@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -61,16 +62,19 @@ class ValueMaskerRegistryTest {
 
     @Test
     void testGetDefaultWithNullViaReflection() throws Exception {
-        Field maskerField = ValueMaskerRegistry.class.getDeclaredField("masker");
+        Field maskerField = ValueMaskerRegistry.class.getDeclaredField("MASKER");
         maskerField.setAccessible(true);
-        maskerField.set(null, null);
+        @SuppressWarnings("unchecked")
+        AtomicReference<ValueMasker> ref = (AtomicReference<ValueMasker>) maskerField.get(null);
+        ValueMasker previous = ref.get();
+        ref.set(null);
 
         try {
             ValueMasker result = ValueMaskerRegistry.getDefault();
             assertNotNull(result);
             assertTrue(result instanceof DefaultValueMasker);
         } finally {
-            maskerField.set(null, new DefaultValueMasker());
+            ref.set(previous);
         }
     }
 

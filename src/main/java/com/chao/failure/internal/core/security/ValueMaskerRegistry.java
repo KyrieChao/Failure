@@ -3,6 +3,8 @@ package com.chao.failure.internal.core.security;
 import com.chao.failure.config.masking.DefaultValueMasker;
 import com.chao.failure.spi.security.ValueMasker;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 
 /**
  * ValueMaskerRegistry is a value masker registry class for managing and obtaining default ValueMasker implementations.
@@ -15,8 +17,7 @@ public final class ValueMaskerRegistry {
 
     // Default value masker implementation, used when no other masker is set
     private static final ValueMasker FALLBACK = new DefaultValueMasker();
-    // Currently used value masker, using volatile to ensure visibility in multi-threaded environment
-    private static volatile ValueMasker masker = FALLBACK;
+    private static final AtomicReference<ValueMasker> MASKER = new AtomicReference<>(FALLBACK);
 
     /**
      * Private constructor to prevent external instantiation of this class
@@ -29,7 +30,7 @@ public final class ValueMaskerRegistry {
      * @param valueMasker Value masker to set, uses default FALLBACK masker if null
      */
     public static void setDefault(ValueMasker valueMasker) {
-        masker = valueMasker != null ? valueMasker : FALLBACK;
+        MASKER.set(valueMasker != null ? valueMasker : FALLBACK);
     }
 
     /**
@@ -37,6 +38,7 @@ public final class ValueMaskerRegistry {
      * @return Currently set value masker, returns default FALLBACK masker if not set
      */
     public static ValueMasker getDefault() {
-        return masker != null ? masker : FALLBACK;
+        ValueMasker current = MASKER.get();
+        return current != null ? current : FALLBACK;
     }
 }

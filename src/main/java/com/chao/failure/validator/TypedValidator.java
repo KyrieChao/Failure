@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 /**
@@ -23,7 +24,7 @@ public abstract class TypedValidator implements FastValidator<Object> {
     private final Map<Class<?>, BiConsumer<Object, ValidationContext>> validators = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Class<?>, Object> resolvedHandlers = new ConcurrentHashMap<>();
     private static final Object NO_HANDLER = new Object();
-    private volatile Set<Class<?>> registeredTypesCache;
+    private final AtomicReference<Set<Class<?>>> registeredTypesCache = new AtomicReference<>();
 
     /**
      * Constructor.
@@ -58,9 +59,9 @@ public abstract class TypedValidator implements FastValidator<Object> {
         validators.put(type, (obj, ctx) -> validator.accept(type.cast(obj), ctx));
         resolvedHandlers.clear();
         if (validators.size() > 10) {
-            registeredTypesCache = Set.copyOf(validators.keySet());
+            registeredTypesCache.set(Set.copyOf(validators.keySet()));
         } else {
-            registeredTypesCache = null;
+            registeredTypesCache.set(null);
         }
     }
 
@@ -71,10 +72,10 @@ public abstract class TypedValidator implements FastValidator<Object> {
      * @return Set of registered types
      */
     public Set<Class<?>> getRegisteredTypes() {
-        Set<Class<?>> cached = registeredTypesCache;
+        Set<Class<?>> cached = registeredTypesCache.get();
         if (cached != null) return cached;
         Set<Class<?>> computed = Set.copyOf(validators.keySet());
-        registeredTypesCache = computed;
+        registeredTypesCache.set(computed);
         return computed;
     }
 

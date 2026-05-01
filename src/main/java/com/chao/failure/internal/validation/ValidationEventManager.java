@@ -1,7 +1,8 @@
 package com.chao.failure.internal.validation;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Validation observer manager class
@@ -14,13 +15,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ValidationEventManager {
 
-    /**
-     * Validation observer instance
-     * Uses volatile keyword to ensure visibility in multi-threaded environment
-     * Initialized as NO_OP (no operation) observer
-     */
-    @Getter
-    private static volatile ValidationEventListener observer = ValidationEventListener.NO_OP;
+    private static final AtomicReference<ValidationEventListener> OBSERVER = new AtomicReference<>(ValidationEventListener.NO_OP);
+
+    public static ValidationEventListener getObserver() {
+        ValidationEventListener current = OBSERVER.get();
+        return current != null ? current : ValidationEventListener.NO_OP;
+    }
 
     /**
      * Set validation observer
@@ -28,7 +28,7 @@ public class ValidationEventManager {
      */
     public static void setObserver(ValidationEventListener o) {
         if (o != null) {
-            observer = o;
+            OBSERVER.set(o);
         }
     }
 
@@ -38,8 +38,9 @@ public class ValidationEventManager {
      * @param scene Validation scene
      */
     public static void notifyStart(String source, String scene) {
+        ValidationEventListener current = getObserver();
         try {
-            observer.onValidationStart(source, scene);
+            current.onValidationStart(source, scene);
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Observer onValidationStart failed: {}", e.getMessage(), e);
@@ -54,8 +55,9 @@ public class ValidationEventManager {
      * @param success Whether validation was successful
      */
     public static void notifyEnd(String source, long durationNanos, boolean success) {
+        ValidationEventListener current = getObserver();
         try {
-            observer.onValidationEnd(source, durationNanos, success);
+            current.onValidationEnd(source, durationNanos, success);
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Observer onValidationEnd failed: {}", e.getMessage(), e);
@@ -69,8 +71,9 @@ public class ValidationEventManager {
      * @param errorCode Error code
      */
     public static void notifyFailure(String source, String errorCode) {
+        ValidationEventListener current = getObserver();
         try {
-            observer.onValidationFailure(source, errorCode);
+            current.onValidationFailure(source, errorCode);
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Observer onValidationFailure failed: {}", e.getMessage(), e);
@@ -84,8 +87,9 @@ public class ValidationEventManager {
      * @param constraint Violated constraint
      */
     public static void notifyViolation(String source, String constraint) {
+        ValidationEventListener current = getObserver();
         try {
-            observer.onViolation(source, constraint);
+            current.onViolation(source, constraint);
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Observer onViolation failed: {}", e.getMessage(), e);
