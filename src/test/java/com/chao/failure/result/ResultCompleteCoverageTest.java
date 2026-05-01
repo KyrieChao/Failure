@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.lang.reflect.Constructor;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -851,5 +852,21 @@ class ResultCompleteCoverageTest {
     void testTimestampIsSet() {
         Result<String> result = Result.success("test");
         assertNotNull(result.getTimestamp());
+    }
+
+    // ============================================
+    // 测试 failNow() 的未知类型分支
+    // ============================================
+
+    @Test
+    void testFailNowUnknownResultType() throws Exception {
+        // 使用反射创建一个未知类型的 Result 子类，覆盖最后一个分支
+        Constructor<?> constructor = Result.class.getDeclaredConstructor(int.class, String.class, String.class);
+        constructor.setAccessible(true);
+
+        Result<String> unknownResult = (Result<String>) constructor.newInstance(400, "Test", "Description");
+        
+        IllegalStateException exception = assertThrows(IllegalStateException.class, unknownResult::failNow);
+        assertEquals("Unknown Result type", exception.getMessage());
     }
 }
