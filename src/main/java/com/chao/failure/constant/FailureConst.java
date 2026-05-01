@@ -25,7 +25,7 @@ public final class FailureConst {
 
     // ==================== Regular Expressions ====================
     public static final Pattern Card = Pattern.compile("^\\d{15,19}$");
-    public static final Pattern Email = Pattern.compile("^(.)(.+)(@.+)$");
+    public static final Pattern Email = Pattern.compile("^([^@])([^@]*)(@.*)$");
     public static final Pattern Mobile = Pattern.compile("^1[3-9]\\d{9}$");
     public static final Pattern Email_Pattern = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
     public static final Pattern IP4 = Pattern.compile("^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$");

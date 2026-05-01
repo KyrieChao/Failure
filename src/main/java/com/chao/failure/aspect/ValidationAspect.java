@@ -61,6 +61,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Order(100)
 @ToImprove(value = "Too long, need optimization later", version = "1.2.0", tag = "1.8.0")
+@SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
 public class ValidationAspect {
 
     /**
@@ -83,12 +84,16 @@ public class ValidationAspect {
 
     @Autowired
     private ApplicationContext applicationContext;
+
     @Autowired(required = false)
     private Validator validator;
+
     @Autowired(required = false)
     private SkipTypeRegistry skipTypeRegistry;
+
     @Autowired(required = false)
     private ValidatorRegistry validatorRegistry;
+
     @Autowired(required = false)
     private ValidatorWhitelistRegistry validatorWhitelistRegistry;
 
