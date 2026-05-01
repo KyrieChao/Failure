@@ -83,16 +83,12 @@ public class ValidationAspect {
 
     @Autowired
     private ApplicationContext applicationContext;
-
     @Autowired(required = false)
     private Validator validator;
-
     @Autowired(required = false)
     private SkipTypeRegistry skipTypeRegistry;
-
     @Autowired(required = false)
     private ValidatorRegistry validatorRegistry;
-
     @Autowired(required = false)
     private ValidatorWhitelistRegistry validatorWhitelistRegistry;
 

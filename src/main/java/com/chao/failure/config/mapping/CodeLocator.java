@@ -274,7 +274,7 @@ public final class CodeLocator {
         if (ranges != null && !ranges.isEmpty()) {
             all.addAll(ranges);
         }
-        if (exactCodes != null && exactCodes.length > 0) {
+        if (exactCodes != null) {
             for (int v : exactCodes) {
                 all.add(new CodeRange(v, v));
             }

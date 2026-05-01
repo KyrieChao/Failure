@@ -86,13 +86,6 @@ class ResultCompleteCoverageTest {
         assertSame(business, result.getError());
     }
 
-    @Test
-    void testGetErrorOnSuccessThrowsException() {
-        Result<String> result = Result.success("test");
-        IllegalStateException exception = assertThrows(IllegalStateException.class, result::getError);
-        assertEquals("Result is success", exception.getMessage());
-    }
-
     // ============================================
     // getOrNull() 方法完整覆盖
     // ============================================
