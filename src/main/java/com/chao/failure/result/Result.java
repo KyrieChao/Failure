@@ -312,8 +312,13 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
      * @throws Business Thrown when Result is failure state
      */
     public T failNow() {
-        if (this instanceof Result.Fail<T> f) throw f.error;
-        return get();
+        if (this instanceof Success<T> s) {
+            return s.data;
+        }
+        if (this instanceof Result.Fail<T> f) {
+            throw f.error;
+        }
+        throw new IllegalStateException("Unknown Result type");
     }
 
     /**

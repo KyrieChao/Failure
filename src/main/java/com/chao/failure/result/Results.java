@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 
 /**
@@ -566,7 +567,7 @@ public final class Results {
      */
     public static <T> Supplier<Result<T>> defer(Supplier<Result<T>> supplier) {
         return new Supplier<>() {
-            private volatile Result<T> result;
+            private final AtomicReference<Result<T>> result = new AtomicReference<>();
             private volatile boolean computed = false;
 
             @Override
@@ -574,12 +575,12 @@ public final class Results {
                 if (!computed) {
                     synchronized (this) {
                         if (!computed) {
-                            result = supplier.get();
+                            result.set(supplier.get());
                             computed = true;
                         }
                     }
                 }
-                return result;
+                return result.get();
             }
         };
     }

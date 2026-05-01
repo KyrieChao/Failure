@@ -16,7 +16,7 @@ class DefaultErrorPolicyTest {
     @Test
 @DisplayName("display")
     void instanceShouldReturnSingletonInstance() {
-        assertThat(DefaultErrorPolicy.INSTANCE).isSameAs(DefaultErrorPolicy.INSTANCE);
+        assertThat(policy).isSameAs(DefaultErrorPolicy.INSTANCE);
     }
 
     @Test

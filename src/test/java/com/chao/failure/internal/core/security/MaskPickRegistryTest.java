@@ -5,6 +5,8 @@ import com.chao.failure.spi.security.MaskPick;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class MaskPickRegistryTest {
@@ -88,9 +90,12 @@ class MaskPickRegistryTest {
 
     @Test
     void getDefaultWhenResolverIsNullViaReflection() throws Exception {
-        java.lang.reflect.Field resolverField = MaskPickRegistry.class.getDeclaredField("resolver");
+        java.lang.reflect.Field resolverField = MaskPickRegistry.class.getDeclaredField("RESOLVER");
         resolverField.setAccessible(true);
-        resolverField.set(null, null);
+        @SuppressWarnings("unchecked")
+        AtomicReference<MaskPick> ref = (AtomicReference<MaskPick>) resolverField.get(null);
+        MaskPick previous = ref.get();
+        ref.set(null);
         
         try {
             MaskPick result = MaskPickRegistry.getDefault();
@@ -98,7 +103,7 @@ class MaskPickRegistryTest {
             assertNotNull(result);
             assertNull(result.resolve("test.field"));
         } finally {
-            MaskPickRegistry.setDefault(null);
+            ref.set(previous);
         }
     }
 }

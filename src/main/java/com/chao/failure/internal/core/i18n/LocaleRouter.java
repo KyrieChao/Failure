@@ -4,6 +4,7 @@ import com.chao.failure.internal.core.ResponseCode;
 import com.chao.failure.spi.i18n.LocalizedResponseResolver;
 
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 /**
@@ -20,10 +21,8 @@ public final class LocaleRouter {
      */
     private static final LocalizedResponseResolver FALLBACK = new LocalizedResponseResolver() {
     };
-    /**
-     * Currently used localized response resolver, using volatile keyword to ensure visibility in multi-threaded environment
-     */
-    private static volatile LocalizedResponseResolver resolver = FALLBACK;
+
+    private static final AtomicReference<LocalizedResponseResolver> RESOLVER = new AtomicReference<>(FALLBACK);
 
     /**
      * Private constructor to prevent external instantiation of this class
@@ -36,7 +35,7 @@ public final class LocaleRouter {
      * @param localizedResponseResolver Resolver to set, uses default fallback resolver if null
      */
     public static void setDefault(LocalizedResponseResolver localizedResponseResolver) {
-        resolver = localizedResponseResolver != null ? localizedResponseResolver : FALLBACK;
+        RESOLVER.set(localizedResponseResolver != null ? localizedResponseResolver : FALLBACK);
     }
 
     /**
@@ -65,6 +64,7 @@ public final class LocaleRouter {
      * @return Currently used resolver, returns default fallback resolver if null
      */
     private static LocalizedResponseResolver getDefault() {
-        return resolver != null ? resolver : FALLBACK;
+        LocalizedResponseResolver current = RESOLVER.get();
+        return current != null ? current : FALLBACK;
     }
 }
