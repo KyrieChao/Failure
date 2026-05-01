@@ -61,7 +61,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Order(100)
 @ToImprove(value = "Too long, need optimization later", version = "1.2.0", tag = "1.8.0")
-@SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
 public class ValidationAspect {
 
     /**
@@ -126,8 +125,6 @@ public class ValidationAspect {
             ctx.setScene(sceneName);
             sceneApplied = true;
         }
-
-        boolean success = false;
         try {
             if (validatorClasses.length == 0 && groups.length == 0 && scenes[0] == Scenario.DEFAULT && validatorRegistry == null) {
                 return point.proceed();
@@ -196,11 +193,9 @@ public class ValidationAspect {
         if (validator == null) return errors;
 
         for (Object arg : args) {
-            Set<ConstraintViolation<Object>> violations = groups.length > 0 ?
-                    validator.validate(arg, groups) : validator.validate(arg);
+            Set<ConstraintViolation<Object>> violations = groups.length > 0 ? validator.validate(arg, groups) : validator.validate(arg);
 
             for (ConstraintViolation<Object> violation : violations) {
-                // Scene filtering
                 if (!shouldKeepViolation(violation, scenes)) {
                     continue;
                 }
@@ -208,16 +203,12 @@ public class ValidationAspect {
                 String path = violation.getPropertyPath().toString();
                 String message = violation.getMessage();
                 Object invalidValue = violation.getInvalidValue();
-
-                // Determine whether to write invalidValue based on FailureContext/ErrorPolicy
                 String location = formatValidationLocation(violation.getRootBeanClass(), path);
                 Business.Fabricator fabricator = Business.compose()
                         .responseCode(ResponseCode.VALIDATION_ERROR_400)
                         .detail(message)
                         .location(location)
                         .path(path);
-
-                // Check if invalidValue needs to be captured
                 FailureContext ctx = Ex.getContext();
                 ErrorPolicy policy = ctx != null ? java.util.Objects.requireNonNullElse(ctx.getErrorPolicy(), DefaultErrorPolicy.INSTANCE) : DefaultErrorPolicy.INSTANCE;
                 if (invalidValue != null && policy.captureInvalidValue(ctx)) {
