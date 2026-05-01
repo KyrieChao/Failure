@@ -316,7 +316,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         if (this instanceof Result.Fail<T> f) {
             throw f.error;
         }
-        throw new IllegalStateException("Unknown Result type");
+        return null;
     }
 
     /**
@@ -397,7 +397,7 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
         if (this instanceof Result.Fail<?> f) {
             return Mono.error(f.error);
         }
-        return Mono.error(new IllegalStateException("Result is in unknown state"));
+        return null;
     }
 
     public Flux<T> toFlux() {
