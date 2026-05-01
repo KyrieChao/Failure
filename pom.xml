@@ -257,6 +257,17 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- OWASP Dependency Check 安全漏洞扫描 -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>12.1.0</version>
+                <configuration>
+                    <format>HTML</format>
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
