@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -36,13 +36,13 @@ jobs:
           mvn sonar:sonar \
             -Dsonar.projectKey=KyrieChao_Failure \
             -Dsonar.organization=kyriechao \
-            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.host.url=https://sonarcloud.io  \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
             -Dsonar.java.binaries=target/classes \
             -B --no-transfer-progress
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
         if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
