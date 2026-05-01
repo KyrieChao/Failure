@@ -367,7 +367,10 @@ public sealed class Result<T> permits Result.Success, Result.Fail {
             Result<R> failResult = (Result<R>) other;
             return failResult;
         }
-        return Result.success(combiner.apply(this.get(), other.get()));
+        if (this instanceof Success<T> s1 && other instanceof Success<U> s2) {
+            return Result.success(combiner.apply(s1.data, s2.data));
+        }
+        throw new IllegalStateException("Unknown Result type");
     }
 
 // ============ Conversion Operations ============

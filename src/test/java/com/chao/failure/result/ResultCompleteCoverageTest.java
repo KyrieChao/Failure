@@ -422,6 +422,46 @@ class ResultCompleteCoverageTest {
         assertSame(result1, combined);
     }
 
+    @Test
+    void testCombineInstanceofShortCircuitBranch1_thisNotSuccess() throws Exception {
+        // 分支 1: this instanceof Success<T> 为 false，短路，不检查 other instanceof Success<U>
+        Constructor<?> constructor = Result.class.getDeclaredConstructor(int.class, String.class, String.class);
+        constructor.setAccessible(true);
+
+        // this 是非 Success 类型，other 是 Success 类型
+        Result<String> thisNotSuccess = (Result<String>) constructor.newInstance(200, "Success", "Description");
+        Result<String> otherSuccess = Result.success("other");
+
+        // this 不是 Success，直接抛出异常（不检查 other 是否是 Success）
+        assertThrows(IllegalStateException.class, 
+            () -> thisNotSuccess.combine(otherSuccess, (a, b) -> a + b));
+    }
+
+    @Test
+    void testCombineInstanceofShortCircuitBranch2_otherNotSuccess() throws Exception {
+        // 分支 2: this instanceof Success<T> 为 true，other instanceof Success<U> 为 false
+        Constructor<?> constructor = Result.class.getDeclaredConstructor(int.class, String.class, String.class);
+        constructor.setAccessible(true);
+
+        // this 是 Success 类型，other 是非 Success 类型
+        Result<String> thisSuccess = Result.success("this");
+        Result<String> otherNotSuccess = (Result<String>) constructor.newInstance(200, "Success", "Description");
+
+        // 检查第二个条件 other instanceof Success<U> 时为 false，抛出异常
+        assertThrows(IllegalStateException.class, 
+            () -> thisSuccess.combine(otherNotSuccess, (a, b) -> a + b));
+    }
+
+    @Test
+    void testCombineInstanceofShortCircuitBranch3_bothSuccess() {
+        // 分支 3: 两个条件都为 true，正常执行组合逻辑
+        Result<Integer> result1 = Result.success(2);
+        Result<Integer> result2 = Result.success(3);
+        Result<Integer> combined = result1.combine(result2, Integer::sum);
+        assertTrue(combined.isSuccess());
+        assertEquals(5, combined.get());
+    }
+
     // ============================================
     // toOptional() 方法完整覆盖
     // ============================================
@@ -867,6 +907,25 @@ class ResultCompleteCoverageTest {
         Result<String> unknownResult = (Result<String>) constructor.newInstance(400, "Test", "Description");
         
         IllegalStateException exception = assertThrows(IllegalStateException.class, unknownResult::failNow);
+        assertEquals("Unknown Result type", exception.getMessage());
+    }
+
+    // ============================================
+    // 测试 combine() 的未知类型分支
+    // ============================================
+
+    @Test
+    void testCombineUnknownResultType() throws Exception {
+        // 使用反射创建两个未知类型的 Result 实例
+        Constructor<?> constructor = Result.class.getDeclaredConstructor(int.class, String.class, String.class);
+        constructor.setAccessible(true);
+
+        Result<String> unknownResult1 = (Result<String>) constructor.newInstance(200, "Success", "Description");
+        Result<String> unknownResult2 = (Result<String>) constructor.newInstance(200, "Success", "Description");
+
+        // 调用 combine 方法，应该会抛出 IllegalStateException
+        IllegalStateException exception = assertThrows(IllegalStateException.class, 
+            () -> unknownResult1.combine(unknownResult2, (a, b) -> a + b));
         assertEquals("Unknown Result type", exception.getMessage());
     }
 }
