@@ -1,16 +1,22 @@
 # Failure Spring Boot Starter
 
-[![Java CI with Maven](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml/badge.svg)](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/KyrieChao/Failure/branch/main/graph/badge.svg)](https://codecov.io/gh/KyrieChao/Failure)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Java 17+](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/technologies/downloads/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.kyriechao/failure-spring-boot-starter)
 [![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
-[![Sponsor](https://img.shields.io/badge/Sponsor-Aifadian-946ce6?style=flat-square)](https://ifdian.net/a/chao242702)
-[![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
-[![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg?label=release)](...)
 
+[![Java CI with Maven](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml/badge.svg)](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/KyrieChao/Failure/branch/main/graph/badge.svg)](https://codecov.io/gh/KyrieChao/Failure)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=KyrieChao_Failure&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=KyrieChao_Failure)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/KyrieChao/Failure/badge)](https://scorecard.dev/viewer/?uri=github.com/KyrieChao/Failure)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12712/badge)](https://www.bestpractices.dev/projects/12712)
+
+[![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
+[![Repo size](https://img.shields.io/github/repo-size/KyrieChao/Failure)](https://github.com/KyrieChao/Failure)
+[![爱发电](https://img.shields.io/badge/爱发电-支持作者-946ce6?style=flat-square)](https://ifdian.net/a/chao242702)
+[![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
 
 [中文版本](./README.md)
 
