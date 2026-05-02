@@ -23,8 +23,8 @@ public abstract class TypedValidator implements FastValidator<Object> {
      */
     private final Map<Class<?>, BiConsumer<Object, ValidationContext>> validators = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Class<?>, Object> resolvedHandlers = new ConcurrentHashMap<>();
-    private static final Object NO_HANDLER = new Object();
     private final AtomicReference<Set<Class<?>>> registeredTypesCache = new AtomicReference<>();
+    private static final Object NO_HANDLER = new Object();
 
     /**
      * Constructor.

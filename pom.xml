@@ -179,9 +179,6 @@
                     <compilerArgs>
                         <arg>-parameters</arg>
                     </compilerArgs>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
                 </configuration>
             </plugin>
 
@@ -274,7 +271,7 @@
                     </execution>
                     <execution>
                         <id>check</id>
-                        <phase>verify</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
