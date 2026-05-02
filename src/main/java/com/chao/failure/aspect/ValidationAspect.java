@@ -478,7 +478,7 @@ public class ValidationAspect {
 
     private FastValidator<Object> newValidatorInstance(Class<? extends FastValidator<Object>> key) {
         try {
-            if (validatorWhitelistRegistry != null && !validatorWhitelistRegistry.isWhitelisted((Class<? extends FastValidator<?>>) key)) {
+            if (validatorWhitelistRegistry != null && !validatorWhitelistRegistry.isWhitelisted(key)) {
                 throw new SecurityException("Validator is not whitelisted: " + key.getName());
             }
             if (key.isInterface() || Modifier.isAbstract(key.getModifiers())) {
