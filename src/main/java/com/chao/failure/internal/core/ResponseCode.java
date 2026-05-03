@@ -1,13 +1,11 @@
 package com.chao.failure.internal.core;
 
-
 /**
  * Response code interface - Support configurable HTTP status mapping.
  *
  * @author Kyrie Chao
  * @version 1.3.1
  */
-
 public interface ResponseCode {
 
     // ==================== Framework Built-in Error Codes ====================
