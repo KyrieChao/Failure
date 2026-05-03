@@ -1,6 +1,5 @@
 package com.chao.failure.aspect;
 
-import com.chao.failure.validator.FastValidator;
 import com.chao.failure.annotation.SkipValidation;
 import com.chao.failure.annotation.ToImprove;
 import com.chao.failure.annotation.Validate;
@@ -18,6 +17,7 @@ import com.chao.failure.spi.filter.SkipTypeRegistry;
 import com.chao.failure.spi.validation.ValidatorRegistry;
 import com.chao.failure.spi.validation.ValidatorWhitelistRegistry;
 import com.chao.failure.util.ReflectionCache;
+import com.chao.failure.validator.FastValidator;
 import com.chao.failure.validator.TypedValidator;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;

@@ -1,6 +1,5 @@
 package com.chao.failure.internal.chain.pipeline;
 
-import com.chao.failure.validator.FastValidator.ValidationContext;
 import com.chao.failure.condition.Predicate;
 import com.chao.failure.constant.Scenario;
 import com.chao.failure.exception.Business;
@@ -12,6 +11,7 @@ import com.chao.failure.internal.policy.ErrorPolicy;
 import com.chao.failure.internal.validation.ObjectGraphWalker;
 import com.chao.failure.internal.validation.RecursiveOption;
 import com.chao.failure.internal.validation.ValidationEventManager;
+import com.chao.failure.validator.FastValidator.ValidationContext;
 import com.chao.failure.validator.TypedValidator;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,62 +35,21 @@ import java.util.function.Supplier;
  * @version 1.3.1
  */
 public abstract class ChainCore<S extends ChainCore<S>> {
+
+    private static final Logger log = LoggerFactory.getLogger(ChainCore.class);
     private static final int DEFAULT_STRICT_MAX_ERRORS = 50;
-
-
-    /**
-     * Notify observer of validation start.
-     *
-     * @param source validation source
-     * @param scene validation scene
-     */
-    protected void notifyValidationStart(String source, String scene) {
-        ValidationEventManager.notifyStart(source, scene);
-    }
-
-    /**
-     * Notify observer of validation end.
-     *
-     * @param source validation source
-     * @param durationNanos duration in nanoseconds
-     * @param success whether validation was successful
-     */
-    protected void notifyValidationEnd(String source, long durationNanos, boolean success) {
-        ValidationEventManager.notifyEnd(source, durationNanos, success);
-    }
-
-    /**
-     * Notify observer of validation failure.
-     *
-     * @param source validation source
-     * @param errorCode error code
-     */
-    protected void notifyValidationFailure(String source, String errorCode) {
-        ValidationEventManager.notifyFailure(source, errorCode);
-    }
-
-    /**
-     * Notify observer of violation.
-     *
-     * @param source validation source
-     * @param constraint constraint name
-     */
-    protected void notifyViolation(String source, String constraint) {
-        ValidationEventManager.notifyViolation(source, constraint);
-    }
 
     @Getter
     protected final boolean failFast;
     @Getter
     protected boolean alive = true;
-    // Dynamic skip state (true=execute, false=skip)
     @Getter
     private boolean conditionState = true;
-    // OR state
-    private boolean orMode = false;
-    private boolean orHasSuccess = false;
     @Getter
     private boolean errorsTruncated = false;
+
+    private boolean orMode = false;
+    private boolean orHasSuccess = false;
     protected final ValidationContext context;
     protected final List<Business> errors = new ArrayList<>();
     private final List<AsyncCheck> asyncChecks = new ArrayList<>();
@@ -102,7 +61,21 @@ public abstract class ChainCore<S extends ChainCore<S>> {
     private record AsyncCheck(CompletionStage<Boolean> stage, ResponseCode code, String detail) {
     }
 
-    private static final Logger log = LoggerFactory.getLogger(ChainCore.class);
+    protected void notifyValidationStart(String source, String scene) {
+        ValidationEventManager.notifyStart(source, scene);
+    }
+
+    protected void notifyValidationEnd(String source, long durationNanos, boolean success) {
+        ValidationEventManager.notifyEnd(source, durationNanos, success);
+    }
+
+    protected void notifyValidationFailure(String source, String errorCode) {
+        ValidationEventManager.notifyFailure(source, errorCode);
+    }
+
+    protected void notifyViolation(String source, String constraint) {
+        ValidationEventManager.notifyViolation(source, constraint);
+    }
 
     protected ChainCore(boolean failFast, ValidationContext context) {
         this.failFast = failFast;
