@@ -4,17 +4,14 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Java 17+](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/technologies/downloads/)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg?label=release)](...)
 [![Java CI with Maven](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml/badge.svg)](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/KyrieChao/Failure/branch/main/graph/badge.svg)](https://codecov.io/gh/KyrieChao/Failure)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=KyrieChao_Failure&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=KyrieChao_Failure)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12712/badge)](https://www.bestpractices.dev/projects/12712)
-[![codecov](https://codecov.io/gh/KyrieChao/Failure/branch/main/graph/badge.svg)](https://codecov.io/gh/KyrieChao/Failure)
 [![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/KyrieChao/Failure/badge)](https://scorecard.dev/viewer/?uri=github.com/KyrieChao/Failure)
-[![Repo size](https://img.shields.io/github/repo-size/KyrieChao/Failure)](https://github.com/KyrieChao/Failure)
-[![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
 [![爱发电](https://img.shields.io/badge/爱发电-支持作者-946ce6?style=flat-square)](https://ifdian.net/a/chao242702)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
+
 
 [中文版本](./README.md)
 
@@ -202,6 +199,50 @@ JMH microbenchmark results (vs Hibernate Validator):
 
 ---
 
+### ⚡ Real-World Example: Order Creation
+
+A basic demo doesn't show the framework's true power. Here's a **complete order creation** validation covering null, collection, numeric, cross-field checks, and `at()` path markers:
+
+```java
+public interface OrderCode {
+    ResponseCode USER_REQUIRED   = ResponseCode.of(40001, "USER_REQUIRED", "Order user is required");
+    ResponseCode ITEMS_EMPTY     = ResponseCode.of(40002, "ITEMS_EMPTY", "Order items cannot be empty");
+    ResponseCode TOTAL_INVALID   = ResponseCode.of(40003, "TOTAL_INVALID", "Order total must be positive");
+    ResponseCode DISCOUNT_EXCEED = ResponseCode.of(40004, "DISCOUNT_EXCEED", "Discount cannot exceed order total");
+}
+
+@PostMapping("/order")
+public Result<?> createOrder(@RequestBody @Valid CreateOrderReq req) {
+    Failure.strict()                                    // Strict mode: collects all errors
+        .at("userId")
+            .notNull(req.getUserId(), OrderCode.USER_REQUIRED)
+        .at("items")
+            .notEmpty(req.getItems(), OrderCode.ITEMS_EMPTY)
+        .at("total")
+            .positive(req.getTotal(), OrderCode.TOTAL_INVALID)
+        .at("total", req.getTotal())                    // 2nd arg = snapshot on failure
+            .check(t -> t.compareTo(req.getDiscount()) > 0, OrderCode.DISCOUNT_EXCEED,
+                   String.format("Discount %.2f exceeds total %.2f", req.getDiscount(), req.getTotal()))
+        .at("items", "sku")
+            .forEach(req.getItems(), item ->
+                item.getSku() != null && !item.getSku().isBlank(),
+                OrderCode.ITEMS_EMPTY)
+        .failAll();                                     // Throws all errors at once
+    orderService.create(req);
+    return Result.ok("Order created");
+}
+```
+
+**What this demonstrates**:
+- `at(path)` — binds each check to a field path for frontend error positioning
+- `at(path, value)` — captures value snapshot on failure (pair with `debug-snapshot: true`)
+- `strict()` + `failAll()` — collects all errors, essential for forms
+- `.check(boolean, code, detail)` — cross-field or custom condition checks
+- `String.format` for dynamic detail — errors carry real-time data
+- `@Valid` + `Failure.strict()` pairing — JSR-303 for fields, Failure for business rules
+
+---
+
 ## 🛠️ Quick Start
 
 ### 1. Requirements
@@ -273,19 +314,23 @@ Failure.begin()
     .fail();
 ```
 
-**Terminal Methods**:
+**Terminal Methods Comparison**:
 
-| Method                    | Description                                                                           |
-|:--------------------------|:--------------------------------------------------------------------------------------|
-| `.fail()`                 | Standard terminal method, throws the first exception if errors exist                  |
-| `.failNow(code, message)` | **Force Immediate Failure**, throws specified exception regardless of previous checks |
+| Method | Mode | On error | On success | Typical scenario |
+|--------|------|----------|------------|------------------|
+| `.fail()` | begin() | Throws first `Business` | Continues | Fast-fail, input defense |
+| `.failAll()` | strict() | Throws `MultiBusiness` (single if only 1) | Continues | Forms, batch import, collect all |
+| `.verify()` | with(ctx) | Writes to ctx silently | No-op | Annotation-driven, decoupled |
+| `.failAsync()` | begin() | Async throw first error | Async continue | Remote check, async fast-fail |
+| `.failAllAsync()` | strict() | Async throw aggregated | Async continue | Async batch validation |
+| `.verifyAsync()` | any | Async return boolean | Async return true | Async pass/fail check |
 
 ```java
 // Force fail example: Permission check
 Failure.begin()
     .notNull(user, UserCode.USER_NOT_FOUND)
     .failNow(UserCode.PERMISSION_DENIED, "Access Denied")  // Throws immediately
-    .state(user.getRole() ==Role.ADMIN,UserCode.PERMISSION_DENIED)  // Will not execute
+    .state(user.getRole() == Role.ADMIN, UserCode.PERMISSION_DENIED)  // Will not execute
     .fail();
 ```
 
@@ -359,7 +404,44 @@ public class UserRegisterValidator implements FastValidator<UserRegisterDTO> {
 
 ---
 
-### 4.4 Exception Handling & JSR-303 Compatibility
+### 🔀 Selection Guide: Which approach should I use?
+
+Failure provides two core approaches — **Chain API** and **@Validate annotation**. Here's how to choose.
+
+**Decision tree**:
+
+```
+What are you validating?
+├─ Simple null/format checks inside Controller/Service
+│   → Chain API: Failure.begin() / Failure.strict()
+│     Why: intuitive, no extra setup, works inline
+│
+├─ Reusable validation logic shared across multiple endpoints
+│   → @Validate + FastValidator or TypedValidator
+│     Why: decouples validation from business code, write once reuse everywhere
+│
+├─ Both — DTO field constraints + cross-field business rules
+│   → @Valid (JSR-303) + Chain API together
+│     Why: @Valid for field-level (notNull/email), Chain for relational checks
+│
+└─ Functional pipeline / data processing
+    → Result<T> / Results
+      Why: chainable map/flatMap/recover for data pipelines
+```
+
+**Quick comparison**:
+
+| Dimension | Chain API | @Validate + FastValidator |
+|-----------|-----------|--------------------------|
+| Coding style | Fluent calls inline | Separate Validator class, annotation |
+| Reusability | Copy-paste for same logic | Shared across controllers |
+| Learning curve | Low (IDE autocomplete) | Medium (understand ValidationContext) |
+| Best for | Rapid prototyping, one-off checks | Complex logic, team collaboration |
+| JSR-303 mix | Pairs with @Valid on DTOs | Pairs with @Valid, errors unified |
+
+---
+
+### Exception Handling & JSR-303 Compatibility
 
 The framework provides built-in `FailFastExceptionHandler`, which not only handles its own business exceptions but also
 perfectly integrates with Spring's native JSR-303 (`@Valid` / `@Validated`) validation.
@@ -565,5 +647,4 @@ Issues and Pull Requests are welcome! Please:
 Apache License 2.0 - See [LICENSE](LICENSE) for details.
 
 ---
-**Author**: [KyrieChao](https://github.com/KyrieChao)
 **Author**: [KyrieChao](https://github.com/KyrieChao)
