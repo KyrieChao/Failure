@@ -4,17 +4,14 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Java 17+](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/technologies/downloads/)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.kyriechao/failure-spring-boot-starter.svg?label=release)](...)
 [![Java CI with Maven](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml/badge.svg)](https://github.com/KyrieChao/Failure/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/KyrieChao/Failure/branch/main/graph/badge.svg)](https://codecov.io/gh/KyrieChao/Failure)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=KyrieChao_Failure&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=KyrieChao_Failure)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12712/badge)](https://www.bestpractices.dev/projects/12712)
-[![codecov](https://codecov.io/gh/KyrieChao/Failure/branch/main/graph/badge.svg)](https://codecov.io/gh/KyrieChao/Failure)
 [![Release](https://jitpack.io/v/KyrieChao/Failure.svg)](https://jitpack.io/#KyrieChao/Failure)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/KyrieChao/Failure/badge)](https://scorecard.dev/viewer/?uri=github.com/KyrieChao/Failure)
-[![Repo size](https://img.shields.io/github/repo-size/KyrieChao/Failure)](https://github.com/KyrieChao/Failure)
-[![Last Commit](https://img.shields.io/github/last-commit/KyrieChao/Failure?logo=git&color=yellow)](https://github.com/KyrieChao/Failure/commits/main)
 [![爱发电](https://img.shields.io/badge/爱发电-支持作者-946ce6?style=flat-square)](https://ifdian.net/a/chao242702)
 [![Stars](https://img.shields.io/github/stars/KyrieChao/Failure?style=social&logo=github)](https://github.com/KyrieChao/Failure/stargazers)
+
 
 [English Version](./README.en.md)
 
@@ -159,6 +156,50 @@ Failure.begin()
 
 ---
 
+### ⚡ 真实业务示例：订单创建
+
+光看基础示例看不出框架威力。下面是一个**订单创建接口**的完整校验，涵盖了空值、集合、数值、跨字段关联校验，以及 `at()` 路径标记：
+
+```java
+public interface OrderCode {
+    ResponseCode USER_REQUIRED   = ResponseCode.of(40001, "USER_REQUIRED", "下单用户不能为空");
+    ResponseCode ITEMS_EMPTY     = ResponseCode.of(40002, "ITEMS_EMPTY", "订单商品不能为空");
+    ResponseCode TOTAL_INVALID   = ResponseCode.of(40003, "TOTAL_INVALID", "订单金额必须大于0");
+    ResponseCode DISCOUNT_EXCEED = ResponseCode.of(40004, "DISCOUNT_EXCEED", "优惠不能超过订单总额");
+}
+
+@PostMapping("/order")
+public Result<?> createOrder(@RequestBody @Valid CreateOrderReq req) {
+    Failure.strict()                                    // 全量收集，一次返回所有错误
+        .at("userId")
+            .notNull(req.getUserId(), OrderCode.USER_REQUIRED)
+        .at("items")
+            .notEmpty(req.getItems(), OrderCode.ITEMS_EMPTY)
+        .at("total")
+            .positive(req.getTotal(), OrderCode.TOTAL_INVALID)
+        .at("total", req.getTotal())                    // 第二个参数 = 失败时快照的值
+            .check(t -> t.compareTo(req.getDiscount()) > 0, OrderCode.DISCOUNT_EXCEED,
+                   String.format("优惠%.2f超过订单总额%.2f", req.getDiscount(), req.getTotal()))
+        .at("items", "sku")
+            .forEach(req.getItems(), item ->            // 遍历校验每个商品
+                req.getSku() != null && !req.getSku().isBlank()
+            , OrderCode.ITEMS_EMPTY)
+        .failAll();                                     // 所有错误一次性抛出
+    orderService.create(req);
+    return Result.ok("下单成功");
+}
+```
+
+**这个示例展示了**：
+- `at(path)` — 为每个校验绑定字段路径，前端可以精准定位哪个输入框
+- `at(path, value)` — 记录失败瞬间的值快照（配合 `debug-snapshot: true`）
+- `strict()` + `failAll()` — 全量收集，表单场景必备
+- `.check(boolean, code, detail)` — 做跨字段或自定义条件校验
+- `String.format` 拼接动态 detail — 错误信息包含实时数据
+- `@Valid` + `Failure.strict()` 搭档 — JSR-303 做基础校验，Failure 做业务校验，互补不冲突
+
+---
+
 ## 📚 文档导航
 
 | 文档                         | 内容                            |
@@ -271,15 +312,19 @@ Failure.begin()
 ```
 
 
-**终结方法对比**:
+**终结方法对照表**:
 
-| 方法                      | 说明                 |
-| ------------------------- |--------------------|
-| `.fail()`                 | 标准终结方法，有错误时抛出第一个异常 |
-| `.failNow(code, message)` | 多数时候用于**分组校验**不用重写错误码 |
+| 方法 | 适用模式 | 有错时行为 | 无错时行为 | 典型场景 |
+|------|---------|-----------|-----------|---------|
+| `.fail()` | begin() | 抛第一个 `Business` | 继续执行 | 快速失败，入口防御 |
+| `.failAll()` | strict() | 抛 `MultiBusiness`（仅1个则抛 `Business`） | 继续执行 | 表单/批量导入，全量返回 |
+| `.verify()` | with(ctx) | 错误写入 ctx，不抛异常 | 无操作 | 注解驱动，解耦校验 |
+| `.failAsync()` | begin() | 异步抛第一个异常 | 异步继续 | 远程校验、异步快速失败 |
+| `.failAllAsync()` | strict() | 异步抛聚合异常 | 异步继续 | 异步批量校验 |
+| `.verifyAsync()` | 任意 | 异步返回 boolean | 异步返回 true | 异步判断是否通过 |
 
 ```java
-// 强制失败示例：权限检查
+// 示例：权限检查用 failNow 立即终止
 Failure.begin()
     .notNull(user, UserCode.USER_NOT_FOUND)
     .failNow(UserCode.PERMISSION_DENIED, "当前角色无权访问")  // 直接抛出，后续不执行
@@ -357,8 +402,44 @@ public class UserRegisterValidator implements FastValidator<UserRegisterDTO> {
 
 ---
 
+### 🔀 选型指南：我该用哪种方式？
 
-### 4.4 异常处理与 JSR-303 兼容
+Failure 提供了两套核心用法——**Chain API（链式调用）**和 **@Validate（注解驱动）**。很多新手会困惑什么时候用哪个。
+
+**决策树**：
+
+```
+你要校验什么？
+├─ 简单的判空/格式校验（写在 Controller/Service 里）
+│   → Chain API: Failure.begin() / Failure.strict()
+│     理由：直观、无额外配置、即写即用
+│
+├─ 需要复用校验逻辑（多个接口共享同一套校验规则）
+│   → @Validate + FastValidator 或 TypedValidator
+│     理由：校验逻辑与业务解耦，一处定义多处复用
+│
+├─ 两者都要 —— DTO 基础校验 + 跨字段业务校验
+│   → @Valid (JSR-303) + Chain API 搭配使用
+│     理由：@Valid 做字段约束（notNull/email），Chain 做关联校验
+│
+└─ 函数式组合/管道处理
+    → Result<T> / Results
+      理由：链式 map/flatMap/recover，适合数据处理流水线
+```
+
+**两种核心用法的对比**：
+
+| 维度 | Chain API | @Validate + FastValidator |
+|------|-----------|--------------------------|
+| 写法 | 在业务方法内链式调用 | 独立 Validator 类，注解标注 |
+| 复用性 | 相同校验逻辑需要拷贝 | 多个 Controller 共享 |
+| 学习成本 | 低（IDE 自动补全即可） | 中（需理解 ValidationContext） |
+| 适合 | 快速原型、一次性校验 | 复杂业务、团队协作 |
+| 混合 JSR-303 | 可搭配 @Valid 在 DTO 上 | 可搭配 @Valid，且 JSR-303 错误统一处理 |
+
+---
+
+### 异常处理与 JSR-303 兼容
 
 框架内置了 `FailFastExceptionHandler`，不仅处理自身的业务异常，还完美兼容 Spring 原生的 JSR-303 (`@Valid` / `@Validated`) 校验。
 

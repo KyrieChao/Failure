@@ -182,3 +182,83 @@ fail-fast:
 ```
 
 建议将 `http-status` / `severity-mapping` 的 code key 写成字符串（加引号）以避免 YAML 把其当作数字导致绑定差异。
+
+---
+
+## 环境配置推荐档
+
+不同环境的关注点不同，以下是针对开发、测试、生产三套环境的推荐配置。
+
+### 开发环境（本地调试优先）
+
+```yaml
+fail-fast:
+  shadow-trace: true          # 出错了知道是哪行代码
+  trim-stack-trace: false     # 保留完整堆栈，方便排查
+  verbose: true               # 返回完整 errors 明细
+  debug-snapshot: true        # 附带失败值快照
+  logging:
+    banner: true              # 启动时确认框架已加载
+    default-severity: DEBUG
+  masking:
+    structured-enabled: false # 开发时不脱敏，裸看数据
+```
+
+### 测试环境（模拟线上 + 可排查）
+
+```yaml
+fail-fast:
+  shadow-trace: true
+  trim-stack-trace: false
+  verbose: true
+  debug-snapshot: true
+  trace-id:
+    enabled: true
+    header-name: X-Trace-Id
+    generate-if-missing: true
+    mdc-enabled: true
+    mdc-key: traceId
+  masking:
+    structured-enabled: true  # 验证脱敏逻辑是否正常
+    max-depth: 3
+```
+
+### 生产环境（安全 + 性能优先）
+
+```yaml
+fail-fast:
+  shadow-trace: false         # 不暴露代码路径
+  trim-stack-trace: true      # 精简日志
+  verbose: false              # 不返回 errors 明细（防信息泄露）
+  debug-snapshot: false       # 不上报参数值
+  trace-id:
+    enabled: true
+    header-name: X-Trace-Id
+    generate-if-missing: true
+    response-header: true     # 回传 traceId 给前端，方便用户反馈时定位
+    response-header-name: X-Trace-Id
+    mdc-enabled: true
+    mdc-key: traceId
+  masking:
+    structured-enabled: true  # 生产必开
+    max-depth: 2              # 浅层即可，减少开销
+    max-fields: 20
+    max-collection-size: 10
+  chain:
+    max-errors: 20            # 限制 strict 模式收集数量，防止内存膨胀
+  logging:
+    banner: false             # 关闭启动 banner
+    default-severity: WARN    # 只有 WARN+ 才记录
+```
+
+### 配置要点总结
+
+| 配置项 | 开发 | 测试 | 生产 | 原因 |
+|--------|------|------|------|------|
+| `shadow-trace` | true | true | **false** | 生产不应暴露代码路径 |
+| `trim-stack-trace` | false | false | **true** | 减少生产日志体积 |
+| `verbose` | true | true | **false** | verbose 会暴露 errors 明细 |
+| `debug-snapshot` | true | true | **false** | 上报参数值有安全风险 |
+| `masking.structured-enabled` | false | true | **true** | 生产必须脱敏 |
+| `trace-id.enabled` | false | true | **true** | 生产必须有链路追踪 |
+| `logging.banner` | true | true | **false** | 生产无需启动 banner |
